@@ -1,50 +1,70 @@
+from flask import Blueprint, render_template, request, redirect, url_for, session
 import os
-from flask import Blueprint, render_template, request, redirect, url_for
 from werkzeug.utils import secure_filename
 
 mypage_bp = Blueprint('mypage', __name__, template_folder='.')
 
-# 사진이 저장될 경로 설정
 UPLOAD_FOLDER = 'static/profile_pics'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
-@mypage_bp.route('/mypage', methods=['GET', 'POST'])
+def allowed_file(filename):
+    # 파일명에 '.'이 있고, 확장자를 추출해서 소문자로 변환한 뒤 목록에 있는지 확인
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+@mypage_bp.route('/mypage')
 def mypage():
-    if request.method == 'POST':
-        # 닉네임, 소개글 가져오기
-        nickname = request.form.get('nickname')
-        bio = request.form.get('bio')
-        
-        # 이미지 파일 가져오기
-        file = request.files.get('profile_img')
-        if file and file.filename != '':
-            # 보안을 위해 파일명 정제 (파일명에 이상한 경로가 섞이지 않게)
-            filename = secure_filename(f"user_1_{file.filename}") 
-            file.save(os.path.join(UPLOAD_FOLDER, filename))
-            print(f"이미지 저장 완료: {filename}")
+    # 1. 로그인 여부 확인
+    if 'user_id' not in session:
+        return redirect(url_for('auth.login')) # 로그인 안 됐으면 로그인창으로
 
-        print(f"프로필 업데이트: {nickname}, {bio}")
-        return redirect(url_for('mypage.mypage'))
+    # 2. 세션에서 정보 가져오기 (실제로는 여기서 DB 조회를 합니다)
+    user_email = session.get('user_id')
+    # 임시로 세션이나 DB 대신 현재는 로직 확인을 위해 변수화
+    nickname = session.get('nickname', '설정된 닉네임이 없습니다.')
+    bio = session.get('bio', '소개글을 등록해 보세요.')
+    profile_img = session.get('profile_img')
 
-    return render_template('mypage.html')
+    return render_template('mypage.html', 
+                           user_email=user_email, 
+                           nickname=nickname, 
+                           bio=bio, 
+                           profile_img=profile_img)
+
 @mypage_bp.route('/edit', methods=['GET'])
 def edit_profile():
-    # GET 방식이므로 폼 데이터가 아닌 DB에서 가져온 기본값을 넣어줘야 합니다 (임시값 설정)
-    return render_template('edit_profile.html', nickname="현재닉네임", bio="현재소개")
+    if 'user_id' not in session:
+        return redirect(url_for('auth.login'))
+
+    # 수정 페이지 들어갈 때 기존 값을 채워넣어줌
+    return render_template('edit_profile.html', 
+                           nickname=session.get('nickname', ''), 
+                           bio=session.get('bio', ''))
 
 @mypage_bp.route('/update', methods=['POST'])
-def update_profile():  # HTML form의 action과 일치해야 함
-    nickname = request.form.get('nickname')
-    bio = request.form.get('bio')
-    
-    # 이미지 처리 로직 (기존 코드 유지)
-    file = request.files.get('profile_img')
-    if file and file.filename != '':
-        filename = secure_filename(f"user_1_{file.filename}") 
-        # 폴더가 없으면 에러날 수 있으니 확인 필요
-        if not os.path.exists(UPLOAD_FOLDER):
-            os.makedirs(UPLOAD_FOLDER)
-        file.save(os.path.join(UPLOAD_FOLDER, filename))
+def update_profile():
+    if 'user_id' not in session:
+        return redirect(url_for('auth.login'))
 
-    print(f"업데이트 완료: {nickname}, {bio}")
+    new_nickname = request.form.get('nickname')
+    new_bio = request.form.get('bio')
+    
+    session['nickname'] = new_nickname
+    session['bio'] = new_bio
+
+    file = request.files.get('profile_img')
+    
+    if file and file.filename != '':
+        if allowed_file(file.filename): 
+            filename = secure_filename(f"user_{session['user_id']}_{file.filename}") 
+            
+            if not os.path.exists(UPLOAD_FOLDER):
+                os.makedirs(UPLOAD_FOLDER)
+                
+            file.save(os.path.join(UPLOAD_FOLDER, filename))
+            session['profile_img'] = url_for('static', filename=f'profile_pics/{filename}')
+        else:
+            # 허용되지 않은 파일 형식일 경우 처리 (선택 사항)
+            print("허용되지 않는 파일 형식입니다.")
+            # return "허용되지 않는 파일 형식입니다.", 400 등의 처리가 가능합니다.
+
     return redirect(url_for('mypage.mypage'))

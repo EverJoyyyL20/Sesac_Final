@@ -1,0 +1,118 @@
+:root {
+    --primary-color: #4facfe;
+    --secondary-color: #00f2fe;
+    --bg-color: #f8f9fa;
+    --card-bg: #ffffff;
+    --text-main: #333333;
+    --text-sub: #888888;
+    --border-color: #f0f0f0;
+}
+
+body {
+    font-family: 'Pretendard', -apple-system, sans-serif;
+    background-color: var(--bg-color);
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+.survey-wrapper {
+    width: 90%;
+    max-width: 450px;
+    background: var(--card-bg);
+    padding: 30px;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+}
+
+/* 진행 바 스타일 */
+.progress-area {
+    margin-bottom: 40px;
+}
+
+.gauge-background {
+    width: 100%;
+    background: #eee;
+    height: 8px;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+#gauge-fill {
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.progress-text {
+    font-size: 0.85rem;
+    color: var(--text-sub);
+    margin-top: 8px;
+    text-align: right;
+}
+
+/* 질문 카드 애니메이션 */
+.q-card {
+    display: none;
+    animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+h2 {
+    font-size: 1.4rem;
+    color: var(--text-main);
+    margin-bottom: 30px;
+    line-height: 1.4;
+}
+
+/* 버튼(옵션) 디자인 */
+.options-group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.opt-btn {
+    padding: 18px;
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    background: white;
+    font-size: 1rem;
+    font-weight: 500;
+    color: #444;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s ease;
+}
+
+.opt-btn:hover {
+    border-color: var(--primary-color);
+    background-color: #f0f8ff;
+    color: var(--primary-color);
+}
+
+.opt-btn:active {
+    transform: scale(0.98);
+}
+
+/* 완료 화면 전용 스타일 */
+#complete-screen {
+    display: none;
+    text-align: center;
+}
+
+.main-btn {
+    text-align: center;
+    width: 100%;
+    margin-top: 20px;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+}
