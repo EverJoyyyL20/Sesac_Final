@@ -1,0 +1,60 @@
+/* static/css/main.css */
+
+/* 메인 중앙 히어로 섹션 */
+.hero {
+    text-align: center;
+    padding: 120px 20px;
+    height: calc(60vh - 60px); /* 화면 높이에 맞춰 유동적으로 조절 */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background-color: #ffffff; /* 나중에 배경 이미지를 넣고 싶다면 여기에 추가 */
+}
+
+.hero h1 {
+    font-size: 3rem;
+    color: #222;
+    margin-bottom: 20px;
+    letter-spacing: -1px;
+}
+
+.hero p {
+    font-size: 1.25rem;
+    color: #666;
+    margin-bottom: 40px;
+}
+
+/* 설문 시작 버튼 디자인 */
+.survey-btn {
+    background-color: #5785e7;
+    color: white;
+    padding: 18px 45px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    border: none;
+    cursor: pointer;
+    border-radius: 50px; /* 라운드 스타일 */
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(87, 133, 231, 0.3);
+}
+
+.survey-btn:hover {
+    background-color: #4369c7;
+    transform: translateY(-3px); /* 위로 살짝 뜨는 효과 */
+    box-shadow: 0 6px 20px rgba(87, 133, 231, 0.4);
+}
+
+.survey-btn:active {
+    transform: translateY(-1px);
+}
+
+/* 추가 섹션이 필요할 때를 대비한 그리드 (선택 사항) */
+.feature-section {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 80px 20px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 30px;
+}

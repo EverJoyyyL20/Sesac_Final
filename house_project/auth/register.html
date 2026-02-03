@@ -3,83 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <title>회원가입 - 안전한 집 찾기</title>
-    <style>
-        body { font-family: 'Malgun Gothic', sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; }
-        
-        .navbar {
-            background-color: #333;
-            display: flex;
-            justify-content: space-between;
-            padding: 10px 20px;
-        }
-        .navbar a { color: white; text-decoration: none; padding: 14px 20px; }
-
-        .page-wrapper {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: calc(100vh - 60px);
-        }
-
-        .register-box {
-            background-color: white;
-            width: 100%;
-            max-width: 420px;
-            padding: 40px;
-            border-radius: 12px;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
-            text-align: center;
-        }
-
-        .register-box h2 { margin-bottom: 30px; color: #333; }
-
-        .input-group { margin-bottom: 15px; text-align: left; }
-        .input-group label { display: block; margin-bottom: 5px; font-size: 14px; color: #666; }
-        
-        /* input type="email"로 변경하여 브라우저 자체 검증 기능 활용 */
-        .input-group input {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            box-sizing: border-box;
-        }
-
-        .policy-container {
-            text-align: left;
-            background: #f9f9f9;
-            padding: 15px;
-            border-radius: 6px;
-            margin-bottom: 20px;
-            font-size: 13px;
-            color: #555;
-            border: 1px solid #eee;
-        }
-        .policy-check { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; }
-
-        .register-btn {
-            width: 100%;
-            padding: 14px;
-            background-color: #5785e7;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: 0.3s;
-        }
-        .register-btn:hover { background-color: #4369c7; }
-
-        .login-link { margin-top: 20px; font-size: 14px; color: #888; }
-        .login-link a { color: #5785e7; text-decoration: none; }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
 </head>
 <body>
 
 <div class="navbar">
     <div class="nav-left">
         <a href="{{ url_for('main.index') }}">HOME</a>
+        <a href="{{ url_for('main.find_property') }}">매물찾기</a>
+    </div>
+    <div class="nav-links">
+        <a href="{{ url_for('mypage.mypage') }}">My Page</a>
+        <a href="{{ url_for('auth.login') }}">Login</a>
+        <a href="{{ url_for('auth.register') }}">Register</a>
     </div>
 </div>
 
@@ -108,7 +45,11 @@
                     <input type="checkbox" name="policy_agree" required>
                     <span>
                         (필수) <strong>개인정보 처리방침</strong>에 동의합니다.<br>
-                        <small style="color: #999;">* 수집항목: 이메일, 비밀번호<br>* 목적: 서비스 이용 및 소통 창구 확보</small>
+                        <small style="color: #999;">
+                            * 수집항목: 이메일, 비밀번호<br>
+                            * 목적: 서비스 이용 및 본인 식별<br>
+                            * 개인정보 보호법에 따라 안전하게 관리됩니다.
+                        </small>
                     </span>
                 </label>
             </div>

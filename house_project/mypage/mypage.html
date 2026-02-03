@@ -2,109 +2,59 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>마이페이지 - 안전한 집 찾기</title>
-    <style>
-        body { font-family: 'Malgun Gothic', sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; }
-        
-        /* 상단 네비게이션 바 (공통 디자인) */
-        .navbar {
-            background-color: #333;
-            display: flex;
-            justify-content: space-between;
-            padding: 10px 20px;
-        }
-        .navbar a { color: white; text-decoration: none; padding: 14px 20px; }
-
-        .container {
-            max-width: 800px;
-            margin: 50px auto;
-            padding: 20px;
-        }
-
-        /* 마이페이지 카드 스타일 */
-        .profile-card {
-            background: white;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-        }
-
-        .profile-card h2 { border-bottom: 2px solid #5785e7; padding-bottom: 10px; color: #333; }
-        
-        .info-row { display: flex; justify-content: space-between; padding: 15px 0; border-bottom: 1px solid #eee; }
-        .info-label { font-weight: bold; color: #666; }
-        .info-value { color: #333; }
-
-        /* 버튼 그룹 */
-        .btn-group { display: flex; gap: 10px; margin-top: 20px; }
-        .btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-            text-decoration: none;
-            text-align: center;
-        }
-        .btn-edit { background-color: #5785e7; color: white; }
-        .btn-logout { background-color: #666; color: white; }
-        .btn-withdraw { background-color: #ff4d4d; color: white; font-size: 12px; margin-left: auto; }
-
-        /* 관심 매물/설문 결과 섹션 */
-        .content-section {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-        .content-box {
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-            min-height: 150px;
-        }
-        .content-box h3 { font-size: 1.1em; color: #555; }
-        .empty-text { color: #aaa; font-size: 0.9em; margin-top: 20px; }
-    </style>
+    <title>마이페이지 - 맞춤형 매물 찾기</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mypage.css') }}">
 </head>
 <body>
 
 <div class="navbar">
     <div class="nav-left">
         <a href="{{ url_for('main.index') }}">HOME</a>
+        <a href="{{ url_for('main.find_property') }}">매물찾기</a>
     </div>
     <div class="nav-links">
+        <a href="{{ url_for('mypage.mypage') }}">My Page</a>
         <a href="{{ url_for('auth.login') }}">Logout</a>
     </div>
 </div>
 
 <div class="container">
     <div class="profile-card">
-        <h2>내 프로필</h2>
-        <div class="info-row">
-            <span class="info-label">이메일 계정</span>
-            <span class="info-value">{{ user_email if user_email else 'example@email.com' }}</span>
+        <div class="profile-left">
+            <img class="profile-img-preview" 
+                 src="{{ profile_img if profile_img else 'https://via.placeholder.com/150' }}" alt="프로필 사진">
         </div>
-        <div class="info-row">
-            <span class="info-label">가입일</span>
-            <span class="info-value">2026-02-03</span>
-        </div>
-        
-        <div class="btn-group">
-            <a href="#" class="btn btn-edit">정보 수정</a>
-            <a href="{{ url_for('auth.login') }}" class="btn btn-logout">로그아웃</a>
-            <button class="btn btn-withdraw" onclick="confirmWithdrawal()">회원 탈퇴</button>
+
+        <div class="profile-right">
+            <div class="info-row">
+                <span class="info-label">이메일 계정</span>
+                <span class="info-value user-email-text">{{ user_email if user_email else 'user@email.com' }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">닉네임</span>
+                <span class="info-value">{{ nickname if nickname else '설정된 닉네임이 없습니다.' }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">한 줄 소개</span>
+                <span class="info-value">{{ bio if bio else '소개글을 등록해 보세요.' }}</span>
+            </div>
+            
+            <div class="btn-group">
+                <a href="{{ url_for('mypage.edit_profile') }}" class="btn btn-edit">내 정보 수정</a>
+                <a href="{{ url_for('auth.login') }}" class="btn btn-logout">로그아웃</a>
+                <button type="button" class="btn btn-withdraw" onclick="confirmWithdrawal()">회원 탈퇴</button>
+            </div>
         </div>
     </div>
 
     <div class="content-section">
         <div class="content-box">
-            <h3>최근 설문 결과</h3>
-            <p class="empty-text">진행한 설문이 없습니다.</p>
+            <h3>📝 최근 설문 결과</h3>
+            <p class="empty-text">진행한 설문 내역이 없습니다.</p>
         </div>
         <div class="content-box">
-            <h3>찜한 매물</h3>
+            <h3>⭐ 찜한 매물</h3>
             <p class="empty-text">저장된 매물이 없습니다.</p>
         </div>
     </div>
@@ -112,8 +62,8 @@
 
 <script>
     function confirmWithdrawal() {
-        if (confirm("정말로 탈퇴하시겠습니까? 관련 데이터가 모두 삭제되며 복구할 수 없습니다.")) {
-            alert("탈퇴 처리가 완료되었습니다.");
+        if (confirm("정말로 탈퇴하시겠습니까? 모든 데이터는 즉시 파기되며 되돌릴 수 없습니다.")) {
+            // 실제 탈퇴 처리 경로로 이동
             location.href = "{{ url_for('main.index') }}";
         }
     }
