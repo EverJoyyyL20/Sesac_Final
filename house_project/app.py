@@ -1,7 +1,7 @@
 from flask import Flask
-from routes.main_route import main_bp
-from routes.auth_route import auth_bp
-from routes.mypage_route import mypage_bp
+from main.main_route import main_bp
+from auth.auth_route import auth_bp
+from mypage.mypage_route import mypage_bp
 
 app = Flask(__name__)
 

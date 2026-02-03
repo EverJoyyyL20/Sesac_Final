@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template
 
 # 'main'이라는 이름의 블루프린트 생성
-main_bp = Blueprint('main', __name__)
+main_bp = Blueprint('main', __name__, template_folder='.')
 
 @main_bp.route('/')
 def index():
