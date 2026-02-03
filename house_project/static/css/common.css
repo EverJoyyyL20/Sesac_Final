@@ -1,0 +1,47 @@
+/* static/css/common.css */
+body {
+    font-family: 'Malgun Gothic', sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f4;
+}
+
+/* 상단 네비게이션 바 (60px 통일) */
+.navbar {
+    background-color: #333;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 40px;
+    height: 60px;
+}
+
+.nav-left, .nav-links {
+    display: flex;
+    align-items: center;
+}
+
+.navbar a {
+    color: white;
+    text-decoration: none;
+    padding: 0 20px;
+    line-height: 60px;
+    display: block;
+    transition: 0.3s;
+    font-size: 15px;
+}
+
+.navbar a:hover {
+    background-color: #555;
+    color: #fff;
+}
+
+/* 푸터 */
+.footer {
+    background-color: #eee;
+    padding: 40px 20px;
+    text-align: center;
+    font-size: 13px;
+    color: #888;
+    border-top: 1px solid #ddd;
+}
