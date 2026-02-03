@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>맞춤 설문 조사</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/survey.css') }}">
+</head>
+<body>
+
+<div class="survey-wrapper">
+    <div class="progress-area">
+        <div class="gauge-background">
+            <div id="gauge-fill"></div>
+        </div>
+        <div class="progress-text" id="status-txt">0% 완료</div>
+    </div>
+
+    <form id="survey-form">
+        {% for q in questions %}
+        <div class="q-card" id="q-{{ loop.index0 }}" {% if loop.first %}style="display: block;"{% endif %}>
+            <h2>{{ q.title }}</h2>
+            <div class="options-group">
+                {% for option in q.options %}
+                <button type="button" class="opt-btn" onclick="nextQuestion({{ loop.index0 }}, '{{ option }}')">
+                    {{ option }}
+                </button>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </form>
+
+    <div id="complete-screen">
+        <h2>🎉 설문이 완료되었습니다!</h2>
+        <p>전달해주신 답변을 바탕으로 <br>최적의 매물을 찾아드릴게요.</p>
+        <button type="button" onclick="location.href='/'" class="opt-btn main-btn">
+            메인으로 돌아가기
+        </button>
+    </div>
+</div>
+
+<script>
+    // 파이썬에서 넘겨준 전체 질문 개수
+    const totalQuestions = {{ questions|length }};
+    let currentIdx = 0;
+    const userAnswers = [];
+
+    /**
+     * 다음 질문으로 넘어가는 함수
+     * @param {number} index - 현재 질문의 인덱스
+     * @param {string} value - 사용자가 선택한 답변 값
+     */
+    function nextQuestion(index, value) {
+        // 1. 선택한 답변 데이터 저장
+        userAnswers.push({ 
+            question_id: index + 1, 
+            choice: value 
+        });
+
+        // 2. 현재 질문 카드 숨기기
+        document.getElementById(`q-${currentIdx}`).style.display = 'none';
+
+        // 3. 인덱스 증가
+        currentIdx++;
+
+        // 4. 다음 질문 유무에 따른 화면 처리
+        if (currentIdx < totalQuestions) {
+            document.getElementById(`q-${currentIdx}`).style.display = 'block';
+            updateProgress();
+        } else {
+            showCompletion();
+        }
+    }
+
+    /**
+     * 상단 게이지 바 업데이트
+     */
+    function updateProgress() {
+        const percent = (currentIdx / totalQuestions) * 100;
+        document.getElementById('gauge-fill').style.width = percent + '%';
+        document.getElementById('status-txt').innerText = Math.round(percent) + '% 완료';
+    }
+
+    /**
+     * 완료 화면 표시 및 데이터 처리
+     */
+    function showCompletion() {
+        document.getElementById('gauge-fill').style.width = '100%';
+        document.getElementById('status-txt').innerText = '100% 완료';
+        document.getElementById('complete-screen').style.display = 'block';
+        
+        // 콘솔에서 결과 확인 (나중에 서버 전송 로직이 들어갈 자리)
+        console.log("최종 수집 데이터:", userAnswers);
+    }
+</script>
+
+</body>
+</html>

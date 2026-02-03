@@ -12,8 +12,22 @@ def index():
 def find_property():
     # 매물찾기 로직 (추후 주택임대차 보호법 관련 필터링 추가 가능)
     return render_template('find_property.html')
-
 @main_bp.route('/survey')
 def survey():
-    # 설문 시작 페이지
-    return render_template('survey.html')
+    questions = [
+        {
+            "title": "테스트1",
+            "options": ["1", "2", "3", "4", "5"]
+        },
+        {
+            "title": "테스트2",
+            "options": ["2", "232", "423"]
+        },
+        {
+            "title": "테스트3",
+            "options": ["2ㅈ", "23ㅈㅈ2", "42ㅈㅈ3"]
+        },
+    ]
+
+    # 2. HTML로 데이터 전달
+    return render_template('survey.html', questions=questions)

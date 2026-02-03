@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>정보 수정 - 맞춤형 매물 찾기</title>
+    <title>정보 수정 - 안전한 집 찾기</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/mypage.css') }}">
 </head>
@@ -13,49 +13,56 @@
         <a href="{{ url_for('main.index') }}">HOME</a>
         <a href="{{ url_for('main.find_property') }}">매물찾기</a>
     </div>
+    
     <div class="nav-links">
-        <a href="{{ url_for('mypage.mypage') }}">My Page</a>
-        <a href="{{ url_for('auth.login') }}">Logout</a>
+        {% if session.get('user_id') %}
+            <a href="{{ url_for('mypage.mypage') }}">My Page</a>
+            <a href="{{ url_for('auth.logout') }}">Logout</a>
+        {% else %}
+            <a href="{{ url_for('auth.login') }}">Login</a>
+            <a href="{{ url_for('auth.register') }}">Register</a>
+        {% endif %}
     </div>
 </div>
 
 <div class="container">
-    <div class="profile-card"> <form action="{{ url_for('mypage.update_profile') }}" method="post" enctype="multipart/form-data" style="display: flex; width: 100%; gap: 50px; align-items: flex-start;">
+    <div class="profile-card">
+        <form action="{{ url_for('mypage.update_profile') }}" method="post" enctype="multipart/form-data" style="display: flex; width: 100%; gap: 50px;">
             
             <div class="profile-left">
                 <img id="preview" class="profile-img-preview" 
                      src="{{ profile_img if profile_img else 'https://via.placeholder.com/150' }}" alt="프로필 사진">
                 <div style="margin-top: 15px;">
-                    <label for="profile_img" class="btn" style="background-color: #eee; color: #555; font-size: 12px; padding: 8px 15px; cursor: pointer;">사진 변경</label>
+                    <label for="profile_img" class="file-label">사진 변경</label>
                     <input type="file" id="profile_img" name="profile_img" accept="image/*" style="display: none;" onchange="previewImage(this)">
                 </div>
             </div>
 
             <div class="profile-right" style="flex: 1;">
-                <h2 style="margin-bottom: 25px; color: #333;">내 정보 수정</h2>
+                <h2 style="margin-bottom: 30px;">내 정보 수정</h2>
                 
                 <div class="info-row">
-                    <label class="info-label" for="nickname">닉네임</label>
-                    <input type="text" id="nickname" name="nickname" value="{{ nickname }}" class="edit-input" placeholder="새 닉네임 입력">
+                    <span class="info-label">닉네임</span>
+                    <input type="text" name="nickname" value="{{ nickname }}" class="edit-input" placeholder="새 닉네임 입력">
                 </div>
                 
                 <div class="info-row">
-                    <label class="info-label" for="bio">한 줄 소개</label>
-                    <input type="text" id="bio" name="bio" value="{{ bio }}" class="edit-input" placeholder="새 소개글 입력">
+                    <span class="info-label">한 줄 소개</span>
+                    <input type="text" name="bio" value="{{ bio }}" class="edit-input" placeholder="본인을 짧게 소개해 주세요">
                 </div>
 
-                <div class="pw-change-section" style="margin-top: 30px; border-top: 1px solid #f0f0f0; padding-top: 20px;">
-                    <h3 style="font-size: 15px; color: #5785e7; margin-bottom: 15px;">비밀번호 변경 (필요 시)</h3>
+                <div class="pw-change-section">
+                    <h3>비밀번호 변경</h3>
                     <div class="info-row">
                         <input type="password" name="new_password" class="edit-input" placeholder="새 비밀번호">
                     </div>
-                    <div class="info-row">
-                        <input type="password" name="confirm_password" class="edit-input" placeholder="비밀번호 확인">
+                    <div class="info-row" style="border-bottom: none;">
+                        <input type="password" name="confirm_password" class="edit-input" placeholder="새 비밀번호 확인">
                     </div>
                 </div>
 
-                <div class="btn-group" style="margin-top: 30px;">
-                    <button type="submit" class="btn btn-edit">변경 내용 저장</button>
+                <div class="btn-group" style="margin-top: 40px;">
+                    <button type="submit" class="btn btn-edit">저장하기</button>
                     <a href="{{ url_for('mypage.mypage') }}" class="btn btn-logout">취소</a>
                 </div>
             </div>
@@ -64,7 +71,6 @@
 </div>
 
 <script>
-    // 이미지 미리보기 기능
     function previewImage(input) {
         if (input.files && input.files[0]) {
             const reader = new FileReader();
@@ -75,22 +81,6 @@
         }
     }
 </script>
-
-<style>
-    .edit-input {
-        width: 100%;
-        padding: 10px 0;
-        border: none;
-        border-bottom: 2px solid #eee;
-        font-size: 16px;
-        transition: border-color 0.3s;
-        outline: none;
-        margin-bottom: 10px;
-    }
-    .edit-input:focus {
-        border-bottom-color: #5785e7;
-    }
-</style>
 
 </body>
 </html>
