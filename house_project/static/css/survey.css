@@ -1,41 +1,34 @@
-:root {
-    --primary-color: #4facfe;
-    --secondary-color: #00f2fe;
-    --bg-color: #f8f9fa;
-    --card-bg: #ffffff;
-    --text-main: #333333;
-    --text-sub: #888888;
-    --border-color: #f0f0f0;
-}
+/* static/css/survey.css */
 
+/* 기본 배경 및 폰트 */
 body {
-    font-family: 'Pretendard', -apple-system, sans-serif;
-    background-color: var(--bg-color);
-    margin: 0;
+    background-color: #f8f9fa;
+    font-family: 'Pretendard', sans-serif;
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
+    min-height: 100vh;
+    margin: 0;
 }
 
 .survey-wrapper {
-    width: 90%;
-    max-width: 450px;
-    background: var(--card-bg);
+    width: 100%;
+    max-width: 480px;
+    background: #ffffff;
     padding: 30px;
     border-radius: 20px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
 }
 
 /* 진행 바 스타일 */
 .progress-area {
-    margin-bottom: 40px;
+    margin-bottom: 30px;
 }
 
 .gauge-background {
     width: 100%;
-    background: #eee;
     height: 8px;
+    background: #eee;
     border-radius: 10px;
     overflow: hidden;
 }
@@ -43,21 +36,26 @@ body {
 #gauge-fill {
     width: 0%;
     height: 100%;
-    background: linear-gradient(90deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+    transition: width 0.4s ease;
 }
 
 .progress-text {
     font-size: 0.85rem;
-    color: var(--text-sub);
+    color: #4facfe;
+    font-weight: bold;
     margin-top: 8px;
     text-align: right;
 }
 
-/* 질문 카드 애니메이션 */
+/* 카드 시스템 */
 .q-card {
     display: none;
     animation: fadeIn 0.5s ease;
+}
+
+.q-card.active {
+    display: block;
 }
 
 @keyframes fadeIn {
@@ -65,54 +63,95 @@ body {
     to { opacity: 1; transform: translateY(0); }
 }
 
+/* 텍스트 스타일 */
 h2 {
     font-size: 1.4rem;
-    color: var(--text-main);
-    margin-bottom: 30px;
-    line-height: 1.4;
+    margin-bottom: 20px;
+    word-break: keep-all;
 }
 
-/* 버튼(옵션) 디자인 */
+.sub-q {
+    font-weight: bold;
+    margin: 25px 0 10px;
+    color: #333;
+    font-size: 1rem;
+}
+
+/* 버튼 및 입력창 */
+.input-group {
+    margin-bottom: 20px;
+}
+
+.input-field {
+    width: 100%;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 12px;
+    box-sizing: border-box;
+    font-size: 1rem;
+}
+
 .options-group {
     display: flex;
-    flex-direction: column;
-    gap: 12px;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 15px;
 }
 
 .opt-btn {
-    padding: 18px;
-    border: 2px solid var(--border-color);
+    flex: 1 1 calc(50% - 10px);
+    padding: 15px;
+    border: 2px solid #eee;
+    background: #fff;
     border-radius: 12px;
-    background: white;
-    font-size: 1rem;
-    font-weight: 500;
-    color: #444;
     cursor: pointer;
-    text-align: left;
-    transition: all 0.2s ease;
+    transition: all 0.2s;
+    font-size: 0.95rem;
 }
 
-.opt-btn:hover {
-    border-color: var(--primary-color);
-    background-color: #f0f8ff;
-    color: var(--primary-color);
+.opt-btn.selected {
+    border-color: #4facfe;
+    background-color: #f0f7ff;
+    color: #4facfe;
+    font-weight: bold;
 }
 
-.opt-btn:active {
-    transform: scale(0.98);
-}
-
-/* 완료 화면 전용 스타일 */
-#complete-screen {
+/* 조건부 영역 */
+.conditional-area {
     display: none;
+    padding: 20px;
+    background: #f9f9f9;
+    border-radius: 15px;
+    margin-top: 15px;
+}
+
+/* 경고 문구 */
+.limit-info {
+    font-size: 0.8rem;
+    color: #ff4d4f;
+    display: none;
+    margin-top: 10px;
     text-align: center;
 }
 
-.main-btn {
-    text-align: center;
+/* 하단 확인 버튼 */
+.next-btn-container {
+    margin-top: 30px;
+}
+
+.confirm-btn {
     width: 100%;
-    margin-top: 20px;
-    background: var(--primary-color);
+    padding: 16px;
+    background-color: #333;
     color: white;
     border: none;
+    border-radius: 15px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.confirm-btn:hover {
+    background-color: #000;
 }
