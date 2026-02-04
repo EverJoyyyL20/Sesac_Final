@@ -94,143 +94,157 @@ def click_gu_button(driver, gu_name):
     time.sleep(3)
 
 
-# ==============================
-# 카트클릭 버튼 클릭
-# ==============================
-
 def crawl_room_list(driver):
 
-    print("▶ 매물 카드 수집 시작")
-
-    time.sleep(2)
-
-    # 매물 카드들 (다방은 보통 article 또는 li)
-    cards = driver.find_elements(By.XPATH, "//li//a | //article")
-
-    print(f"▶ 발견된 카드 수: {len(cards)}")
+    print("▶ 현재 페이지 매물 수집")
 
     results = []
+
+    cards_xpath = "//div[@id='onetwo-list']//li"
+
+    cards = WebDriverWait(driver,10).until(
+        EC.presence_of_all_elements_located(
+            (By.XPATH,cards_xpath))
+    )
+
+    print("▶ 카드 수:", len(cards))
 
     for idx in range(len(cards)):
 
         try:
-            print(f"\n▶ 매물 {idx+1} 클릭")
 
-            cards = driver.find_elements(By.XPATH, "//li//a | //article")
+            cards = driver.find_elements(By.XPATH,cards_xpath)
             target = cards[idx]
 
             driver.execute_script(
                 "arguments[0].scrollIntoView({block:'center'});", target)
-
-            time.sleep(0.8)
+            time.sleep(0.5)
 
             driver.execute_script("arguments[0].click();", target)
 
-            # ------------------
-            # 상세 패널 로딩 대기
-            # ------------------
-
-            detail_section = WebDriverWait(driver, 10).until(
+            # 상세 로딩 대기
+            WebDriverWait(driver,10).until(
                 EC.presence_of_element_located(
-                    (By.XPATH, "//section[contains(@class,'sc-gbPaa')]"))
+                    (By.XPATH,"//section[@data-scroll-spy-element]"))
             )
 
-            detail_text = detail_section.text
+            sections = driver.find_elements(
+                By.XPATH,"//section[@data-scroll-spy-element]"
+            )
 
-            results.append(detail_text)
+            detail_data = {}
 
-            print("✅ 상세정보 수집 완료")
+            for sec in sections:
+                key = sec.get_attribute("data-scroll-spy-element")
+                detail_data[key] = sec.text
 
-            # ------------------
-            # 닫기 버튼 클릭
-            # ------------------
+            results.append(detail_data)
 
-            close_btn = WebDriverWait(driver, 10).until(
+            print(f"✅ {idx+1} 완료")
+
+            # 닫기
+            close_btn = WebDriverWait(driver,10).until(
                 EC.element_to_be_clickable(
-                    (By.XPATH, "//button[contains(@aria-label,'닫기')] | //button[contains(@aria-label,'close')]"))
+                    (By.XPATH,"//button[contains(@aria-label,'닫기')]"))
             )
 
             driver.execute_script("arguments[0].click();", close_btn)
 
-            time.sleep(1.5)
+            time.sleep(1)
 
         except Exception as e:
-            print("❌ 매물 처리 실패:", e)
+            print("❌ 실패:",e)
             continue
-
-    print(f"\n✅ 전체 매물 {len(results)}개 상세 수집 완료")
 
     return results
 
 
-# ==============================
-# 지도 축소(X) 클릭
-# ==============================
+def scroll_until_end(driver):
 
-def click_map_close(driver):
+    last_height = driver.execute_script("return document.body.scrollHeight")
 
-    print("▶ 지도 축소 클릭")
+    while True:
 
-    close_btn = WebDriverWait(driver, 10).until(
-        EC.element_to_be_clickable(
-            (By.XPATH, "//button[@aria-label='지도 축소']")
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        time.sleep(1.5)
+
+        new_height = driver.execute_script("return document.body.scrollHeight")
+
+        if new_height == last_height:
+            break
+
+        last_height = new_height
+
+
+def go_next_page(driver):
+
+    try:
+        next_btn = WebDriverWait(driver, 5).until(
+            EC.element_to_be_clickable(
+                (By.XPATH, "//button[contains(@aria-label,'다음')]"))
         )
-    )
 
-    driver.execute_script("arguments[0].click();", close_btn)
+        driver.execute_script("arguments[0].click();", next_btn)
+        time.sleep(2)
 
-    time.sleep(2)
+        print("▶ 다음 페이지 이동")
 
-    print("✅ 지도 축소 완료")
+        return True
 
+    except:
+        print("▶ 마지막 페이지")
+        return False
 
-# ==============================
-# 서울 전체 구 반복 크롤링
-# ==============================
-
-def crawl_all_seoul_gu(driver):
-
-    all_data = {}
-
-    for gu in SEOUL_GU_LIST:
-
-        try:
-            click_gu_button(driver, gu)
-
-            rooms = crawl_room_list(driver)
-
-            all_data[gu] = rooms
-
-            click_map_close(driver)
-
-        except Exception as e:
-            print(f"❌ {gu} 실패:", e)
-            continue
-
-    return all_data
-
-
-# ==============================
-# 메인 실행
-# ==============================
 
 if __name__ == "__main__":
 
-    driver = create_driver()
+    BASE_URL = "https://www.dabangapp.com/"
 
-    driver.get("https://www.dabangapp.com/")
+    driver = create_driver()
+    driver.get(BASE_URL)
+
     time.sleep(3)
 
-    # 1. 원/투룸 클릭
     click_one_two_room(driver)
 
-    # 2. 서울 전체 구 자동 반복
-    data = crawl_all_seoul_gu(driver)
+    ALL_RESULTS = []
 
-    # 3. 저장
-    with open("dabang_seoul_room.json", "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+    # ==========================
+    # 서울 25개 구 반복
+    # ==========================
 
-    print("\n🎉 전체 서울 25개구 크롤링 완료")
+    for gu in SEOUL_GU_LIST:
 
-    driver.quit()
+        print("\n==============================")
+        print(f"▶▶ {gu} 수집 시작")
+        print("==============================")
+
+        click_gu_button(driver, gu)
+
+        page = 1
+
+        # ==========================
+        # 페이지 반복
+        # ==========================
+
+        while True:
+
+            print(f"\n[{gu}] PAGE {page}")
+
+            scroll_until_end(driver)
+
+            page_data = crawl_room_list(driver)
+
+            ALL_RESULTS.extend(page_data)
+
+            has_next = go_next_page(driver)
+
+            if not has_next:
+                break
+
+            page += 1
+
+        print(f"✅ {gu} 완료")
+
+    print("\n🎉 전체 수집 완료")
+    print("총 수집 매물:", len(ALL_RESULTS))
