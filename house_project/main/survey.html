@@ -110,19 +110,25 @@
         {% for q in questions if q.options %}
         <div class="q-card" id="step-{{ 3 + loop.index0 }}">
             <h2>🌳 {{ q.title or "주변 환경 중 중요한 것은?" }}</h2>
+            
+            {% if q.multiple %}
             <p style="color:#888; font-size:0.9rem; margin-bottom:15px;">최대 3개까지 선택 가능합니다.</p>
+            {% else %}
+            <p style="color:#888; font-size:0.9rem; margin-bottom:15px;">하나만 선택 가능합니다.</p>
+            {% endif %}
+
             <div class="options-group">
                 {% for option in q.options %}
                 <button type="button" class="opt-btn weight-opt" 
                         data-categories='{{ (option.categories | default([])) | tojson | safe }}'
-                        onclick="handleWeightClick(this, 3)">
+                        onclick="handleWeightClick(this, {{ 3 if q.multiple else 1 }}, {{ 'true' if q.multiple else 'false' }})">
                     {{ option.text }}
                 </button>
                 {% endfor %}
             </div>
             
-            <p class="limit-info weight-limit" style="color: #ff4d4f; display: none; margin-top: 10px;">최대 3개까지만 선택할 수 있어요! ✋</p>
-            <p class="limit-info weight-empty" style="color: orange; display: none; margin-top: 10px;">최소 하나 이상의 옵션을 선택해주세요! ⚠️</p>
+            <p class="limit-info weight-limit" style="color: #ff4d4f; display: none; margin-top: 10px;">최대 선택 가능 개수를 초과했습니다! ✋</p>
+            <p class="limit-info weight-empty" style="color: orange; display: none; margin-top: 10px;">항목을 선택해주세요! ⚠️</p>
             
             <div class="next-btn-container">
                 {% if loop.last %}
@@ -143,34 +149,20 @@
 </div>
 
 <script>
-    // 1. 초기 변수 및 데이터 구조 설정
     let currentIdx = 0;
     const weightQuestionCount = {{ questions|length if questions else 0 }};
     const totalSteps = 3 + weightQuestionCount; 
 
-    // 최종 데이터를 담을 통합 객체
     const surveyResults = { 
         location: "", 
         contract_type: "", 
-        budget: { 
-            min_dep: "", max_dep: "", 
-            min_rent: "", max_rent: "" 
-        }, 
-        details: {
-            b_type: [],      // 중복 선택
-            build_age: [],   // 중복 선택
-            room_count: [],  // 중복 선택
-            special_room: "", // 단일 선택
-            parking: ""      // 단일 선택
-        }, 
+        budget: { min_dep: "", max_dep: "", min_rent: "", max_rent: "" }, 
+        details: { b_type: [], build_age: [], room_count: [], special_room: "", parking: "" }, 
         category_log: [] 
     };
 
     window.onload = () => updateUI();
 
-    /**
-     * 2. UI 업데이트 및 페이지 이동
-     */
     function updateUI() {
         const percent = Math.round((currentIdx / totalSteps) * 100);
         const fillWidth = percent === 0 ? 5 : percent;
@@ -181,35 +173,24 @@
     function nextStep(idx) {
         const currentCard = document.getElementById(`step-${currentIdx}`);
         if (currentCard) currentCard.classList.remove('active');
-
         currentIdx = idx;
         const nextCard = document.getElementById(`step-${currentIdx}`);
         if (nextCard) nextCard.classList.add('active');
-        
         updateUI();
         window.scrollTo(0, 0);
     }
 
-    /**
-     * 3. 계약 형태 및 예산 관련 함수
-     */
     function selectContract(type, btn) {
         surveyResults.contract_type = type;
         const group = btn.parentElement;
         group.querySelectorAll('.opt-btn').forEach(b => b.classList.remove('selected'));
         btn.classList.add('selected');
-
         document.getElementById('monthly-area').style.display = (type === 'monthly') ? 'block' : 'none';
         document.getElementById('jeonse-area').style.display = (type === 'jeonse') ? 'block' : 'none';
     }
 
     function validateStep1() {
-        if (!surveyResults.contract_type) {
-            alert("계약 형태(월세/전세)를 먼저 선택해주세요!");
-            return;
-        }
-
-        // 값 수집
+        if (!surveyResults.contract_type) { alert("계약 형태를 선택해주세요!"); return; }
         if (surveyResults.contract_type === 'monthly') {
             surveyResults.budget.min_dep = document.getElementById('m_dep_min').value;
             surveyResults.budget.max_dep = document.getElementById('m_dep_max').value;
@@ -218,22 +199,14 @@
         } else {
             surveyResults.budget.min_dep = document.getElementById('j_dep_min').value;
             surveyResults.budget.max_dep = document.getElementById('j_dep_max').value;
-            surveyResults.budget.min_rent = ""; // 전세일 경우 월세 초기화
-            surveyResults.budget.max_rent = "";
         }
-
         validateAndNext(2);
     }
 
-    /**
-     * 4. 상세 조건(페이지 3) 관련 함수
-     */
-    // 중복 선택 토글 (건물유형, 연식, 방개수 공용)
     function toggleDetail(btn) {
         const key = btn.getAttribute('data-key');
         const val = btn.getAttribute('data-val');
         btn.classList.toggle('selected');
-        
         if (btn.classList.contains('selected')) {
             surveyResults.details[key].push(val);
         } else {
@@ -241,77 +214,66 @@
         }
     }
 
-    // 단일 선택 (반지하, 주차 공용)
     function selectSingle(btn) {
         const key = btn.getAttribute('data-key');
         const val = btn.getAttribute('data-val');
-        const group = btn.parentElement.querySelectorAll('.opt-btn');
-        
-        group.forEach(b => b.classList.remove('selected'));
+        btn.parentElement.querySelectorAll('.opt-btn').forEach(b => b.classList.remove('selected'));
         btn.classList.add('selected');
         surveyResults.details[key] = val;
     }
 
     function validateStep2() {
         const d = surveyResults.details;
-        // 중복 선택 항목 검증
         if (d.b_type.length === 0 || d.build_age.length === 0 || d.room_count.length === 0) {
-            alert("건물 유형, 연식, 방 개수를 각각 최소 하나 이상 선택해주세요!");
-            return;
+            alert("중복 선택 항목을 하나 이상 선택해주세요!"); return;
         }
-        // 단일 선택 항목 검증
-        if (!d.special_room || !d.parking) {
-            alert("반지하 여부와 주차 필요 여부를 선택해주세요!");
-            return;
-        }
+        if (!d.special_room || !d.parking) { alert("필수 항목을 선택해주세요!"); return; }
         validateAndNext(3);
     }
 
     /**
-     * 5. 가중치 및 최종 검증 함수
+     * 가중치 질문 클릭 핸들러 (multiple 옵션 대응)
      */
-    function handleWeightClick(btn, max) {
+    function handleWeightClick(btn, max, isMultiple) {
         const card = btn.closest('.q-card');
-        const selectedInCard = card.querySelectorAll('.weight-opt.selected');
         const limitMsg = card.querySelector('.weight-limit');
         const emptyMsg = card.querySelector('.weight-empty');
 
-        if (btn.classList.contains('selected')) {
-            btn.classList.remove('selected');
-            if (limitMsg) limitMsg.style.display = 'none';
-        } else {
-            if (selectedInCard.length >= max) {
-                if (limitMsg) limitMsg.style.display = 'block';
-                return;
-            }
+        if (!isMultiple) {
+            // 단일 선택 모드: 다른 버튼 해제 후 현재 버튼만 선택
+            card.querySelectorAll('.weight-opt').forEach(b => b.classList.remove('selected'));
             btn.classList.add('selected');
-            if (limitMsg) limitMsg.style.display = 'none';
-            if (emptyMsg) emptyMsg.style.display = 'none';
+        } else {
+            // 중복 선택 모드: 토글 및 개수 제한
+            if (btn.classList.contains('selected')) {
+                btn.classList.remove('selected');
+            } else {
+                const selectedCount = card.querySelectorAll('.weight-opt.selected').length;
+                if (selectedCount >= max) {
+                    if (limitMsg) {
+                        limitMsg.style.display = 'block';
+                        setTimeout(() => limitMsg.style.display = 'none', 2000);
+                    }
+                    return;
+                }
+                btn.classList.add('selected');
+            }
         }
+        if (emptyMsg) emptyMsg.style.display = 'none';
     }
 
     function validateAndNext(nextIdx) {
-        // 지역 입력 검증 (0단계)
-        if (currentIdx === 0) {
-            surveyResults.location = document.getElementById('pref_location').value;
-        }
-
-        // 가중치 질문 단계 검증 (3단계 이후)
+        if (currentIdx === 0) surveyResults.location = document.getElementById('pref_location').value;
         if (currentIdx >= 3) {
             const currentCard = document.getElementById(`step-${currentIdx}`);
-            const selectedBtns = currentCard.querySelectorAll('.weight-opt.selected');
-            if (selectedBtns.length === 0) {
+            if (currentCard.querySelectorAll('.weight-opt.selected').length === 0) {
                 currentCard.querySelector('.weight-empty').style.display = 'block';
                 return;
             }
         }
-        
         nextStep(nextIdx);
     }
 
-    /**
-     * 6. 서버 데이터 전송
-     */
     function submitFinalSurvey() {
         const currentCard = document.getElementById(`step-${currentIdx}`);
         if (currentCard.querySelectorAll('.weight-opt.selected').length === 0) {
@@ -319,14 +281,12 @@
             return;
         }
 
-        // 가중치 데이터 취합 (모든 페이지의 선택된 가중치 버튼)
         surveyResults.category_log = [];
         document.querySelectorAll('.weight-opt.selected').forEach(b => {
             const cats = b.getAttribute('data-categories');
             if (cats) surveyResults.category_log.push(JSON.parse(cats));
         });
 
-        // 최종 전송
         fetch('/survey/save', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
@@ -337,9 +297,7 @@
                 document.getElementById('complete-screen').style.display = 'block';
                 document.getElementById('gauge-fill').style.width = '100%';
                 document.getElementById('status-txt').innerText = `100% 완료! 🎉`;
-            } else {
-                alert("데이터 저장 중 오류가 발생했습니다.");
-            }
+            } else { alert("데이터 저장 중 오류가 발생했습니다."); }
         });
     }
 </script>
