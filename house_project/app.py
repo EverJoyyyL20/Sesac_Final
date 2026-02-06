@@ -3,6 +3,7 @@ from flask import Flask
 from main.main_route import main_bp
 from auth.auth_route import auth_bp
 from mypage.mypage_route import mypage_bp
+from database import users_col
 
 app = Flask(__name__)
 
