@@ -1,10 +1,9 @@
 import random
 import string
 from flask import Blueprint, render_template, request, redirect, url_for, session, jsonify
-#from database import users_col
+from database import users_col
 from werkzeug.security import generate_password_hash, check_password_hash
 
-users_col = None  # 실제로는 database.py에서 가져와야 함
 
 auth_bp = Blueprint('auth', __name__, template_folder='.')
 

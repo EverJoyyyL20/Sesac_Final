@@ -6,13 +6,6 @@ import string
 main_bp = Blueprint('main', __name__, template_folder='.')
 
 
-def generate_temp_nickname():
-    """중복되지 않는 임시 닉네임 생성 (예: 새싹12345)"""
-    while True:
-        num = "".join(random.choices(string.digits, k=5))
-        temp_nick = f"새싹{num}"
-        if not users_col.find_one({'nickname': temp_nick}):
-            return temp_nick
 
 @main_bp.route('/')
 def index():
