@@ -74,7 +74,23 @@
     <div class="content-section">
         <div class="content-box">
             <h3>📝 최근 설문 결과</h3>
-            <p class="empty-text">진행한 설문 내역이 없습니다.</p>
+            {% if survey %}
+                <div class="survey-summary">
+                    <p>📍 <strong>희망 지역:</strong> {{ survey.location if survey.location else '미지정' }}</p>
+                    <p>💰 <strong>계약 형태:</strong> {{ '월세' if survey.contract_type == 'monthly' else '전세' }}</p>
+                    <p>🏠 <strong>선호 건물:</strong> 
+                        {% for t in survey.building_type %}{{ t }}{% if not loop.last %}, {% endif %}{% endfor %}
+                    </p>
+                    <p>✨ <strong>건물 연식:</strong> 
+                        {% for a in survey.building_age %}{{ a }}{% if not loop.last %}, {% endif %}{% endfor %}
+                    </p>
+                    <p>🚗 <strong>주차 필요:</strong> {{ '필요함' if survey.parking == 'yes' else '상관없음' }}</p>
+                </div>
+                <a href="{{ url_for('main.survey') }}" class="btn-resurvey" style="font-size: 0.8rem; color: #4facfe; text-decoration: none; margin-top: 10px; display: inline-block;">다시 조사하기 ></a>
+            {% else %}
+                <p class="empty-text">진행한 설문 내역이 없습니다.</p>
+                <a href="{{ url_for('main.survey') }}" class="btn btn-edit" style="font-size: 0.8rem; padding: 5px 10px;">설문 시작하기</a>
+            {% endif %}
         </div>
         <div class="content-box">
             <h3>⭐ 찜한 매물</h3>

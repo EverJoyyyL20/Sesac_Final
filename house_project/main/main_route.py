@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, session, request, jsonify, redirec
 from database import users_col  # 이전에 만든 database.py에서 가져옴
 import random
 import string
+from datetime import datetime
 
 main_bp = Blueprint('main', __name__, template_folder='.')
 
@@ -118,8 +119,7 @@ def survey():
     }
     ]
     return render_template('survey.html', questions=questions)
-
-# main/main_route.py에 추가
+\
 @main_bp.route('/disable_setup_popup', methods=['POST'])
 def disable_setup_popup():
     session.pop('needs_setup', None)  # 세션에서 팝업 트리거 삭제
@@ -131,32 +131,52 @@ def save_survey():
         return jsonify({"status": "fail", "message": "Session expired"}), 401
 
     data = request.get_json()
-    category_log = data.get('category_log') 
-
+    
+    # --- 1. 가중치(Category) 계산 로직 ---
+    category_log = data.get('category_log', []) 
     counts = {
         'traffic': 0, 'convenience': 0, 'green': 0, 
         'play': 0, 'health': 0, 'living': 0, 'safety': 0
     }
 
-    # 1. 횟수 누적
     for cats in category_log:
         for c in cats:
             if c in counts:
                 counts[c] += 1
 
-    # 2. 정규화
     total_hits = sum(counts.values())
     if total_hits > 0:
         final_weights = {k: round(v / total_hits, 4) for k, v in counts.items()}
     else:
-        final_weights = {k: 0.1428 for k in counts.keys()} # 1/7 값
+        final_weights = {k: 0.1428 for k in counts.keys()}
 
-    # 3. DB 업데이트 (핵심!)
+    # --- 2. 상세 조건(Details) 및 지역/예산 데이터 정리 ---
+    # HTML에서 보낸 'details' 객체를 그대로 가져옵니다.
+    details = data.get('details', {})
+    location = data.get('location', '')
+    budget = data.get('budget', {})
+    contract_type = data.get('contract_type', '')
+
+    # --- 3. DB 업데이트 (하나의 필드에 묶어서 저장) ---
     try:
-        # 세션의 user_id(이메일)를 기준으로 'Weight' 필드 업데이트
         users_col.update_one(
             {'email': session['user_id']},
-            {'$set': {'Weight': final_weights}}
+            {
+                '$set': {
+                    'Weight': final_weights,  # 기존 가중치 필드
+                    'Survey_Details': {       # 질문하신 건물 유형, 연식 등 상세 데이터
+                        'location': location,
+                        'contract_type': contract_type,
+                        'budget': budget,
+                        'building_type': details.get('b_type', []),
+                        'building_age': details.get('build_age', []),
+                        'room_count': details.get('room_count', []),
+                        'special_room': details.get('special_room', ''),
+                        'parking': details.get('parking', ''),
+                        'updated_at': datetime.now() # 상단에 from datetime import datetime 필요
+                    }
+                }
+            }
         )
         return jsonify({"status": "success", "result": final_weights})
     except Exception as e:

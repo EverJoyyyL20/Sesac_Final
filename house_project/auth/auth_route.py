@@ -90,8 +90,17 @@ def google_login():
 # --- [구글 콜백: 구글이 인증 후 정보를 보내는 곳] ---
 @auth_bp.route('/login/google/authorize')
 def google_authorize():
-    token = google.authorize_access_token()
-    resp = google.get('https://openidconnect.googleapis.com/v1/userinfo')
+    try:
+        # 사용자가 취소를 누르면 여기서 OAuthError가 발생합니다.
+        token = google.authorize_access_token()
+    except Exception as e:
+        # 사용자가 로그인을 취소했거나 설정 오류가 있을 경우 메인으로 돌려보냄
+        print(f"구글 로그인 취소 또는 오류: {e}")
+        # 오류 메시지와 함께 로그인 페이지로 리다이렉트
+        return "<script>alert('로그인이 취소되었습니다.'); location.href='/login';</script>"
+
+    # 토큰이 정상적으로 발행된 경우 (기존 로직 수행)
+    resp = google.get('userinfo')
     user_info = resp.json()
     email = user_info['email']
 
