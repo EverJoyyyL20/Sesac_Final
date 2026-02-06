@@ -69,11 +69,6 @@
 </div>
 
 <div class="footer">
-    <div class="footer-links">
-        <a href="#">이용약관</a> | 
-        <a href="#" style="font-weight: bold; color: #4facfe;">개인정보처리방침</a> | 
-        <a href="#">고객센터</a>
-    </div>
     <p>© 2026 SESAC SafeHouse. All rights reserved.</p>
 </div>
 
@@ -109,7 +104,7 @@
         });
     }
 
-    // 2. 모달 닫기 (★ 세션 제거 로직 추가)
+    // 2. 모달 닫기 (서버 세션 제거 요청 포함)
     function closeModal() {
         if(confirm("설정 없이 진행하시겠습니까? 나중에 마이페이지에서 수정할 수 있습니다.")) {
             // 서버의 세션을 제거하기 위해 API 호출
@@ -120,14 +115,13 @@
             .then(res => res.json())
             .then(data => {
                 if(data.success) {
-                    // 서버 세션이 지워졌다면 화면에서도 제거
                     const overlay = document.getElementById('setup-modal-overlay');
                     if(overlay) overlay.remove();
+                    console.log("세션 팝업 플래그 제거 완료");
                 }
             })
             .catch(err => {
                 console.error("세션 제거 중 오류:", err);
-                // 오류가 나더라도 일단 화면에선 치워줌
                 const overlay = document.getElementById('setup-modal-overlay');
                 if(overlay) overlay.remove();
             });
