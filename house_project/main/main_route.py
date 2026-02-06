@@ -6,7 +6,6 @@ import string
 main_bp = Blueprint('main', __name__, template_folder='.')
 
 
-
 @main_bp.route('/')
 def index():
     return render_template('main.html')
@@ -119,6 +118,12 @@ def survey():
     }
     ]
     return render_template('survey.html', questions=questions)
+
+# main/main_route.py에 추가
+@main_bp.route('/disable_setup_popup', methods=['POST'])
+def disable_setup_popup():
+    session.pop('needs_setup', None)  # 세션에서 팝업 트리거 삭제
+    return jsonify({"success": True})
 
 @main_bp.route('/survey/save', methods=['POST'])
 def save_survey():

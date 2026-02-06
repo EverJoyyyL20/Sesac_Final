@@ -1,11 +1,21 @@
+import os
 import random
 import string
 from flask import Blueprint, render_template, request, redirect, url_for, session, jsonify
-from database import users_col
+from database import users_col, oauth  # database.py에서 가져옴
 from werkzeug.security import generate_password_hash, check_password_hash
 
-
 auth_bp = Blueprint('auth', __name__, template_folder='.')
+
+# 1. OAuth 설정 (Google)
+# app.py가 아닌 여기서 register를 수행하여 블루프린트 내에서 google 객체를 바로 사용합니다.
+google = oauth.register(
+    name='google',
+    client_id=os.getenv("GOOGLE_CLIENT_ID"),
+    client_secret=os.getenv("GOOGLE_CLIENT_SECRET"),
+    server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+    client_kwargs={'scope': 'openid email profile'}
+)
 
 def generate_temp_nickname():
     """중복 없는 임시 닉네임 생성 (예: 새싹12345)"""
@@ -15,41 +25,40 @@ def generate_temp_nickname():
         if not users_col.find_one({'nickname': temp_nick}):
             return temp_nick
 
+# --- [일반 회원가입] ---
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
         email = request.form.get('email')
         password = request.form.get('password')
 
-        # 이메일 중복 체크
         if users_col.find_one({'email': email}):
             return "<script>alert('이미 가입된 이메일입니다.'); history.back();</script>"
 
-        # 1. 임시 닉네임 생성
         temp_nickname = generate_temp_nickname()
         
-        # 2. 유저 데이터 생성
         user_document = {
             'email': email,
             'PW': generate_password_hash(password),
             'nickname': temp_nickname,
-            'introduction': '', # 소개글은 비워둠
+            'introduction': '', 
             'Bookmark': [],
             'Profile_IMG': 'default.png',
-            'Weight': {'traffic':0, 'convenience':0, 'green':0, 'play':0, 'health':0, 'living':0, 'safety':0}
+            'Weight': {'traffic':0, 'convenience':0, 'green':0, 'play':0, 'health':0, 'living':0, 'safety':0},
+            'is_social': False
         }
         users_col.insert_one(user_document)
 
-        # 3. ★ 자동 로그인 처리 ★
-        session.clear() # 기존 세션 초기화
+        session.clear()
         session['user_id'] = email
         session['nickname'] = temp_nickname
-        session['needs_setup'] = True  # 메인 화면 팝업 트리거
+        session['needs_setup'] = True  
         
         return f"<script>alert('{temp_nickname}님, 환영합니다!'); location.href='{url_for('main.index')}';</script>"
         
     return render_template('register.html')
 
+# --- [일반 로그인] ---
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -57,39 +66,63 @@ def login():
         password = request.form.get('password')
         user = users_col.find_one({'email': email})
         
-        if user and check_password_hash(user['PW'], password):
+        if user and user.get('PW') and check_password_hash(user['PW'], password):
             session.clear()
             session['user_id'] = user['email']
             session['nickname'] = user['nickname']
-            # 기존에 소개글이 없었다면 다시 띄워줄 수도 있습니다 (선택 사항)
+            
             if not user.get('introduction'):
                 session['needs_setup'] = True
+                
             return redirect(url_for('main.index'))
         else:
             return "<script>alert('정보가 일치하지 않습니다.'); history.back();</script>"
     return render_template('login.html')
 
-@auth_bp.route('/update_profile_fast', methods=['POST'])
-def update_profile_fast():
-    if 'user_id' not in session:
-        return jsonify({"success": False, "message": "로그인 세션 만료"}), 401
+# --- [구글 로그인 시작] ---
+@auth_bp.route('/login/google')
+def google_login():
+    # 이 redirect_uri가 구글 콘솔에 등록된 주소와 반드시 일치해야 합니다.
+    # 결과: http://127.0.0.1:5000/login/google/authorize
+    redirect_uri = url_for('auth.google_authorize', _external=True)
+    return google.authorize_redirect(redirect_uri)
+
+# --- [구글 콜백: 구글이 인증 후 정보를 보내는 곳] ---
+@auth_bp.route('/login/google/authorize')
+def google_authorize():
+    token = google.authorize_access_token()
+    resp = google.get('https://openidconnect.googleapis.com/v1/userinfo')
+    user_info = resp.json()
+    email = user_info['email']
+
+    user = users_col.find_one({'email': email})
+
+    if not user:
+        # 신규 유저일 때만 'needs_setup' 세션을 생성합니다.
+        temp_nickname = generate_temp_nickname()
+        user_document = {
+            'email': email,
+            'PW': None, 
+            'nickname': temp_nickname,
+            'introduction': '',
+            'Bookmark': [],
+            'Profile_IMG': user_info.get('picture', 'default.png'),
+            'Weight': {'traffic':0, 'convenience':0, 'green':0, 'play':0, 'health':0, 'living':0, 'safety':0},
+            'is_social': True
+        }
+        users_col.insert_one(user_document)
+        user = user_document
+        session['needs_setup'] = True  # 최초 1회 팝업 트리거
+
+    session.clear()
+    session['user_id'] = user['email']
+    session['nickname'] = user['nickname']
+    # 기존 유저라도 소개글이 없으면 띄우고 싶다면 아래 주석 해제
+    # if not user.get('introduction'): session['needs_setup'] = True
     
-    new_nick = request.form.get('nickname', '').strip()
-    intro = request.form.get('introduction', '').strip()
+    return redirect(url_for('main.index'))
 
-    # 본인 제외 닉네임 중복 체크
-    if users_col.find_one({'nickname': new_nick, 'email': {'$ne': session['user_id']}}):
-        return jsonify({"success": False, "message": "이미 사용 중인 닉네임입니다."})
-
-    users_col.update_one(
-        {'email': session['user_id']},
-        {'$set': {'nickname': new_nick, 'introduction': intro}}
-    )
-    
-    session['nickname'] = new_nick
-    session.pop('needs_setup', None)
-    return jsonify({"success": True})
-
+# --- [로그아웃] ---
 @auth_bp.route('/logout')
 def logout():
     session.clear()
