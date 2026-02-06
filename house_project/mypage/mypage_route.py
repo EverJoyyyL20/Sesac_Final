@@ -1,6 +1,8 @@
-from flask import Blueprint, render_template, request, redirect, url_for, session
+from flask import Blueprint, render_template, request, redirect, url_for, session, jsonify
 import os
 from werkzeug.utils import secure_filename
+from werkzeug.security import check_password_hash
+from database import users_col 
 
 mypage_bp = Blueprint('mypage', __name__, template_folder='.')
 
@@ -8,63 +10,121 @@ UPLOAD_FOLDER = 'static/profile_pics'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
 def allowed_file(filename):
-    # 파일명에 '.'이 있고, 확장자를 추출해서 소문자로 변환한 뒤 목록에 있는지 확인
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+# -----------------------------------------------------------
+# [추가] 팝업 닫기 버튼 클릭 시 세션 제거 API
+# -----------------------------------------------------------
+@mypage_bp.route('/disable_setup_popup', methods=['POST'])
+def disable_setup_popup():
+    # 사용자가 '나중에 하기'를 눌렀을 때 호출됨
+    session.pop('needs_setup', None) 
+    return jsonify({"success": True})
+
+# 1. 마이페이지 메인
 @mypage_bp.route('/mypage')
 def mypage():
-    # 1. 로그인 여부 확인
     if 'user_id' not in session:
-        return redirect(url_for('auth.login')) # 로그인 안 됐으면 로그인창으로
+        return redirect(url_for('auth.login'))
 
-    # 2. 세션에서 정보 가져오기 (실제로는 여기서 DB 조회를 합니다)
-    user_email = session.get('user_id')
-    # 임시로 세션이나 DB 대신 현재는 로직 확인을 위해 변수화
-    nickname = session.get('nickname', '설정된 닉네임이 없습니다.')
-    bio = session.get('bio', '소개글을 등록해 보세요.')
-    profile_img = session.get('profile_img')
+    user = users_col.find_one({'email': session['user_id']})
+    if not user:
+        session.clear()
+        return redirect(url_for('auth.login'))
 
     return render_template('mypage.html', 
-                           user_email=user_email, 
-                           nickname=nickname, 
-                           bio=bio, 
-                           profile_img=profile_img)
+                           user_email=user['email'], 
+                           nickname=user.get('nickname', '닉네임 없음'), 
+                           bio=user.get('introduction', '소개글이 없습니다.'), 
+                           profile_img=user.get('Profile_IMG', 'default.png'))
 
+# 2. 프로필 수정 페이지 이동
 @mypage_bp.route('/edit', methods=['GET'])
 def edit_profile():
     if 'user_id' not in session:
         return redirect(url_for('auth.login'))
 
-    # 수정 페이지 들어갈 때 기존 값을 채워넣어줌
-    return render_template('edit_profile.html', 
-                           nickname=session.get('nickname', ''), 
-                           bio=session.get('bio', ''))
+    user = users_col.find_one({'email': session['user_id']})
+    if not user:
+        return redirect(url_for('auth.login'))
 
+    return render_template('edit_profile.html', 
+                           nickname=user.get('nickname', ''), 
+                           bio=user.get('introduction', ''))
+
+# 3. 프로필 정보 업데이트 (닉네임 중복 체크 포함)
 @mypage_bp.route('/update', methods=['POST'])
 def update_profile():
     if 'user_id' not in session:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({"success": False, "message": "세션이 만료되었습니다."}), 401
         return redirect(url_for('auth.login'))
 
-    new_nickname = request.form.get('nickname')
-    new_bio = request.form.get('bio')
-    
-    session['nickname'] = new_nickname
-    session['bio'] = new_bio
+    new_nickname = request.form.get('nickname', '').strip()
+    new_bio = request.form.get('introduction') or request.form.get('bio') or ""
+
+    if new_nickname:
+        existing_user = users_col.find_one({
+            'nickname': new_nickname, 
+            'email': {'$ne': session['user_id']}
+        })
+        if existing_user:
+            return jsonify({"success": False, "message": "이미 사용 중인 닉네임입니다."})
+
+    update_data = {
+        'nickname': new_nickname,
+        'introduction': new_bio
+    }
 
     file = request.files.get('profile_img')
-    
-    if file and file.filename != '':
-        if allowed_file(file.filename): 
-            filename = secure_filename(f"user_{session['user_id']}_{file.filename}") 
-            
-            if not os.path.exists(UPLOAD_FOLDER):
-                os.makedirs(UPLOAD_FOLDER)
-                
-            file.save(os.path.join(UPLOAD_FOLDER, filename))
-            session['profile_img'] = url_for('static', filename=f'profile_pics/{filename}')
-        else:
-            # 허용되지 않은 파일 형식일 경우 처리 (선택 사항)
-            print("허용되지 않는 파일 형식입니다.")
-            # return "허용되지 않는 파일 형식입니다.", 400 등의 처리가 가능합니다.
+    if file and file.filename != '' and allowed_file(file.filename):
+        if not os.path.exists(UPLOAD_FOLDER):
+            os.makedirs(UPLOAD_FOLDER)
+        
+        filename = secure_filename(f"user_{session['user_id']}_{file.filename}")
+        file.save(os.path.join(UPLOAD_FOLDER, filename))
+        update_data['Profile_IMG'] = filename
 
+    # DB 업데이트
+    users_col.update_one({'email': session['user_id']}, {'$set': update_data})
+    
+    # 세션 갱신 및 팝업 트리거 제거
+    session['nickname'] = new_nickname
+    session.pop('needs_setup', None) # [중요] 업데이트 성공 시 팝업 세션 제거
+
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({"success": True})
+    
     return redirect(url_for('mypage.mypage'))
+
+# 4. 회원 탈퇴 확인 페이지
+@mypage_bp.route('/delete_confirm')
+def delete_confirm():
+    if 'user_id' not in session:
+        return redirect(url_for('auth.login'))
+    return render_template('delete_confirm.html')
+
+# 5. 실제 회원 탈퇴 처리
+@mypage_bp.route('/delete_user', methods=['POST'])
+def delete_user():
+    if 'user_id' not in session:
+        return redirect(url_for('auth.login'))
+
+    user_email = session['user_id']
+    password = request.form.get('password')
+    confirm_check = request.form.get('confirm_check')
+
+    user = users_col.find_one({'email': user_email})
+
+    if confirm_check != 'agreed':
+        return "<script>alert('주의사항 동의 체크가 필요합니다.'); history.back();</script>"
+
+    if not user.get('is_social'):
+        if not password or not check_password_hash(user['PW'], password):
+            return "<script>alert('비밀번호가 일치하지 않습니다.'); history.back();</script>"
+
+    users_col.delete_one({'email': user_email})
+    session.clear()
+
+    return "<script>alert('탈퇴가 완료되었습니다. 이용해주셔서 감사합니다.'); location.href='/';</script>"

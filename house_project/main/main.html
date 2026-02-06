@@ -22,7 +22,7 @@
                 <label for="new-nickname">닉네임</label>
                 <input type="text" id="new-nickname" name="nickname" 
                        value="{{ session['nickname'] }}" required>
-                <small id="nick-error" class="error-msg"></small>
+                <small id="nick-error" class="error-msg" style="color: red; display: none;"></small>
             </div>
 
             <div class="input-group">
@@ -69,16 +69,11 @@
 </div>
 
 <div class="footer">
-    <div class="footer-links">
-        <a href="#">이용약관</a> | 
-        <a href="#" style="font-weight: bold; color: #4facfe;">개인정보처리방침</a> | 
-        <a href="#">고객센터</a>
-    </div>
     <p>© 2026 SESAC SafeHouse. All rights reserved.</p>
 </div>
 
 <script>
-    // 1. 프로필 저장 (백엔드와 통신)
+    // 1. 프로필 저장
     function saveProfile() {
         const nickname = document.getElementById('new-nickname').value.trim();
         if (!nickname) {
@@ -88,7 +83,7 @@
 
         const formData = new FormData(document.getElementById('setup-detail-form'));
         
-        fetch("{{ url_for('auth.update_profile_fast') }}", {
+        fetch("{{ url_for('mypage.update_profile') }}", {
             method: 'POST',
             body: formData
         })
@@ -96,21 +91,40 @@
         .then(data => {
             if(data.success) {
                 alert("프로필 설정이 완료되었습니다!");
-                location.reload(); // 변경된 닉네임 반영을 위한 새로고침
+                location.reload(); 
             } else {
                 const errorMsg = document.getElementById('nick-error');
                 errorMsg.innerText = data.message;
                 errorMsg.style.display = 'block';
             }
         })
-        .catch(err => console.error("Error:", err));
+        .catch(err => {
+            console.error("Error:", err);
+            alert("프로필 업데이트 중 오류가 발생했습니다.");
+        });
     }
 
-    // 2. 모달 닫기 (서버 세션 플래그 제거 요청 포함 가능)
+    // 2. 모달 닫기 (서버 세션 제거 요청 포함)
     function closeModal() {
         if(confirm("설정 없이 진행하시겠습니까? 나중에 마이페이지에서 수정할 수 있습니다.")) {
-            // 이번 세션에서 팝업을 다시 안 뜨게 하려면 백엔드에 skip API 요청을 보낼 수도 있습니다.
-            document.getElementById('setup-modal-overlay').remove();
+            // 서버의 세션을 제거하기 위해 API 호출
+            fetch("{{ url_for('mypage.disable_setup_popup') }}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.success) {
+                    const overlay = document.getElementById('setup-modal-overlay');
+                    if(overlay) overlay.remove();
+                    console.log("세션 팝업 플래그 제거 완료");
+                }
+            })
+            .catch(err => {
+                console.error("세션 제거 중 오류:", err);
+                const overlay = document.getElementById('setup-modal-overlay');
+                if(overlay) overlay.remove();
+            });
         }
     }
 </script>

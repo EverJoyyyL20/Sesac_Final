@@ -2,9 +2,26 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>마이페이지 - 맞춤형 매물 찾기</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>마이페이지 - 안전한 집 찾기</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/mypage.css') }}">
+    <style>
+        /* 버튼 그룹 내 탈퇴 버튼 스타일 보정 */
+        .btn-withdraw {
+            background-color: #ee7474;
+            color: white;
+            border: none;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .btn-withdraw:hover {
+            background-color: #ed5a5a;
+        }
+    </style>
 </head>
 <body>
 
@@ -29,13 +46,15 @@
     <div class="profile-card">
         <div class="profile-left">
             <img class="profile-img-preview" 
-                 src="{{ profile_img if profile_img else 'https://via.placeholder.com/150' }}" alt="프로필 사진">
+                 src="{{ profile_img if profile_img else url_for('static', filename='profile_pics/default.png') }}" 
+                 alt="프로필 사진" 
+                 onerror="this.src='https://via.placeholder.com/150'">
         </div>
 
         <div class="profile-right">
             <div class="info-row">
                 <span class="info-label">이메일 계정</span>
-                <span class="info-value user-email-text">{{ user_email if user_email else 'user@email.com' }}</span>
+                <span class="info-value user-email-text">{{ user_email }}</span>
             </div>
             <div class="info-row">
                 <span class="info-label">닉네임</span>
@@ -48,7 +67,7 @@
             
             <div class="btn-group">
                 <a href="{{ url_for('mypage.edit_profile') }}" class="btn btn-edit">내 정보 수정</a>
-                <button type="button" class="btn btn-withdraw" onclick="confirmWithdrawal()">회원 탈퇴</button>
+                <a href="{{ url_for('mypage.delete_confirm') }}" class="btn btn-withdraw">회원 탈퇴</a>
             </div>
         </div>
     </div>
@@ -64,15 +83,6 @@
         </div>
     </div>
 </div>
-
-<script>
-    function confirmWithdrawal() {
-        if (confirm("정말로 탈퇴하시겠습니까? 모든 데이터는 즉시 파기되며 되돌릴 수 없습니다.")) {
-            // 실제 탈퇴 처리 경로로 이동
-            location.href = "{{ url_for('main.index') }}";
-        }
-    }
-</script>
 
 </body>
 </html>

@@ -166,3 +166,117 @@ h2 {
 .signup-link a:hover, .login-link a:hover {
     text-decoration: underline;
 }
+/* 회원 탈퇴 박스 전체 컨테이너 */
+.delete-box {
+    max-width: 450px;           /* 로그인/회원가입 박스와 동일한 너비 */
+    margin: 80px auto;          /* 화면 중앙 배치 */
+    padding: 40px;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1); /* 기존 박스와 통일된 그림자 */
+    text-align: center;
+}
+
+/* 제목 스타일 */
+.delete-box h2 {
+    font-size: 1.6rem;
+    color: #333;
+    margin-bottom: 20px;
+}
+
+/* 경고 문구 스타일 */
+.warning {
+    background-color: #fff5f5;  /* 옅은 빨간색 배경으로 강조 */
+    border: 1px solid #feb2b2;
+    color: #c53030;             /* 경고용 빨간색 */
+    padding: 15px;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin-bottom: 30px;
+    font-weight: 500;
+}
+
+/* 입력 그룹 (비밀번호 확인) */
+.input-group {
+    margin-bottom: 20px;
+    text-align: left;
+}
+
+.input-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+    color: #555;
+    font-size: 0.9rem;
+}
+
+.input-group input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-sizing: border-box;     /* 패딩 포함 너비 계산 */
+    font-size: 1rem;
+    transition: border-color 0.2s;
+}
+
+.input-group input:focus {
+    border-color: #fc8181;      /* 포커스 시 약간 붉은색 */
+    outline: none;
+}
+
+/* 체크박스 영역 */
+.policy-check-area {
+    margin-bottom: 25px;
+    text-align: left;
+    background: #f8f9fa;
+    padding: 12px;
+    border-radius: 8px;
+}
+
+.policy-check-area label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.9rem;
+    color: #444;
+    cursor: pointer;
+}
+
+.policy-check-area input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+/* 탈퇴 버튼 (기존 버튼 스타일 계승 + Red 강조) */
+.delete-btn {
+    width: 100%;
+    padding: 14px;
+    background-color: #e53e3e;  /* 강렬한 빨간색 */
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.3s ease;
+    margin-bottom: 15px;
+}
+
+.delete-btn:hover {
+    background-color: #c53030;  /* 호버 시 더 어두운 빨간색 */
+}
+
+/* 돌아가기 링크 */
+.back-link {
+    display: block;
+    color: #718096;
+    text-decoration: none;
+    font-size: 0.9rem;
+}
+
+.back-link:hover {
+    text-decoration: underline;
+}

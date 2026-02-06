@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>회원 탈퇴 - 안전한 집 찾기</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+</head>
+<body>
+
+<div class="navbar">
+    <div class="nav-left">
+        <a href="{{ url_for('main.index') }}">HOME</a>
+    </div>
+</div>
+
+<div class="page-wrapper">
+    <div class="delete-box">
+        <h2>회원 탈퇴</h2>
+        
+        <p class="warning">
+            탈퇴 시 모든 데이터가 즉시 삭제되며,<br>
+            다시 로그인하거나 복구할 수 없습니다.
+        </p>
+        
+        <form action="{{ url_for('mypage.delete_user') }}" method="POST">
+            {% if not session.get('is_social') %}
+            <div class="input-group">
+                <label for="password">비밀번호 확인</label>
+                <input type="password" id="password" name="password" placeholder="현재 비밀번호 입력" required>
+            </div>
+            {% endif %}
+            
+            <div class="policy-check-area">
+                <label>
+                    <input type="checkbox" name="confirm_check" value="agreed" required>
+                    <span>위 주의사항을 확인했으며 탈퇴에 동의합니다.</span>
+                </label>
+            </div>
+
+            <button type="submit" class="delete-btn">정말 탈퇴하겠습니다</button>
+            
+            <a href="{{ url_for('mypage.mypage') }}" class="back-link">취소하고 돌아가기</a>
+        </form>
+    </div>
+</div>
+
+</body>
+</html>

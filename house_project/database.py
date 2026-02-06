@@ -2,7 +2,9 @@ import os
 import urllib.parse
 from pymongo import MongoClient
 from dotenv import load_dotenv
+from authlib.integrations.flask_client import OAuth
 
+oauth = OAuth()
 # 1. .env 파일의 환경 변수 로드
 load_dotenv()
 
