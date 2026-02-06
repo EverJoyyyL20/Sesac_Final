@@ -1,55 +1,33 @@
-from flask import Blueprint, render_template, session, request, jsonify
+from flask import Blueprint, render_template, session, request, jsonify, redirect, url_for
+from database import users_col  # 이전에 만든 database.py에서 가져옴
+import random
+import string
 
-# 'main'이라는 이름의 블루프린트 생성
 main_bp = Blueprint('main', __name__, template_folder='.')
+
+
+def generate_temp_nickname():
+    """중복되지 않는 임시 닉네임 생성 (예: 새싹12345)"""
+    while True:
+        num = "".join(random.choices(string.digits, k=5))
+        temp_nick = f"새싹{num}"
+        if not users_col.find_one({'nickname': temp_nick}):
+            return temp_nick
 
 @main_bp.route('/')
 def index():
-    # 중앙에 설문 시작 버튼이 있는 메인 페이지
     return render_template('main.html')
 
 @main_bp.route('/find-property')
 def find_property():
-    # 매물찾기 로직 (추후 주택임대차 보호법 관련 필터링 추가 가능)
     return render_template('find_property.html')
-
-
-def calculate_final_scores(selected_categories_list):
-    """
-    selected_categories_list: [['traffic'], ['convenience', 'living'], ['green', 'health']]
-    """
-    # 1. 모든 항목 0으로 초기화
-    counts = {
-        'traffic': 0, 'convenience': 0, 'green': 0, 
-        'play': 0, 'health': 0, 'living': 0, 'safety': 0
-    }
-    
-    # 2. 선택된 카테고리 횟수 누적
-    for categories in selected_categories_list:
-        for cat in categories:
-            if cat in counts:
-                counts[cat] += 1
-    
-    # 3. 전체 선택 횟수 합계
-    total_count = sum(counts.values())
-    
-    # 4. 정규화 (합계가 1이 되도록 계산)
-    # 만약 아무것도 선택 안 했을 경우 대비(ZeroDivisionError 방지)
-    if total_count == 0:
-        return {k: 1/len(counts) for k in counts.keys()} # 균등 배분
-        
-    final_scores = {k: v / total_count for k, v in counts.items()}
-    
-    return final_scores
 
 @main_bp.route('/survey')
 def survey():
-    # 1. 로그인 여부 확인
     if 'user_id' not in session:
-        # 알림창을 띄우고 로그인 페이지로 이동시키는 스크립트 리턴
+        # 스크립트 대신 플라스크 표준 방식으로 리다이렉트 권장
         return "<script>alert('로그인이 필요한 서비스입니다.'); location.href='/login';</script>"
 
-    # 2. 로그인되어 있으면 설문 데이터 준비
     questions = [
     {
         "title": "현재 나의 라이프스타일과 가장 가까운 유형은?",
@@ -146,36 +124,43 @@ def survey():
             {"text": "늦게까지 운영하는 종합 검진 센터와 한의원", "categories": ["health", "safety"]}
         ]
     }
-]
+    ]
     return render_template('survey.html', questions=questions)
 
 @main_bp.route('/survey/save', methods=['POST'])
 def save_survey():
-    data = request.get_json()
-    category_log = data.get('category_log') # 예: [['traffic'], ['convenience', 'living'], ...]
+    if 'user_id' not in session:
+        return jsonify({"status": "fail", "message": "Session expired"}), 401
 
-    # 1. 카테고리별 카운트 초기화
+    data = request.get_json()
+    category_log = data.get('category_log') 
+
     counts = {
         'traffic': 0, 'convenience': 0, 'green': 0, 
         'play': 0, 'health': 0, 'living': 0, 'safety': 0
     }
 
-    # 2. 횟수 누적
+    # 1. 횟수 누적
     for cats in category_log:
         for c in cats:
             if c in counts:
                 counts[c] += 1
 
-    # 3. 정규화 (전체 합을 1로 만들기)
+    # 2. 정규화
     total_hits = sum(counts.values())
     if total_hits > 0:
         final_weights = {k: round(v / total_hits, 4) for k, v in counts.items()}
     else:
-        final_weights = {k: 0.0 for k in counts.keys()}
+        final_weights = {k: 0.1428 for k in counts.keys()} # 1/7 값
 
-    # 4. DB 저장 (예시: current_user.preference 에 저장)
-    print("최종 계산된 가중치:", final_weights)
-    # user_pref = SurveyPreference.query.filter_by(user_id=session['user_id']).first()
-    # ... update 로직 ...
-
-    return jsonify({"status": "success", "result": final_weights})
+    # 3. DB 업데이트 (핵심!)
+    try:
+        # 세션의 user_id(이메일)를 기준으로 'Weight' 필드 업데이트
+        users_col.update_one(
+            {'email': session['user_id']},
+            {'$set': {'Weight': final_weights}}
+        )
+        return jsonify({"status": "success", "result": final_weights})
+    except Exception as e:
+        print(f"DB 저장 오류: {e}")
+        return jsonify({"status": "error", "message": "데이터 저장 실패"}), 500

@@ -1,60 +1,121 @@
-/* static/css/main.css */
-
-/* 메인 중앙 히어로 섹션 */
-.hero {
-    text-align: center;
-    padding: 120px 20px;
-    height: calc(60vh - 60px); /* 화면 높이에 맞춰 유동적으로 조절 */
+/* 1. 기본 레이아웃 보정 */
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%; /* 전체 높이 확보 */
     display: flex;
     flex-direction: column;
-    justify-content: center;
+}
+
+/* 2. 메인 히어로 섹션 (위아래로 길게 확장) */
+.hero {
+    /* 기존 디자인 유지 */
+    text-align: center;
+    background: #f8f9fa;
+    
+    /* 세로 확장 로직 추가 */
+    flex: 1; /* 남는 수직 공간을 모두 차지 */
+    display: flex;
+    flex-direction: column;
+    justify-content: center; /* 컨텐츠를 수직 중앙에 배치 */
     align-items: center;
-    background-color: #ffffff; /* 나중에 배경 이미지를 넣고 싶다면 여기에 추가 */
+    padding: 0 20px;
+    min-height: 80vh; /* 최소 화면의 80% 이상 높이 보장 */
 }
 
 .hero h1 {
-    font-size: 3rem;
-    color: #222;
+    font-size: 2.5rem;
     margin-bottom: 20px;
-    letter-spacing: -1px;
 }
 
 .hero p {
-    font-size: 1.25rem;
-    color: #666;
+    font-size: 1.2rem;
     margin-bottom: 40px;
+    color: #555;
 }
 
-/* 설문 시작 버튼 디자인 */
+/* 3. 버튼 디자인 (로켓 아이콘 제외를 고려한 유지) */
 .survey-btn {
-    background-color: #5785e7;
-    color: white;
-    padding: 18px 45px;
+    padding: 15px 40px; /* 좌우 패딩을 조금 더 늘려 안정감 부여 */
     font-size: 1.1rem;
-    font-weight: bold;
+    background-color: #4facfe;
+    color: white;
     border: none;
+    border-radius: 8px;
     cursor: pointer;
-    border-radius: 50px; /* 라운드 스타일 */
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(87, 133, 231, 0.3);
+    transition: 0.3s;
 }
 
 .survey-btn:hover {
-    background-color: #4369c7;
-    transform: translateY(-3px); /* 위로 살짝 뜨는 효과 */
-    box-shadow: 0 6px 20px rgba(87, 133, 231, 0.4);
+    background-color: #00c6ff;
+    transform: translateY(-2px);
 }
 
-.survey-btn:active {
-    transform: translateY(-1px);
+/* 4. 프로필 설정 유도 팝업 (기존 디자인 유지) */
+.setup-card {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 280px;
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    z-index: 999;
+    border: 2px solid #4facfe;
+    animation: slideUp 0.5s ease;
 }
 
-/* 추가 섹션이 필요할 때를 대비한 그리드 (선택 사항) */
-.feature-section {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 80px 20px;
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 30px;
+.setup-card h4 {
+    margin-top: 0;
+    margin-bottom: 10px;
+}
+
+.setup-card textarea {
+    width: 100%;
+    height: 60px;
+    margin: 10px 0;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+    padding: 8px;
+    resize: none;
+    box-sizing: border-box;
+}
+
+.card-btns {
+    display: flex;
+    gap: 8px;
+}
+
+.card-btns button {
+    flex: 1;
+    padding: 10px;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.card-btns button:first-child {
+    background: #4facfe;
+    color: white;
+}
+
+.card-btns button.skip {
+    background: #eee;
+    color: #666;
+}
+
+/* 5. 푸터 (바닥에 안착) */
+.footer {
+    padding: 30px 0;
+    background: #ffffff;
+    border-top: 1px solid #eee;
+    text-align: center;
+}
+
+/* 애니메이션 */
+@keyframes slideUp {
+    from { transform: translateY(100px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
 }
