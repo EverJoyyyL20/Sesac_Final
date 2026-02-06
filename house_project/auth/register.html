@@ -7,61 +7,46 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
 </head>
 <body>
-
-<div class="navbar">
-    <div class="nav-left">
-        <a href="{{ url_for('main.index') }}">HOME</a>
-        <a href="{{ url_for('main.find_property') }}">매물찾기</a>
-    </div>
-    
-    <div class="nav-links">
-        <a href="{{ url_for('auth.login') }}">Login</a>
-        <a href="{{ url_for('auth.register') }}">Register</a>
-    </div>
-</div>
-
 <div class="page-wrapper">
     <div class="register-box">
         <h2>회원가입</h2>
+        <p style="color: #666; margin-bottom: 20px;">이메일과 비밀번호만으로 간편하게 시작하세요!</p>
         
-        <form action="{{ url_for('auth.register') }}" method="post">
+        <form action="{{ url_for('auth.register') }}" method="post" id="mainForm">
             <div class="input-group">
-                <label for="email">이메일 주소</label>
+                <label>이메일 주소</label>
                 <input type="email" id="email" name="email" placeholder="example@email.com" required>
             </div>
+            <div class="input-group">
+                <label>비밀번호</label>
+                <input type="password" id="password" name="password" placeholder="8자 이상 입력" required>
+            </div>
+            <div class="input-group">
+                <label>비밀번호 확인</label>
+                <input type="password" id="confirm_password" placeholder="비밀번호 재입력" required>
+            </div>
             
-            <div class="input-group">
-                <label for="password">비밀번호</label>
-                <input type="password" id="password" name="password" placeholder="비밀번호 입력" required>
-            </div>
-
-            <div class="input-group">
-                <label for="confirm_password">비밀번호 확인</label>
-                <input type="password" id="confirm_password" name="confirm_password" placeholder="비밀번호 다시 입력" required>
-            </div>
-
-            <div class="policy-container">
-                <label class="policy-check">
-                    <input type="checkbox" name="policy_agree" required>
-                    <span>
-                        (필수) <strong>개인정보 처리방침</strong>에 동의합니다.<br>
-                        <small style="color: #999;">
-                            * 수집항목: 이메일, 비밀번호<br>
-                            * 목적: 서비스 이용 및 본인 식별<br>
-                            * 개인정보 보호법에 따라 안전하게 관리됩니다.
-                        </small>
-                    </span>
-                </label>
-            </div>
-
-            <button type="submit" class="register-btn">가입하기</button>
+            <button type="submit" class="register-btn">가입 완료</button>
         </form>
-
-        <div class="login-link">
-            이미 계정이 있으신가요? <a href="{{ url_for('auth.login') }}">로그인</a>
+        
+        <div style="margin-top: 20px; text-align: center;">
+            <a href="{{ url_for('auth.login') }}" style="color: #4facfe; text-decoration: none;">이미 계정이 있으신가요? 로그인</a>
         </div>
     </div>
 </div>
 
+<script>
+    // 폼 제출 전 간단한 비밀번호 일치 확인
+    document.getElementById('mainForm').onsubmit = function(e) {
+        const pw = document.getElementById('password').value;
+        const pwConfirm = document.getElementById('confirm_password').value;
+        
+        if (pw !== pwConfirm) {
+            alert("비밀번호가 일치하지 않습니다.");
+            e.preventDefault();
+            return false;
+        }
+    };
+</script>
 </body>
 </html>

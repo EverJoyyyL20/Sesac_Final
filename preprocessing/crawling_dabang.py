@@ -1,39 +1,30 @@
 import time
 import json
-import random
-
+import re
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.action_chains import ActionChains
 
-
-# ==============================
-# 서울 25개 구 리스트
-# ==============================
-
-SEOUL_GU_LIST = [
-    "강남구", "강동구", "강북구", "강서구", "관악구",
-    "광진구", "구로구", "금천구", "노원구", "도봉구",
-    "동대문구", "동작구", "마포구", "서대문구", "서초구",
-    "성동구", "성북구", "송파구", "양천구", "영등포구",
-    "용산구", "은평구", "종로구", "중구", "중랑구"
-]
-
-
-# ==============================
-# 크롬 드라이버 생성
-# ==============================
+# 서울시 구 리스트
+SEOUL_GU_LIST = ["강남구", "강동구", "강북구", "강서구", "관악구", "광진구", "구로구", "금천구", "노원구", "도봉구", "동대문구", "동작구", "마포구", "서대문구", "서초구", "성동구", "성북구", "송파구", "양천구", "영등포구", "용산구", "은평구", "종로구", "중구", "중랑구"]
 
 def create_driver():
     options = Options()
-
-    options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_argument("--start-maximized")
+    options.add_argument("--window-size=1920,1080")
+    options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_experimental_option("excludeSwitches", ["enable-automation"])
     options.add_experimental_option("useAutomationExtension", False)
-
+    options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36")
+    
+    # 이미지 로딩 차단
+    prefs = {"profile.managed_default_content_settings.images": 2}
+    options.add_experimental_option("prefs", prefs)
+    
     driver = webdriver.Chrome(options=options)
     return driver
 
@@ -355,22 +346,73 @@ def scroll_until_end(driver):
 def go_next_page(driver):
 
     try:
-        next_btn = WebDriverWait(driver, 5).until(
-            EC.element_to_be_clickable(
-                (By.XPATH, "//button[contains(@aria-label,'다음')]"))
+        driver.get("https://www.dabangapp.com/")
+        main_window = driver.current_window_handle # 메인 창 저장
+        time.sleep(3)
+
+        # 1. 아파트 메뉴 클릭 (새 탭으로 열리는 경우 대응)
+        apt_btn = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.XPATH, "//div[contains(text(), '아파트')] | //p[text()='아파트']"))
         )
+        apt_btn.click()
+        time.sleep(3)
 
-        driver.execute_script("arguments[0].click();", next_btn)
-        time.sleep(2)
+        # 새 창(탭)이 열렸는지 확인하고 핸들 전환
+        all_windows = driver.window_handles
+        for handle in all_windows:
+            if handle != main_window:
+                driver.switch_to.window(handle)
+                print("✅ 새 탭으로 포커스 전환 완료")
+                break
 
-        print("▶ 다음 페이지 이동")
+        # 2. 줌아웃 (서울 전체 구가 보이도록)
+        perform_zoom_out_safe(driver)
 
-        return True
+        for gu in SEOUL_GU_LIST:
+            print(f"\n🚀 {gu} 작업 시작")
+            ActionChains(driver).send_keys(Keys.ESCAPE).perform() # 열린 상세창 닫기
+            time.sleep(1)
 
-    except:
-        print("▶ 마지막 페이지")
-        return False
+            # 3. 지도 위 구 이름 클릭
+            try:
+                gu_label = WebDriverWait(driver, 7).until(
+                    EC.element_to_be_clickable((By.XPATH, f"//*[text()='{gu}']"))
+                )
+                driver.execute_script("arguments[0].click();", gu_label)
+                time.sleep(3)
+            except:
+                print(f"   ⚠️ {gu} 레이블을 찾을 수 없음")
+                continue
 
+            # 4. 매물 리스트 수집
+            try:
+                WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, "apt-list")))
+                cards = driver.find_elements(By.XPATH, "//div[@id='apt-list']//li[contains(@class, 'sc-')]")
+                
+                for idx in range(min(5, len(cards))): # 구별 5개 테스트
+                    try:
+                        cards = driver.find_elements(By.XPATH, "//div[@id='apt-list']//li[contains(@class, 'sc-')]")
+                        driver.execute_script("arguments[0].click();", cards[idx])
+                        time.sleep(2)
+
+                        item_data = get_detailed_info(driver)
+                        item_data["구"] = gu
+                        FINAL_DATA.append(item_data)
+                        print(f"   [{idx+1}] {item_data.get('가격')} 수집")
+
+                        ActionChains(driver).send_keys(Keys.ESCAPE).perform()
+                        time.sleep(1)
+                    except:
+                        ActionChains(driver).send_keys(Keys.ESCAPE).perform()
+                        continue
+            except: continue
+
+            # 파일 저장
+            with open("dabang_apt_data.json", "w", encoding="utf-8") as f:
+                json.dump(FINAL_DATA, f, ensure_ascii=False, indent=4)
+
+    finally:
+        driver.quit()
 
 
 def save_to_json(data, filename='room_data.json'):
