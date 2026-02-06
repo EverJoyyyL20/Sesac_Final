@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/mypage.css') }}">
     <style>
-        /* 버튼 그룹 내 탈퇴 버튼 스타일 보정 */
         .btn-withdraw {
             background-color: #ee7474;
             color: white;
@@ -46,7 +45,7 @@
     <div class="profile-card">
         <div class="profile-left">
             <img class="profile-img-preview" 
-                 src="{{ profile_img if profile_img else url_for('static', filename='profile_pics/default.png') }}" 
+                 src="{{ url_for('static', filename='profile_pics/' + profile_img) if profile_img and profile_img != 'default.png' else url_for('static', filename='profile_pics/default.png') }}" 
                  alt="프로필 사진" 
                  onerror="this.src='https://via.placeholder.com/150'">
         </div>

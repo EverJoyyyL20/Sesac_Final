@@ -31,7 +31,9 @@
             
             <div class="profile-left">
                 <img id="preview" class="profile-img-preview" 
-                     src="{{ profile_img if profile_img else 'https://via.placeholder.com/150' }}" alt="프로필 사진">
+                     src="{{ url_for('static', filename='profile_pics/' + profile_img) if profile_img else url_for('static', filename='profile_pics/default.png') }}" 
+                     alt="프로필 사진"
+                     onerror="this.src='https://via.placeholder.com/150'">
                 <div style="margin-top: 15px;">
                     <label for="profile_img" class="file-label">사진 변경</label>
                     <input type="file" id="profile_img" name="profile_img" accept="image/*" style="display: none;" onchange="previewImage(this)">
@@ -43,7 +45,7 @@
                 
                 <div class="info-row">
                     <span class="info-label">닉네임</span>
-                    <input type="text" name="nickname" value="{{ nickname }}" class="edit-input" placeholder="새 닉네임 입력">
+                    <input type="text" name="nickname" value="{{ nickname }}" class="edit-input" placeholder="새 닉네임 입력" required>
                 </div>
                 
                 <div class="info-row">
@@ -52,7 +54,7 @@
                 </div>
 
                 <div class="pw-change-section">
-                    <h3>비밀번호 변경</h3>
+                    <h3>비밀번호 변경 (선택)</h3>
                     <div class="info-row">
                         <input type="password" name="new_password" class="edit-input" placeholder="새 비밀번호">
                     </div>
@@ -71,6 +73,7 @@
 </div>
 
 <script>
+    // 이미지 미리보기 스크립트
     function previewImage(input) {
         if (input.files && input.files[0]) {
             const reader = new FileReader();
