@@ -11,10 +11,6 @@ main_bp = Blueprint('main', __name__, template_folder='.')
 def index():
     return render_template('main.html')
 
-@main_bp.route('/find-property')
-def find_property():
-    return render_template('find_property.html')
-
 @main_bp.route('/survey')
 def survey():
     if 'user_id' not in session:

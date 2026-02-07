@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>서울 부동산 매물 탐색</title>
+    
+    <script type="text/javascript" src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId={{ client_id }}"></script>
+    
+    <style>
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }
+        #map { width: 100%; height: 100vh; }
+
+        .header-box {
+            position: absolute; top: 20px; left: 20px; z-index: 1000;
+            background: white; padding: 12px 20px; border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header-box">
+        <h3 style="margin:0; font-size: 16px;">서울 매물 탐색</h3>
+    </div>
+
+    <div id="map"></div>
+
+    <script>
+        window.onload = function() {
+            // 1. 서울 가시 영역 설정 (이 범위를 벗어나면 다시 튕겨 들어옴)
+            var seoulBounds = new naver.maps.LatLngBounds(
+                new naver.maps.LatLng(37.42, 126.75), 
+                new naver.maps.LatLng(37.70, 127.20)
+            );
+
+            // 2. 지도 생성 (윤곽선 없이 깨끗한 상태)
+            var map = new naver.maps.Map('map', {
+                center: new naver.maps.LatLng(37.5665, 126.9780),
+                zoom: 12,           // 초기 확대 정도
+                minZoom: 12,        // 너무 멀어지지 않게 (경기도 노출 방지)
+                maxZoom: 19,        // 최대 확대
+                
+                // [핵심] 서울 밖으로 나가지 못하게 가두는 설정
+                maxBounds: seoulBounds,
+                boundary: seoulBounds
+            });
+        };
+    </script>
+</body>
+</html>
