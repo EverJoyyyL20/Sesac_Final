@@ -36,11 +36,16 @@ def mypage():
         session.clear()
         return redirect(url_for('auth.login'))
 
+    # DB에서 설문 상세 데이터를 가져옵니다 (없을 경우를 대비해 빈 딕셔너리 기본값 설정)
+    survey_data = user.get('Survey_Details', {})
+
     return render_template('mypage.html', 
                            user_email=user['email'], 
                            nickname=user.get('nickname', '닉네임 없음'), 
                            bio=user.get('introduction', '소개글이 없습니다.'), 
-                           profile_img=user.get('Profile_IMG', 'default.png'))
+                           profile_img=user.get('Profile_IMG', 'default.png'),
+                           # 설문 데이터를 템플릿으로 전달
+                           survey=survey_data)
 
 # -----------------------------------------------------------
 # 3. 프로필 수정 페이지 이동 (누락되었던 함수)
