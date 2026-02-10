@@ -3,50 +3,206 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>서울 부동산 매물 탐색</title>
+    <title>서울 부동산 매물 탐색 - 안전한 집 찾기</title>
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/find_property.css') }}">
     
     <script type="text/javascript" src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId={{ client_id }}"></script>
     
     <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }
-        #map { width: 100%; height: 100vh; }
+        /* 기존 nav 구조 유지를 위한 레이아웃 */
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; display: flex; flex-direction: column; }
+        #map-container { flex: 1; position: relative; width: 100%; }
+        #map { width: 100%; height: 100%; }
+        .navbar { position: relative; z-index: 1001; }
 
-        .header-box {
-            position: absolute; top: 20px; left: 20px; z-index: 1000;
-            background: white; padding: 12px 20px; border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            border: 1px solid #ddd;
+        /* [모던 디자인] 상단 상태 뱃지 */
+        .status-header {
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+            z-index: 1000; background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px);
+            padding: 10px 20px; border-radius: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+        #status-text { margin: 0; font-size: 14px; color: #333; font-weight: 600; }
+
+        /* [모던 디자인] 구 단위 캡슐 마커 */
+        .gu-tag {
+            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(5px);
+            color: #222; padding: 8px 18px; border-radius: 25px;
+            font-size: 14px; font-weight: 700; border: 1px solid rgba(0,0,0,0.08);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12); cursor: pointer;
+            transition: all 0.2s ease; white-space: nowrap; text-align: center;
+        }
+        .gu-tag:hover {
+            background: #4facfe; color: white; transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(79, 172, 254, 0.3);
+        }
+
+        /* [미니멀 디자인] 개별 매물 가격표 */
+        .price-tag {
+            background: #4facfe; color: white; padding: 4px 10px; border-radius: 6px;
+            font-size: 11px; font-weight: bold; box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            cursor: pointer; border: 1px solid white; white-space: nowrap;
         }
     </style>
 </head>
 <body>
 
-    <div class="header-box">
-        <h3 style="margin:0; font-size: 16px;">서울 매물 탐색</h3>
+<div class="navbar">
+    <div class="nav-left">
+        <a href="{{ url_for('main.index') }}" class="logo">home</a>
+        <a href="{{ url_for('find_property.find_property') }}" class="active">매물찾기</a>
     </div>
+    <div class="nav-links">
+        {% if session.get('user_id') %}
+            <span class="welcome-text"><strong>{{ session.get('nickname') }}</strong>님</span>
+            <a href="{{ url_for('mypage.mypage') }}">My Page</a>
+            <a href="{{ url_for('auth.logout') }}">Logout</a>
+        {% else %}
+            <a href="{{ url_for('auth.login') }}">Login</a>
+            <a href="{{ url_for('auth.register') }}">Register</a>
+        {% endif %}
+    </div>
+</div>
 
+<div id="map-container">
+    <div class="status-header">
+        <span id="status-text">📍 매물 지도를 불러오는 중...</span>
+    </div>
     <div id="map"></div>
+</div>
 
-    <script>
-        window.onload = function() {
-            // 1. 서울 가시 영역 설정 (이 범위를 벗어나면 다시 튕겨 들어옴)
-            var seoulBounds = new naver.maps.LatLngBounds(
-                new naver.maps.LatLng(37.42, 126.75), 
-                new naver.maps.LatLng(37.70, 127.20)
-            );
 
-            // 2. 지도 생성 (윤곽선 없이 깨끗한 상태)
-            var map = new naver.maps.Map('map', {
-                center: new naver.maps.LatLng(37.5665, 126.9780),
-                zoom: 12,           // 초기 확대 정도
-                minZoom: 12,        // 너무 멀어지지 않게 (경기도 노출 방지)
-                maxZoom: 19,        // 최대 확대
-                
-                // [핵심] 서울 밖으로 나가지 못하게 가두는 설정
-                maxBounds: seoulBounds,
-                boundary: seoulBounds
-            });
-        };
-    </script>
+
+<script>
+    let map;
+    let markers = [];
+
+    window.onload = function() {
+        const seoulBounds = new naver.maps.LatLngBounds(
+            new naver.maps.LatLng(37.42, 126.75), 
+            new naver.maps.LatLng(37.70, 127.20)
+        );
+
+        map = new naver.maps.Map('map', {
+            center: new naver.maps.LatLng(37.5665, 126.9780),
+            zoom: 12, // 시작은 구 단위가 보이게 12레벨
+            minZoom: 11,
+            maxBounds: seoulBounds
+        });
+
+        naver.maps.Event.addListener(map, 'idle', updateMarkers);
+    };
+
+    function updateMarkers() {
+        const zoom = map.getZoom();
+        const bounds = map.getBounds();
+        const sw = bounds.getSW();
+        const ne = bounds.getNE();
+
+        markers.forEach(m => m.setMap(null));
+        markers = [];
+
+        // 줌 레벨 14를 기준으로 전환
+        if (zoom < 14) {
+            document.getElementById('status-text').innerText = "💡 지도를 확대하면 상세 매물이 보입니다.";
+            
+            fetch('/api/stats/gu')
+                .then(res => res.json())
+                .then(stats => {
+                    stats.forEach(gu => {
+                        const marker = new naver.maps.Marker({
+                            position: new naver.maps.LatLng(gu.lat, gu.lng),
+                            map: map,
+                            icon: {
+                                content: `<div class="gu-tag">${gu._id}</div>`,
+                                anchor: new naver.maps.Point(40, 20)
+                            }
+                        });
+
+                        naver.maps.Event.addListener(marker, 'click', () => {
+                            map.morph(marker.getPosition(), 15); // 자연스러운 이동과 확대
+                        });
+                        markers.push(marker);
+                    });
+                });
+        // updateMarkers 함수 내의 'else' 블록 (개별 매물 표시 부분)
+        } else {
+            const url = `/api/properties?sw_lat=${sw.lat()}&sw_lng=${sw.lng()}&ne_lat=${ne.lat()}&ne_lng=${ne.lng()}`;
+            fetch(url)
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('status-text').innerText = `📍 현재 영역 매물 ${data.length.toLocaleString()}개`;
+
+                    // [핵심] 1. 좌표별 그룹화 (같은 위치 매물 모으기)
+                    const groups = {};
+                    data.forEach(item => {
+                        const lat = item.location.coordinates[1];
+                        const lng = item.location.coordinates[0];
+                        const coordKey = `${lat},${lng}`; // 좌표를 문자열 키로 사용
+                        
+                        if (!groups[coordKey]) {
+                            groups[coordKey] = [];
+                        }
+                        groups[coordKey].push(item);
+                    });
+
+                    // [핵심] 2. 그룹화된 데이터를 바탕으로 마커 생성
+                    Object.values(groups).forEach(items => {
+                        const firstItem = items[0];
+                        const count = items.length;
+
+                        // 마커 문구: 1개면 가격 표시, 여러 개면 'N개' 표시
+                        const markerLabel = count > 1 ? `매물 ${count}개` : firstItem.price;
+
+                        const marker = new naver.maps.Marker({
+                            position: new naver.maps.LatLng(firstItem.location.coordinates[1], firstItem.location.coordinates[0]),
+                            map: map,
+                            icon: {
+                                content: `<div class="price-tag" style="${count > 1 ? 'background:#ff9f43;' : ''}">${markerLabel}</div>`,
+                                anchor: new naver.maps.Point(20, 10)
+                            }
+                        });
+
+                        // [핵심] 3. 클릭 시 리스트 팝업 구성
+                        let listHtml = `<div class="info-window-container" style="padding:15px; min-width:220px; max-height:300px; overflow-y:auto;">
+                                            <h4 style="margin:0 0 10px 0; border-bottom:2px solid #4facfe; padding-bottom:5px;">🏠 매물 목록 (${count})</h4>`;
+                        
+                        items.forEach(item => {
+                            listHtml += `
+                                <div class="info-item" style="margin-bottom:12px; font-size:13px; border-bottom:1px solid #eee; padding-bottom:8px;">
+                                    <div style="font-weight:bold; color:#333;">${item.type || '매물'} | <span style="color:#e74c3c;">${item.price}</span></div>
+                                    <div style="color:#666; font-size:11px; margin-top:2px;">${item.address || '주소 정보 없음'}</div>
+                                    <button onclick="alert('매물 ID: ${item._id} 상세로 이동')" 
+                                            style="margin-top:5px; background:#4facfe; color:white; border:none; padding:3px 8px; border-radius:4px; cursor:pointer; font-size:11px;">
+                                        상세보기
+                                    </button>
+                                </div>`;
+                        });
+                        listHtml += `</div>`;
+
+                        const infoWindow = new naver.maps.InfoWindow({
+                            content: listHtml,
+                            backgroundColor: "#fff",
+                            borderWidth: 0,
+                            disableAnchor: false
+                        });
+
+                        naver.maps.Event.addListener(marker, 'click', () => {
+                            if (infoWindow.getMap()) {
+                                infoWindow.close();
+                            } else {
+                                infoWindow.open(map, marker);
+                            }
+                        });
+
+                        markers.push(marker);
+                    });
+                });
+        }
+    }
+</script>
+
 </body>
 </html>

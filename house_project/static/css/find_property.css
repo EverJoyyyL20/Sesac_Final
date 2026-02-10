@@ -1,0 +1,94 @@
+/* --- 1. 지도 페이지 레이아웃 --- */
+/* 지도 페이지는 히어로 섹션 대신 지도가 flex: 1을 가집니다. */
+#map-container {
+    flex: 1; 
+    position: relative;
+    width: 100%;
+}
+
+#map {
+    width: 100%;
+    height: 100%;
+}
+
+/* --- 2. 지도 위 정보 박스 --- */
+.header-box {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    z-index: 1000; /* 지도보다 위 */
+    background: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    border: 1px solid #ddd;
+}
+
+.header-box h3 {
+    margin: 0;
+    font-size: 16px;
+    color: #333;
+}
+
+/* --- 3. 버튼 (지도 내 인터페이스용) --- */
+.survey-btn-mini {
+    padding: 8px 15px;
+    font-size: 0.9rem;
+    background-color: #4facfe;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.survey-btn-mini:hover {
+    background-color: #00c6ff;
+}
+
+/* 구 단위 마커 - 모던 미니멀 스타일 */
+.gu-tag {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(5px); /* 배경 흐림 효과 */
+    color: #333;
+    padding: 8px 18px;
+    border-radius: 25px; /* 둥근 캡슐 형태 */
+    font-size: 14px;
+    font-weight: 600;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); /* 부드러운 그림자 */
+    transition: all 0.2s ease;
+    cursor: pointer;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.gu-tag:hover {
+    background: #4facfe; /* 호버 시 포인트 컬러로 변경 */
+    color: white;
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(79, 172, 254, 0.3);
+}
+
+/* 개별 매물 가격표도 통일감 있게 수정 */
+.price-tag {
+    background: #4facfe;
+    color: white;
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    cursor: pointer;
+}
+
+.info-window-container::-webkit-scrollbar {
+    width: 6px;
+}
+.info-window-container::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 10px;
+}
+.info-item:last-child {
+    border-bottom: none !important;
+}
