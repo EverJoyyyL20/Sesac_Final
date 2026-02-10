@@ -122,45 +122,69 @@ def disable_setup_popup():
     return jsonify({"success": True})
 
 @main_bp.route('/survey/save', methods=['POST'])
+@main_bp.route('/survey/save', methods=['POST'])
 def save_survey():
     if 'user_id' not in session:
         return jsonify({"status": "fail", "message": "Session expired"}), 401
 
     data = request.get_json()
     
-    # --- 1. 가중치(Category) 계산 로직 ---
-    category_log = data.get('category_log', []) 
-    counts = {
-        'traffic': 0, 'convenience': 0, 'green': 0, 
-        'play': 0, 'health': 0, 'living': 0, 'safety': 0
+    # --- 1. 가중치(Category) 계산 로직 수정됨 ---
+    
+    # (1) 설문지 내 각 카테고리의 총 등장 횟수 (사전 정의된 값)
+    category_frequency = {
+        'traffic': 6,      # 교통
+        'convenience': 10, # 편의
+        'green': 7,        # 녹지
+        'play': 6,         # 놀이
+        'health': 6,       # 건강
+        'living': 13,      # 생활
+        'safety': 10       # 안전
     }
 
+    # (2) 유저 선택 횟수 카운트 (초기화)
+    user_selections = {key: 0 for key in category_frequency.keys()}
+    
+    category_log = data.get('category_log', []) 
     for cats in category_log:
         for c in cats:
-            if c in counts:
-                counts[c] += 1
+            if c in user_selections:
+                user_selections[c] += 1
 
-    total_hits = sum(counts.values())
-    if total_hits > 0:
-        final_weights = {k: round(v / total_hits, 4) for k, v in counts.items()}
+    # (3) 빈도 보정 및 점수 계산 (Laplace Smoothing: 기본값 +1)
+    # 공식: (유저 선택 횟수 + 1) / 총 등장 횟수
+    # 이렇게 하면 한 번도 선택 안 된 항목도 0이 아닌 최소한의 점수를 가짐
+    raw_scores = {}
+    for cat, total_appearance in category_frequency.items():
+        # 기본값 1을 더해줌
+        adjusted_count = user_selections[cat] + 1
+        # 등장 빈도로 나누어 밸런싱
+        raw_scores[cat] = adjusted_count / total_appearance
+
+    # (4) 정규화 (합계가 1이 되도록 변환)
+    total_score_sum = sum(raw_scores.values())
+    
+    # 합계가 0일 수는 없지만(기본값 1 때문에), 안전하게 처리
+    if total_score_sum > 0:
+        final_weights = {k: round(v / total_score_sum, 4) for k, v in raw_scores.items()}
     else:
-        final_weights = {k: 0.1428 for k in counts.keys()}
+        # 이론상 도달할 수 없으나 예외 처리
+        final_weights = {k: 0.1428 for k in category_frequency.keys()}
 
     # --- 2. 상세 조건(Details) 및 지역/예산 데이터 정리 ---
-    # HTML에서 보낸 'details' 객체를 그대로 가져옵니다.
     details = data.get('details', {})
     location = data.get('location', '')
     budget = data.get('budget', {})
     contract_type = data.get('contract_type', '')
 
-    # --- 3. DB 업데이트 (하나의 필드에 묶어서 저장) ---
+    # --- 3. DB 업데이트 ---
     try:
         users_col.update_one(
             {'email': session['user_id']},
             {
                 '$set': {
-                    'Weight': final_weights,  # 기존 가중치 필드
-                    'Survey_Details': {       # 질문하신 건물 유형, 연식 등 상세 데이터
+                    'Weight': final_weights,  # 계산된 최종 가중치
+                    'Survey_Details': {       
                         'location': location,
                         'contract_type': contract_type,
                         'budget': budget,
@@ -169,7 +193,7 @@ def save_survey():
                         'room_count': details.get('room_count', []),
                         'special_room': details.get('special_room', ''),
                         'parking': details.get('parking', ''),
-                        'updated_at': datetime.now() # 상단에 from datetime import datetime 필요
+                        'updated_at': datetime.now()
                     }
                 }
             }
