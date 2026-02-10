@@ -1,0 +1,47 @@
+/* --- 1. 지도 페이지 레이아웃 --- */
+/* 지도 페이지는 히어로 섹션 대신 지도가 flex: 1을 가집니다. */
+#map-container {
+    flex: 1; 
+    position: relative;
+    width: 100%;
+}
+
+#map {
+    width: 100%;
+    height: 100%;
+}
+
+/* --- 2. 지도 위 정보 박스 --- */
+.header-box {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    z-index: 1000; /* 지도보다 위 */
+    background: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    border: 1px solid #ddd;
+}
+
+.header-box h3 {
+    margin: 0;
+    font-size: 16px;
+    color: #333;
+}
+
+/* --- 3. 버튼 (지도 내 인터페이스용) --- */
+.survey-btn-mini {
+    padding: 8px 15px;
+    font-size: 0.9rem;
+    background-color: #4facfe;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.survey-btn-mini:hover {
+    background-color: #00c6ff;
+}
