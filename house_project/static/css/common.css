@@ -43,7 +43,17 @@ body, html {
     font-size: 14px; /* 19px에서 일반 메뉴 크기인 14px로 축소 */
     font-weight: 500; /* 800에서 일반 굵기인 500으로 변경 */
 }
-
+.navbar span{
+    color: rgba(255, 255, 255, 0.8);
+    text-decoration: none;
+    padding: 0 20px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    transition: all 0.3s ease;
+    font-size: 14px; /* 19px에서 일반 메뉴 크기인 14px로 축소 */
+    font-weight: 500; /* 800에서 일반 굵기인 500으로 변경 */
+}
 /* 호버 시 효과도 모두 통일 */
 .navbar a:hover, .navbar a.active {
     background-color: rgba(255, 255, 255, 0.1);
