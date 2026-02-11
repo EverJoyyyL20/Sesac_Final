@@ -24,6 +24,7 @@
     font-weight: 600;
     font-size: 14px;
     border: 1px solid #eee;
+    pointer-events: none; /* 헤더가 마커 클릭을 방해하지 않도록 */
 }
 
 /* 마커 디자인 */
@@ -38,6 +39,12 @@
     border: 2px solid white;
     box-shadow: 0 3px 8px rgba(0,0,0,0.2);
     white-space: nowrap;
+    transition: transform 0.2s, background 0.2s;
+}
+
+.price-tag:hover {
+    transform: translateY(-3px) scale(1.05);
+    background: #007bff;
 }
 
 .gu-tag {
@@ -50,6 +57,15 @@
     cursor: pointer;
     border: 2px solid #4facfe;
     box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); /* 부드러운 호버 애니메이션 */
+}
+
+/* [추가] 구 버튼 호버 시 색상 반전 효과 */
+.gu-tag:hover {
+    background: #4facfe;
+    color: white;
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(79, 172, 254, 0.4);
 }
 
 /* 네이버 지도 정보창 커스텀 */
@@ -58,6 +74,7 @@
     min-width: 260px;
     background: white;
     border-radius: 15px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
 }
 
 .iw-item {
@@ -116,6 +133,12 @@
     width: 90%;
     max-width: 420px;
     box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+    animation: modalFadeIn 0.3s ease-out; /* 모달 등장 애니메이션 */
+}
+
+@keyframes modalFadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .detail-row {
@@ -145,7 +168,7 @@
     cursor: pointer;
     font-weight: 700;
     font-size: 15px;
-    transition: transform 0.2s;
+    transition: transform 0.2s, background 0.3s;
 }
 
 .fav-btn:active {

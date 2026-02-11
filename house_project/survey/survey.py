@@ -1,24 +1,20 @@
-from flask import Blueprint, render_template, request, jsonify, session
+from flask import Blueprint, render_template, request, jsonify, session, redirect, url_for
 from database import houses_col, db  # db 객체와 매물 컬렉션 임포트
 from bson.objectid import ObjectId
 from datetime import datetime
 
-survey_bp = Blueprint('survey', __name__,template_folder='.')
+# Blueprint 설정
+survey_bp = Blueprint('survey', __name__, template_folder='.')
 
-# 카테고리 영문-한글 매핑 테이블
+# 카테고리 매핑 테이블
 category_map = {
-    "traffic": "교통",
-    "convenience": "편의",
-    "green": "녹지",
-    "play": "놀이",
-    "health": "건강",
-    "living": "생활",
-    "safety": "안전"
+    "traffic": "교통", "convenience": "편의", "green": "녹지",
+    "play": "놀이", "health": "건강", "living": "생활", "safety": "안전"
 }
 
 @survey_bp.route('/survey')
 def survey_page():
-    # 앞서 정의한 10개의 질문 리스트 (생략, 기존 질문 데이터 그대로 유지)
+    # 질문 데이터 (기존 유지)
     questions = [
         {
             "title": "현재 나의 라이프스타일과 가장 가까운 유형은?",
@@ -120,94 +116,103 @@ def survey_page():
 
 @survey_bp.route('/survey/save', methods=['POST'])
 def save_survey():
-    try:
-        data = request.json
-        
-        # 1. 사용자 가중치 분석 (이미 잘 나오고 있음)
-        raw_log = data.get('category_log', [])
-        temp_weights = {"traffic": 0, "convenience": 0, "green": 0, "play": 0, "health": 0, "living": 0, "safety": 0}
-        
-        total_selections = 0
-        for cats in raw_log:
-            for cat_en in cats:
-                if cat_en in temp_weights:
-                    temp_weights[cat_en] += 1
-                    total_selections += 1
+    if 'user_id' not in session:
+        # JSON으로 에러 응답
+        return jsonify({"status": "error", "message": "로그인이 필요한 서비스입니다."}), 401
 
-        user_weights_en = {k: (v / total_selections if total_selections > 0 else 0) for k, v in temp_weights.items()}
-
-        # 2. 매물 필터링
-        rent_type_ko = "월세" if data.get('contract_type') == 'monthly' else "전세"
-        query = {"rent_type": rent_type_ko}
-        # (예산 필터가 필요하다면 여기에 추가)
-
-        filtered_houses = list(houses_col.find(query))
-
-        # 3. 스코어링 (DB의 영문 키와 직접 매칭)
-        for prop in filtered_houses:
-            final_score = 0
-            scores = prop.get('category_scores', {})
-            
-            for cat_en, user_weight in user_weights_en.items():
-                if user_weight > 0:
-                    item_score = float(scores.get(cat_en, 0))
-                    # 가중치를 조금 더 '강력하게' 반영 (예: 제곱근 등을 활용하거나 보정치 부여)
-                    final_score += item_score * user_weight
-
-            # [보정 공식] 
-            # 단순히 100을 곱하는 대신, 최상단 점수가 90점대에 육박하도록 보정치를 더합니다.
-            # 예: (실제 점수 * 80) + 20  -> 최하점을 20점으로 끌어올리고 범위를 조절
-            adjusted_score = (final_score * 70) + 30 
-            
-            # 만약 특정 매물의 점수가 너무 낮다면 최소 50점은 나오게 하고 싶을 때:
-            # adjusted_score = max(50, (final_score * 100))
-
-            prop['match_score'] = round(adjusted_score, 1)
-            prop['_id'] = str(prop['_id'])
-
-        # 점수 정렬
-        filtered_houses.sort(key=lambda x: x['match_score'], reverse=True)
-        recommendations = filtered_houses[:20]
-
-        # 4. DB 저장 및 결과 반환
-        result_doc = {
-            "nickname": session.get('nickname', '익명'),
-            "recommendations": recommendations,
-            "created_at": datetime.now()
-        }
-        inserted_result = db.survey_results.insert_one(result_doc)
-        
-        return jsonify({"status": "success", "result_id": str(inserted_result.inserted_id)})
-
-    except Exception as e:
-        print(f"Error: {e}")
-        return jsonify({"status": "error", "message": str(e)}), 500
-
-@survey_bp.route('/survey/result/<result_id>')
-def survey_result(result_id):
-    # DB에서 해당 ID의 분석 결과를 로드
-    try:
-        result_data = db.survey_results.find_one({"_id": ObjectId(result_id)})
-        
-        if not result_data:
-            return "결과를 찾을 수 없습니다.", 404
-            
-        recommendations = result_data.get('recommendations', [])
-        
-        return render_template('result.html', 
-                               top_3=recommendations[:3], 
-                               others=recommendations[3:],
-                               result_id=result_id)
-    except:
-        return "잘못된 접근입니다.", 400
-
-@survey_bp.route('/survey/shorts/<result_id>')
-def result_shorts(result_id):
-    # 쇼츠 페이지도 동일한 ID로 DB에서 데이터 로드
-    result_data = db.survey_results.find_one({"_id": ObjectId(result_id)})
+    user_id = session['user_id']
     
-    if not result_data:
-        return "데이터를 찾을 수 없습니다.", 404
+    # 폼 데이터가 아닌 JSON 데이터 수집
+    data = request.get_json() 
+    if not data:
+        return jsonify({"status": "error", "message": "전송된 데이터가 없습니다."}), 400
+
+    # 프론트엔드 surveyResults 구조에 맞게 매핑
+    new_survey = {
+        "user_id": user_id,
+        "location": data.get('location'),
+        "contract_type": data.get('contract_type'),
+        "budget": data.get('budget'), # max_dep, max_rent 포함됨
+        "category_log": data.get('category_log'),
+        "created_at": datetime.now()
+    }
+
+    # 1. 기존 설문 목록 확인 (최신순)
+    surveys = list(db.survey_results.find({"user_id": user_id}).sort("created_at", -1))
+
+    # 2. FIFO 로직
+    if len(surveys) >= 3:
+        oldest_id = surveys[-1]['_id']
+        db.survey_results.delete_one({"_id": oldest_id})
+
+    # 3. 새로운 설문 저장
+    db.survey_results.insert_one(new_survey)
+    
+    # 4. JSON으로 성공 응답 전송 (JS가 이걸 받고 redirect를 수행함)
+    return jsonify({"status": "success", "target_index": 0})
+
+@survey_bp.route('/survey/result/<int:index>')
+def survey_result(index):
+    if 'user_id' not in session:
+        return "<script>alert('로그인이 필요한 서비스입니다.'); window.location.href='/login';</script>"
+    
+    user_id = session['user_id']
+    surveys = list(db.survey_results.find({"user_id": user_id}).sort("created_at", -1))
+    
+    if not surveys or index >= len(surveys):
+        msg = f"해당 설문 내역이 없습니다. (현재 저장된 설문: {len(surveys)}개)"
+        return f"<script>alert('{msg}'); window.location.href='/mypage';</script>"
+
+    # 1. 요청한 순번의 설문 선택 (변수 정의)
+    selected_survey = surveys[index]
+    
+    # 2. 매칭 로직 (매물 DB에서 가져오기)
+    # 실제로는 selected_survey['category_log'] 등을 활용해 필터링해야 합니다.
+    # 여기서는 예시로 상위 10개를 가져와 임의의 매칭 점수를 부여합니다.
+    category_weights = selected_survey.get('category_log', [])
+    
+    query = {}
+    # (선택 사항) 지역 필터링 예시: 
+    # if selected_survey.get('location'):
+    #     query['address'] = {"$regex": selected_survey['location']}
+
+    all_houses = list(houses_col.find(query).limit(10))
+    
+    matched_properties = []
+    for house in all_houses:
+        # 임의의 점수 부여 로직 (실제 서비스에서는 카테고리 일치도에 따라 계산)
+        house['match_score'] = 85.5 + (len(category_weights) % 10) 
+        # _id를 문자열로 변환 (HTML에서 깨짐 방지)
+        house['_id_str'] = str(house['_id'])
+        matched_properties.append(house)
+
+    # 점수 높은 순으로 정렬
+    matched_properties = sorted(matched_properties, key=lambda x: x['match_score'], reverse=True)
+
+    # 3. 데이터 분리 및 렌더링
+    top_3 = matched_properties[:3]
+    others = matched_properties[3:]
+
+    return render_template('result.html', 
+                           survey=selected_survey, 
+                           top_3=top_3, 
+                           others=others, 
+                           current_index=index,
+                           survey_id=str(selected_survey['_id']))
+
+@survey_bp.route('/survey/shorts/<int:index>')
+def result_shorts(index):
+    if 'user_id' not in session:
+        return "<script>alert('로그인이 필요합니다.'); window.location.href='/login';</script>"
+    
+    user_id = session['user_id']
+    surveys = list(db.survey_results.find({"user_id": user_id}).sort("created_at", -1))
+    
+    if not surveys or index >= len(surveys):
+        return "<script>alert('데이터를 찾을 수 없습니다.'); window.location.href='/mypage';</script>"
         
+    result_data = surveys[index]
+    
     return render_template('shorts.html', 
-                           recommendations=result_data.get('recommendations', []))
+                           recommendations=result_data.get('recommendations', []),
+                           current_index=index)
