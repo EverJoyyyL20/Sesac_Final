@@ -1,13 +1,15 @@
 import os
 from flask import Blueprint, render_template, current_app, request, jsonify
 from dotenv import load_dotenv
-from database import houses_col  # MongoDB 연결 설정이 담긴 파일
+from database import houses_col 
 
 load_dotenv()
 
 find_property_bp = Blueprint('find_property', __name__, template_folder='.')
 
-# 서울시 구별 중심 좌표 데이터
+# 앱 실행 시 인덱스 생성 (location 필드가 GeoJSON 객체여야 함)
+houses_col.create_index([("location", "2dsphere")])
+
 GU_COORDS = {
     "강남구": {"lat": 37.514575, "lng": 127.0495556},
     "강동구": {"lat": 37.52736667, "lng": 127.1258639},
@@ -43,14 +45,7 @@ def find_property():
 
 @find_property_bp.route('/api/stats/gu')
 def get_gu_stats():
-    # DB 조회 없이 정의된 좌표 리스트만 반환 (속도 초고속)
-    result = []
-    for gu_name, coords in GU_COORDS.items():
-        result.append({
-            "_id": gu_name,
-            "lat": coords['lat'],
-            "lng": coords['lng']
-        })
+    result = [{"_id": k, "lat": v['lat'], "lng": v['lng']} for k, v in GU_COORDS.items()]
     return jsonify(result)
 
 @find_property_bp.route('/api/properties')
@@ -63,9 +58,7 @@ def get_properties():
     if not all([sw_lat, sw_lng, ne_lat, ne_lng]):
         return jsonify([])
 
-    # 공간 인덱스 보장
-    houses_col.create_index([("location", "2dsphere")])
-
+    # 쿼리 범위: [경도, 위도] 순서 필수
     query = {
         "location": {
             "$geoWithin": {
@@ -74,7 +67,24 @@ def get_properties():
         }
     }
 
-    items = list(houses_col.find(query).limit(500))
-    for item in items:
-        item['_id'] = str(item['_id'])
-    return jsonify(items)
+    try:
+        # 데이터 전처리: 프론트엔드가 기대하는 필드명이 없을 경우 기본값 할당
+        items = list(houses_col.find(query).limit(300))
+        processed_items = []
+
+        for item in items:
+            processed_items.append({
+                "_id": str(item.get('_id')),
+                "price": item.get('price', '가격 정보 없음'),
+                "rent_type": item.get('rent_type', item.get('type', '정보 없음')),
+                "address": item.get('address', '주소 정보 없음'),
+                "floor": item.get('floor', '층수 미확인'),
+                "hasParking": item.get('hasParking', item.get('parking', '확인 불가')),
+                "options": item.get('options', []),
+                "location": item.get('location')  # 지도 표시용
+            })
+            
+        return jsonify(processed_items)
+    except Exception as e:
+        print(f"Error: {e}")
+        return jsonify([]), 500
