@@ -1,224 +1,123 @@
-/* 1. 기본 레이아웃 보정 */
-html, body {
-    margin: 0;
-    padding: 0;
-    height: 100%; /* 전체 높이 확보 */
-    display: flex;
-    flex-direction: column;
-}
+/* index.css */
 
-/* 2. 메인 히어로 섹션 (위아래로 길게 확장) */
+/* --- 1. 히어로 섹션 (첫 화면 강조) --- */
 .hero {
-    /* 기존 디자인 유지 */
-    text-align: center;
-    background: #f8f9fa;
-    
-    /* 세로 확장 로직 추가 */
-    flex: 1; /* 남는 수직 공간을 모두 차지 */
+    flex: 1; 
     display: flex;
     flex-direction: column;
-    justify-content: center; /* 컨텐츠를 수직 중앙에 배치 */
+    justify-content: center;
     align-items: center;
+    text-align: center;
+    background: #f8f9fa; /* common.css 배경색과 통일 */
     padding: 0 20px;
-    min-height: 80vh; /* 최소 화면의 80% 이상 높이 보장 */
+    min-height: 80vh; 
 }
 
-.hero h1 {
-    font-size: 2.5rem;
-    margin-bottom: 20px;
+.hero h1 { 
+    font-size: 3rem; /* 조금 더 크게 강조 */
+    margin-bottom: 20px; 
+    font-weight: 800; 
+    letter-spacing: -1.5px;
+    color: #222;
 }
 
-.hero p {
-    font-size: 1.2rem;
-    margin-bottom: 40px;
-    color: #555;
-}
-.welcome-text {
-    color: #ffffff;         /* 흰색으로 변경 */
-    margin-right: 15px;
-    font-weight: 500;
+.hero p { 
+    font-size: 1.25rem; 
+    margin-bottom: 40px; 
+    color: #666; 
+    line-height: 1.6;
 }
 
-/* 3. 버튼 디자인 (로켓 아이콘 제외를 고려한 유지) */
+/* --- 2. 메인 액션 버튼 (.survey-btn) --- */
 .survey-btn {
-    padding: 15px 40px; /* 좌우 패딩을 조금 더 늘려 안정감 부여 */
-    font-size: 1.1rem;
-    background-color: #4facfe;
+    padding: 18px 50px;
+    font-size: 1.15rem;
+    font-weight: 700;
+    background-color: #4facfe; /* 프로젝트 전체 포인트 컬러 */
     color: white;
     border: none;
-    border-radius: 8px;
+    border-radius: 12px; /* 다른 페이지 버튼과 곡률 통일 */
     cursor: pointer;
-    transition: 0.3s;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 8px 20px rgba(79, 172, 254, 0.3);
 }
 
 .survey-btn:hover {
     background-color: #00c6ff;
-    transform: translateY(-2px);
+    transform: translateY(-4px); /* 조금 더 역동적인 피드백 */
+    box-shadow: 0 12px 25px rgba(79, 172, 254, 0.4);
 }
 
-/* 4. 프로필 설정 유도 팝업 (기존 디자인 유지) */
-.setup-card {
-    position: fixed;
-    bottom: 30px;
-    right: 30px;
-    width: 280px;
-    background: white;
-    border-radius: 12px;
-    padding: 20px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-    z-index: 999;
-    border: 2px solid #4facfe;
-    animation: slideUp 0.5s ease;
-}
-
-.setup-card h4 {
-    margin-top: 0;
-    margin-bottom: 10px;
-}
-
-.setup-card textarea {
-    width: 100%;
-    height: 60px;
-    margin: 10px 0;
-    border-radius: 5px;
-    border: 1px solid #ddd;
-    padding: 8px;
-    resize: none;
-    box-sizing: border-box;
-}
-
-.card-btns {
-    display: flex;
-    gap: 8px;
-}
-
-.card-btns button {
-    flex: 1;
-    padding: 10px;
-    border-radius: 5px;
-    border: none;
-    cursor: pointer;
-    font-weight: bold;
-}
-
-.card-btns button:first-child {
-    background: #4facfe;
-    color: white;
-}
-
-.card-btns button.skip {
-    background: #eee;
-    color: #666;
-}
-
-/* 5. 푸터 (바닥에 안착) */
-.footer {
-    padding: 30px 0;
-    background: #ffffff;
-    border-top: 1px solid #eee;
-    text-align: center;
-}
-/* 1. 배경을 어둡고 흐리게 만들어 모달에 집중하게 함 */
+/* --- 3. 모달 및 팝업 (통일된 시스템) --- */
 .modal-overlay {
     position: fixed;
     top: 0; left: 0;
     width: 100%; height: 100%;
-    background: rgba(0, 0, 0, 0.5); /* 어두운 배경 */
-    backdrop-filter: blur(4px);    /* 배경 흐림 효과 */
+    background: rgba(0, 0, 0, 0.4); /* 너무 어둡지 않게 조절 */
+    backdrop-filter: blur(8px); /* 블러 강도를 높여 고급스럽게 */
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 10000;
 }
 
-/* 2. 모달 카드 디자인 (흰색 박스) */
 .setup-modal {
     background: white;
-    padding: 30px;
-    border-radius: 20px;
+    border-radius: 24px; /* 설문/로그인 박스와 통일 */
+    padding: 40px;
     width: 90%;
-    max-width: 400px;
-    box-shadow: 0 15px 35px rgba(0,0,0,0.2);
-    text-align: left; /* 텍스트는 왼쪽 정렬 */
+    max-width: 420px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+    animation: slideUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-.setup-modal h2 {
-    margin-top: 0;
-    font-size: 1.5rem;
-    color: #333;
-}
-
-.setup-modal p {
-    color: #666;
-    margin-bottom: 25px;
-}
-
-/* 3. 입력창 그룹 디자인 */
-.input-group {
-    margin-bottom: 20px;
-}
-
-.input-group label {
-    display: block;
-    font-weight: bold;
-    margin-bottom: 8px;
-    color: #444;
-}
-
-.input-group input, 
-.input-group textarea {
+/* 텍스트 영역 스타일 보정 */
+.setup-modal textarea {
     width: 100%;
-    padding: 12px;
-    border: 1px solid #ddd;
-    border-radius: 10px;
+    padding: 16px;
+    border: 1px solid #eee;
+    border-radius: 12px;
+    background: #fdfdfd;
+    font-family: 'Pretendard', sans-serif;
     font-size: 1rem;
-    box-sizing: border-box; /* 패딩이 너비를 넘지 않게 함 */
-}
-
-.input-group textarea {
-    height: 100px;
+    line-height: 1.5;
     resize: none;
+    box-sizing: border-box;
+    margin-top: 15px;
+    transition: border-color 0.3s;
 }
 
-/* 4. 버튼 영역 디자인 */
+.setup-modal textarea:focus {
+    outline: none;
+    border-color: #4facfe;
+}
+
+/* --- 4. 버튼 그룹 스타일 --- */
 .modal-btns {
     display: flex;
-    gap: 10px;
+    gap: 12px;
     margin-top: 25px;
 }
 
 .modal-btns button {
     flex: 1;
     padding: 15px;
+    border-radius: 12px;
     border: none;
-    border-radius: 10px;
     font-size: 1rem;
-    font-weight: bold;
+    font-weight: 700;
     cursor: pointer;
     transition: 0.2s;
 }
 
-/* 저장 버튼 (파란색) */
-#save-btn {
-    background: #4facfe;
-    color: white;
-}
+.btn-save { background: #4facfe; color: white; }
+.btn-save:hover { background: #00c6ff; }
 
-#save-btn:hover {
-    background: #008ef0;
-}
+.btn-skip { background: #f1f1f1; color: #777; }
+.btn-skip:hover { background: #e5e5e5; }
 
-/* 나중에 하기 버튼 (회색) */
-.skip-btn {
-    background: #f1f1f1;
-    color: #777;
-}
-
-.skip-btn:hover {
-    background: #e5e5e5;
-}
 /* 애니메이션 */
 @keyframes slideUp {
-    from { transform: translateY(100px); opacity: 0; }
+    from { transform: translateY(30px); opacity: 0; }
     to { transform: translateY(0); opacity: 1; }
 }

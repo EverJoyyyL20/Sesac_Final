@@ -1,36 +1,100 @@
-/* --- 1. 지도 페이지 레이아웃 --- */
-/* 지도 페이지는 히어로 섹션 대신 지도가 flex: 1을 가집니다. */
-#map-container {
-    flex: 1; 
-    position: relative;
-    width: 100%;
+/* find_property.css */
+
+/* --- 1. 지도 레이아웃 (common.css의 flex 구조 활용) --- */
+#map-container { 
+    flex: 1; /* 내비바를 제외한 나머지 모든 수직 공간을 지도가 차지 */
+    position: relative; 
+    width: 100%; 
 }
 
-#map {
-    width: 100%;
-    height: 100%;
+#map { 
+    width: 100%; 
+    height: 100%; 
 }
 
-/* --- 2. 지도 위 정보 박스 --- */
+/* 지도 페이지 특성상 하단 푸터가 필요 없다면 숨김 처리 */
+body.map-page .footer {
+    display: none;
+}
+
+/* --- 2. 지도 위 오버레이 UI (상태바 & 헤더박스) --- */
+.status-header {
+    position: absolute; 
+    top: 20px; 
+    left: 50%; 
+    transform: translateX(-50%);
+    z-index: 1000; 
+    background: rgba(255, 255, 255, 0.9); 
+    backdrop-filter: blur(10px);
+    padding: 10px 20px; 
+    border-radius: 30px; 
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    border: 1px solid rgba(255,255,255,0.3);
+}
+
+#status-text { 
+    margin: 0; 
+    font-size: 14px; 
+    color: #333; 
+    font-weight: 600; 
+}
+
 .header-box {
     position: absolute;
     top: 20px;
     left: 20px;
-    z-index: 1000; /* 지도보다 위 */
+    z-index: 1000;
     background: white;
     padding: 12px 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    border: 1px solid #ddd;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    border: 1px solid #eee;
 }
 
-.header-box h3 {
-    margin: 0;
-    font-size: 16px;
-    color: #333;
+/* --- 3. 마커 및 태그 스타일 (포인트 컬러 #4facfe 유지) --- */
+.gu-tag {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(5px);
+    color: #222;
+    padding: 8px 18px;
+    border-radius: 25px;
+    font-size: 14px;
+    font-weight: 700;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    transition: all 0.2s ease;
+    cursor: pointer;
+    white-space: nowrap;
 }
 
-/* --- 3. 버튼 (지도 내 인터페이스용) --- */
+.gu-tag:hover {
+    background: #4facfe;
+    color: white;
+    transform: translateY(-3px);
+}
+
+.price-tag {
+    background: #4facfe;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: bold;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    border: 1px solid white;
+    cursor: pointer;
+}
+
+/* --- 4. 정보창(InfoWindow) 커스텀 스크롤 --- */
+.info-window-container::-webkit-scrollbar { 
+    width: 4px; 
+}
+
+.info-window-container::-webkit-scrollbar-thumb { 
+    background: #4facfe; 
+    border-radius: 10px; 
+}
+
 .survey-btn-mini {
     padding: 8px 15px;
     font-size: 0.9rem;
@@ -44,51 +108,4 @@
 
 .survey-btn-mini:hover {
     background-color: #00c6ff;
-}
-
-/* 구 단위 마커 - 모던 미니멀 스타일 */
-.gu-tag {
-    background: rgba(255, 255, 255, 0.9);
-    backdrop-filter: blur(5px); /* 배경 흐림 효과 */
-    color: #333;
-    padding: 8px 18px;
-    border-radius: 25px; /* 둥근 캡슐 형태 */
-    font-size: 14px;
-    font-weight: 600;
-    border: 1px solid rgba(0, 0, 0, 0.05);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); /* 부드러운 그림자 */
-    transition: all 0.2s ease;
-    cursor: pointer;
-    text-align: center;
-    white-space: nowrap;
-}
-
-.gu-tag:hover {
-    background: #4facfe; /* 호버 시 포인트 컬러로 변경 */
-    color: white;
-    transform: translateY(-3px);
-    box-shadow: 0 6px 20px rgba(79, 172, 254, 0.3);
-}
-
-/* 개별 매물 가격표도 통일감 있게 수정 */
-.price-tag {
-    background: #4facfe;
-    color: white;
-    padding: 3px 10px;
-    border-radius: 6px;
-    font-size: 12px;
-    font-weight: 500;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    cursor: pointer;
-}
-
-.info-window-container::-webkit-scrollbar {
-    width: 6px;
-}
-.info-window-container::-webkit-scrollbar-thumb {
-    background: #ccc;
-    border-radius: 10px;
-}
-.info-item:last-child {
-    border-bottom: none !important;
 }

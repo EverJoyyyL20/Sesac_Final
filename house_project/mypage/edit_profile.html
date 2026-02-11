@@ -2,6 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>정보 수정 - 안전한 집 찾기</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/mypage.css') }}">
@@ -10,10 +11,9 @@
 
 <div class="navbar">
     <div class="nav-left">
-        <a href="{{ url_for('main.index') }}">HOME</a>
+        <a href="{{ url_for('main.index') }}">Home</a>
         <a href="{{ url_for('find_property.find_property') }}">매물찾기</a>
     </div>
-    
     <div class="nav-links">
         {% if session.get('user_id') %}
             <a href="{{ url_for('mypage.mypage') }}">My Page</a>
@@ -25,47 +25,55 @@
     </div>
 </div>
 
-<div class="container">
-    <div class="profile-card">
-        <form action="{{ url_for('mypage.update_profile') }}" method="post" enctype="multipart/form-data" style="display: flex; width: 100%; gap: 50px;">
+<div class="container" style="margin-top: 20px; margin-bottom: 20px;">
+    <div class="profile-card" style="padding: 30px 50px; min-height: auto;">
+        <form action="{{ url_for('mypage.update_profile') }}" method="post" enctype="multipart/form-data" style="display: flex; width: 100%; gap: 60px; align-items: flex-start;">
             
-            <div class="profile-left">
+            <div class="profile-left" style="flex: 0 0 150px; text-align: center;">
                 <img id="preview" class="profile-img-preview" 
                      src="{{ url_for('static', filename='profile_pics/' + profile_img) if profile_img else url_for('static', filename='profile_pics/default.png') }}" 
-                     alt="프로필 사진"
-                     onerror="this.src='https://via.placeholder.com/150'">
-                <div style="margin-top: 15px;">
-                    <label for="profile_img" class="file-label">사진 변경</label>
+                     style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover; border: 2px solid #eee;">
+                <div style="margin-top: 12px;">
+                    <label for="profile_img" class="file-label" style="font-size: 0.8rem; padding: 6px 12px;">사진 변경</label>
                     <input type="file" id="profile_img" name="profile_img" accept="image/*" style="display: none;" onchange="previewImage(this)">
                 </div>
             </div>
 
             <div class="profile-right" style="flex: 1;">
-                <h2 style="margin-bottom: 30px;">내 정보 수정</h2>
+                <h2 style="margin-bottom: 20px; font-weight: 800; font-size: 1.5rem;">내 정보 수정</h2>
                 
-                <div class="info-row">
-                    <span class="info-label">닉네임</span>
-                    <input type="text" name="nickname" value="{{ nickname }}" class="edit-input" placeholder="새 닉네임 입력" required>
+                <div class="info-row" style="margin-bottom: 15px;">
+                    <span class="info-label" style="width: 100px;">닉네임</span>
+                    <input type="text" name="nickname" value="{{ nickname }}" class="edit-input" required>
                 </div>
                 
-                <div class="info-row">
-                    <span class="info-label">한 줄 소개</span>
-                    <input type="text" name="bio" value="{{ bio }}" class="edit-input" placeholder="본인을 짧게 소개해 주세요">
+                <div class="info-row" style="margin-bottom: 25px;">
+                    <span class="info-label" style="width: 100px;">한 줄 소개</span>
+                    <input type="text" name="bio" value="{{ bio }}" class="edit-input">
                 </div>
 
-                <div class="pw-change-section">
-                    <h3>비밀번호 변경 (선택)</h3>
-                    <div class="info-row">
-                        <input type="password" name="new_password" class="edit-input" placeholder="새 비밀번호">
+                <div class="pw-change-section" style="padding: 20px; background-color: #fafafa; border-radius: 10px; border: 1px solid #f0f0f0;">
+                    <h3 style="font-size: 0.9rem; margin-bottom: 15px; color: #555;">🔒 비밀번호 변경</h3>
+                    
+                    <div class="info-row" style="margin-bottom: 10px;">
+                        <span class="info-label" style="width: 120px; font-size: 0.85rem;">현재 비밀번호</span>
+                        <input type="password" name="current_password" class="edit-input" placeholder="확인 필요">
                     </div>
-                    <div class="info-row" style="border-bottom: none;">
-                        <input type="password" name="confirm_password" class="edit-input" placeholder="새 비밀번호 확인">
+
+                    <div class="info-row" style="margin-bottom: 10px;">
+                        <span class="info-label" style="width: 120px; font-size: 0.85rem;">새 비밀번호</span>
+                        <input type="password" name="new_password" class="edit-input">
+                    </div>
+                    
+                    <div class="info-row" style="border-bottom: none; padding-bottom: 0;">
+                        <span class="info-label" style="width: 120px; font-size: 0.85rem;">비밀번호 확인</span>
+                        <input type="password" name="confirm_password" class="edit-input">
                     </div>
                 </div>
 
-                <div class="btn-group" style="margin-top: 40px;">
+                <div class="btn-group" style="margin-top: 25px;">
                     <button type="submit" class="btn btn-edit">저장하기</button>
-                    <a href="{{ url_for('mypage.mypage') }}" class="btn btn-logout">취소</a>
+                    <a href="{{ url_for('mypage.mypage') }}" class="btn" style="background-color: #f5f5f5; color: #888; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">취소</a>
                 </div>
             </div>
         </form>
@@ -73,7 +81,6 @@
 </div>
 
 <script>
-    // 이미지 미리보기 스크립트
     function previewImage(input) {
         if (input.files && input.files[0]) {
             const reader = new FileReader();
