@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>맞춤 설문 조사</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/survey.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
     <style>
         .q-card { display: none; }
         .q-card.active { display: block; }
@@ -43,21 +44,21 @@
             <div id="monthly-area" class="conditional-area">
                 <p class="sub-q">보증금 범위 (만원)</p>
                 <div class="range-input-group" style="display: flex; gap: 10px; align-items: center;">
-                    <input type="number" id="m_dep_min" class="input-field" placeholder="최소"> <span>~</span>
-                    <input type="number" id="m_dep_max" class="input-field" placeholder="최대">
+                    <input type="number" id="m_dep_min" class="input-field" placeholder="최소" min="0" oninput="preventNegative(this)"> <span>~</span>
+                    <input type="number" id="m_dep_max" class="input-field" placeholder="최대" min="0" oninput="preventNegative(this)">
                 </div>
                 <p class="sub-q">월세 범위 (만원)</p>
                 <div class="range-input-group" style="display: flex; gap: 10px; align-items: center;">
-                    <input type="number" id="m_rent_min" class="input-field" placeholder="최소"> <span>~</span>
-                    <input type="number" id="m_rent_max" class="input-field" placeholder="최대">
+                    <input type="number" id="m_rent_min" class="input-field" placeholder="최소" min="0" oninput="preventNegative(this)"> <span>~</span>
+                    <input type="number" id="m_rent_max" class="input-field" placeholder="최대" min="0" oninput="preventNegative(this)">
                 </div>
             </div>
 
             <div id="jeonse-area" class="conditional-area">
                 <p class="sub-q">전세금 범위 (만원)</p>
                 <div class="range-input-group" style="display: flex; gap: 10px; align-items: center;">
-                    <input type="number" id="j_dep_min" class="input-field" placeholder="최소"> <span>~</span>
-                    <input type="number" id="j_dep_max" class="input-field" placeholder="최대">
+                    <input type="number" id="j_dep_min" class="input-field" placeholder="최소" min="0" oninput="preventNegative(this)"> <span>~</span>
+                    <input type="number" id="j_dep_max" class="input-field" placeholder="최대" min="0" oninput="preventNegative(this)">
                 </div>
             </div>
 
