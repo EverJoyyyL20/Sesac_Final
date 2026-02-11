@@ -20,13 +20,31 @@
         .btn-withdraw:hover {
             background-color: #ed5a5a;
         }
+        /* 찜한 매물 그리드 스타일 보정 */
+        .property-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .property-card {
+            border: 1px solid #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            background: #fff;
+            transition: transform 0.2s;
+        }
+        .property-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
     </style>
 </head>
 <body>
 
 <div class="navbar">
     <div class="nav-left">
-        <a href="{{ url_for('main.index') }}">HOME</a>
+        <a href="{{ url_for('main.index') }}">Home</a>
         <a href="{{ url_for('find_property.find_property') }}">매물찾기</a>
     </div>
     
@@ -71,31 +89,68 @@
         </div>
     </div>
 
-    <div class="content-section">
-        <div class="content-box">
+   <div class="content-section" style="display: flex; gap: 20px; align-items: stretch; margin-top: 30px;">
+        
+        <div class="content-box" style="flex: 1; min-height: 350px; display: flex; flex-direction: column; margin-top: 0;">
             <h3>📝 최근 설문 결과</h3>
-            {% if survey %}
-                <div class="survey-summary">
-                    <p>📍 <strong>희망 지역:</strong> {{ survey.location if survey.location else '미지정' }}</p>
-                    <p>💰 <strong>계약 형태:</strong> {{ '월세' if survey.contract_type == 'monthly' else '전세' }}</p>
-                    <p>🏠 <strong>선호 건물:</strong> 
-                        {% for t in survey.building_type %}{{ t }}{% if not loop.last %}, {% endif %}{% endfor %}
-                    </p>
-                    <p>✨ <strong>건물 연식:</strong> 
-                        {% for a in survey.building_age %}{{ a }}{% if not loop.last %}, {% endif %}{% endfor %}
-                    </p>
-                    <p>🚗 <strong>주차 필요:</strong> {{ '필요함' if survey.parking == 'yes' else '상관없음' }}</p>
-                </div>
-                <a href="{{ url_for('main.survey') }}" class="btn-resurvey" style="font-size: 0.8rem; color: #4facfe; text-decoration: none; margin-top: 10px; display: inline-block;">다시 조사하기 ></a>
-            {% else %}
-                <p class="empty-text">진행한 설문 내역이 없습니다.</p>
-                <a href="{{ url_for('main.survey') }}" class="btn btn-edit" style="font-size: 0.8rem; padding: 5px 10px;">설문 시작하기</a>
-            {% endif %}
+            <div style="flex: 1; margin-top: 15px;">
+                {% if survey %}
+                    <div class="survey-summary" style="line-height: 1.8;">
+                        <p>📍 <strong>희망 지역:</strong> {{ survey.location if survey.location else '미지정' }}</p>
+                        <p>💰 <strong>계약 형태:</strong> {{ '월세' if survey.contract_type == 'monthly' else '전세' }}</p>
+                        <p>🏠 <strong>선호 건물:</strong> 
+                            {% for t in survey.building_type %}{{ t }}{% if not loop.last %}, {% endif %}{% endfor %}
+                        </p>
+                        <p>✨ <strong>건물 연식:</strong> 
+                            {% for a in survey.building_age %}{{ a }}{% if not loop.last %}, {% endif %}{% endfor %}
+                        </p>
+                        <p>🚗 <strong>주차 필요:</strong> {{ '필요함' if survey.parking == 'yes' else '상관없음' }}</p>
+                    </div>
+                {% else %}
+                    <div style="height: 100%; display: flex; align-items: center; justify-content: center;">
+                        <p class="empty-text">진행한 설문 내역이 없습니다.</p>
+                    </div>
+                {% endif %}
+            </div>
+            <a href="{{ url_for('main.survey') }}" class="btn-resurvey" style="font-size: 0.8rem; color: #4facfe; text-decoration: none; padding-top: 10px; border-top: 1px solid #f9f9f9;">
+                {% if survey %}다시 조사하기 >{% else %}설문 시작하기 >{% endif %}
+            </a>
         </div>
-        <div class="content-box">
-            <h3>⭐ 찜한 매물</h3>
-            <p class="empty-text">저장된 매물이 없습니다.</p>
+
+        <div class="content-box" style="flex: 1; min-height: 350px; display: flex; flex-direction: column; margin-top: 0;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3>❤️ 내가 찜한 매물</h3>
+                <span style="font-size: 0.8rem; color: #4facfe; font-weight: bold;">{{ favorites|length }} / 10</span>
+            </div>
+            
+            <div style="flex: 1; position: relative; margin-top: 15px; overflow: hidden;">
+                {% if favorites %}
+                    <div class="property-slider" style="display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 12px; padding-bottom: 10px; scrollbar-width: none; -ms-overflow-style: none;">
+                        {% for property in favorites %}
+                        <div class="property-card" style="flex: 0 0 180px; scroll-snap-align: start; border: 1px solid #eee; border-radius: 10px; background: #fff;">
+                            <img src="{{ property.img if property.img else url_for('static', filename='images/no-image.png') }}" 
+                                alt="매물 이미지" style="width: 100%; height: 100px; object-fit: cover;">
+                            <div style="padding: 10px;">
+                                <h4 style="margin: 0; font-size: 0.85rem; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ property.title }}</h4>
+                                <p style="color: #ff5a5f; font-size: 0.8rem; margin: 4px 0; font-weight: bold;">{{ property.price }}</p>
+                                <a href="/property/{{ property.id }}" style="text-decoration: none; color: #4facfe; font-size: 0.7rem; font-weight: bold;">상세보기 →</a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <p style="font-size: 0.65rem; color: #ccc; text-align: right; margin-top: 5px;">옆으로 넘겨보세요 ⮕</p>
+                {% else %}
+                    <div style="height: 100%; display: flex; align-items: center; justify-content: center;">
+                        <p class="empty-text">찜한 매물이 없습니다.</p>
+                    </div>
+                {% endif %}
+            </div>
+            
+            <a href="{{ url_for('find_property.find_property') }}" class="btn-resurvey" style="font-size: 0.8rem; color: #4facfe; text-decoration: none; padding-top: 10px; border-top: 1px solid #f9f9f9;">
+                매물 더 찾기 >
+            </a>
         </div>
+
     </div>
 </div>
 
