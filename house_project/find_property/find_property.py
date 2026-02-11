@@ -76,6 +76,7 @@ def get_properties():
             processed_items.append({
                 "_id": str(item.get('_id')),
                 "price": item.get('price', '가격 정보 없음'),
+                "deposit": item.get('deposit', '보증금 정보 없음'),
                 "rent_type": item.get('rent_type', item.get('type', '정보 없음')),
                 "address": item.get('address', '주소 정보 없음'),
                 "floor": item.get('floor', '층수 미확인'),
