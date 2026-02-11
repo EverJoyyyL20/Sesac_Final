@@ -3,11 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>서울 부동산 매물 탐색 - 안전한 집 찾기</title>
-    
+    <title>서울 부동산 매물 탐색</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/find_property.css') }}">
-    
     <script type="text/javascript" src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId={{ client_id }}"></script>
     
 </head>
@@ -16,8 +14,9 @@
 <div class="navbar">
     <div class="nav-left">
         <a href="{{ url_for('main.index') }}">Home</a>
-        <a href="{{ url_for('find_property.find_property') }}" class="active">매물찾기</a>
+        <a href="{{ url_for('find_property.find_property') }}">매물찾기</a>
     </div>
+
     <div class="nav-links">
         {% if session.get('user_id') %}
             <span class="welcome-text"><strong>{{ session.get('nickname') }}</strong>님</span>
@@ -31,148 +30,186 @@
 </div>
 
 <div id="map-container">
-    <div class="status-header">
-        <span id="status-text">📍 매물 지도를 불러오는 중...</span>
-    </div>
+    <div class="status-header"><span id="status-text">지도 로딩 중...</span></div>
     <div id="map"></div>
+</div>
+
+<div id="propertyModal" class="modal">
+    <div class="modal-content">
+        <h2 style="margin:0 0 20px 0; font-size: 20px;">🏠 매물 상세 정보</h2>
+        <div id="modal-body"></div>
+        <div style="margin-top:25px; display:flex; gap:12px;">
+            <button id="favoriteBtn" class="fav-btn" onclick="handleFavorite()">❤️ 찜하기</button>
+            <button onclick="closeModal()" style="flex:1; padding:14px; background:#eee; border:none; border-radius:12px; cursor:pointer;">닫기</button>
+        </div>
+    </div>
 </div>
 
 <script>
     let map;
     let markers = [];
+    let infoWindows = [];
+    let lastRequestId = 0;
+    let allProperties = [];
+    let openInfoWindowId = null;
+    let myFavorites = JSON.parse(localStorage.getItem('property_favs') || '[]');
+    let startX, startY;
+    const DRAG_THRESHOLD = 5;
 
     window.onload = function() {
-        const seoulBounds = new naver.maps.LatLngBounds(
-            new naver.maps.LatLng(37.42, 126.75), 
-            new naver.maps.LatLng(37.70, 127.20)
-        );
-
         map = new naver.maps.Map('map', {
             center: new naver.maps.LatLng(37.5665, 126.9780),
             zoom: 12,
-            minZoom: 11,
-            maxBounds: seoulBounds
+            minZoom: 11
+        });
+
+        const mapDiv = document.getElementById('map');
+        mapDiv.addEventListener('mousedown', e => { startX = e.pageX; startY = e.pageY; });
+        mapDiv.addEventListener('mouseup', e => {
+            const diffX = Math.abs(e.pageX - startX);
+            const diffY = Math.abs(e.pageY - startY);
+            if (diffX < DRAG_THRESHOLD && diffY < DRAG_THRESHOLD) {
+                setTimeout(() => {
+                    if (!e.target.closest('.price-tag') && !e.target.closest('.iw-container')) {
+                        closeAllInfoWindows();
+                    }
+                }, 10);
+            }
         });
 
         naver.maps.Event.addListener(map, 'idle', updateMarkers);
+        updateMarkers();
     };
+
+    function formatFloor(floorStr) {
+        if (!floorStr) return "정보 없음";
+        if (typeof floorStr === 'string' && floorStr.includes('/')) {
+            const parts = floorStr.split('/');
+            return `전체 ${parts[1].trim()}층 중 ${parts[0].trim()}층`;
+        }
+        return isNaN(floorStr) ? floorStr : `${floorStr}층`;
+    }
+
+    function closeAllInfoWindows() {
+        infoWindows.forEach(iw => iw.close());
+        openInfoWindowId = null;
+    }
 
     function updateMarkers() {
         const zoom = map.getZoom();
         const bounds = map.getBounds();
-        const sw = bounds.getSW();
-        const ne = bounds.getNE();
+        const requestId = ++lastRequestId;
 
-        markers.forEach(m => m.setMap(null));
-        markers = [];
+        let apiUrl = zoom < 14 ? '/api/stats/gu' : 
+            `/api/properties?sw_lat=${bounds.getSW().lat()}&sw_lng=${bounds.getSW().lng()}&ne_lat=${bounds.getNE().lat()}&ne_lng=${bounds.getNE().lng()}`;
 
-        if (zoom < 14) {
-            document.getElementById('status-text').innerText = "💡 지도를 확대하면 상세 매물이 보입니다.";
-            fetch('/api/stats/gu')
-                .then(res => res.json())
-                .then(stats => {
-                    stats.forEach(gu => {
-                        const marker = new naver.maps.Marker({
-                            position: new naver.maps.LatLng(gu.lat, gu.lng),
-                            map: map,
-                            icon: {
-                                content: `<div class="gu-tag">${gu._id}</div>`,
-                                anchor: new naver.maps.Point(40, 20)
-                            }
-                        });
-                        naver.maps.Event.addListener(marker, 'click', () => {
-                            map.morph(marker.getPosition(), 15);
-                        });
-                        markers.push(marker);
-                    });
-                });
-        } else {
-            const url = `/api/properties?sw_lat=${sw.lat()}&sw_lng=${sw.lng()}&ne_lat=${ne.lat()}&ne_lng=${ne.lng()}`;
-            fetch(url)
-                .then(res => res.json())
-                .then(data => {
-                    document.getElementById('status-text').innerText = `📍 현재 영역 매물 ${data.length.toLocaleString()}개`;
+        fetch(apiUrl)
+            .then(res => res.json())
+            .then(data => {
+                if (requestId !== lastRequestId) return;
+                markers.forEach(m => m.setMap(null));
+                markers = [];
 
-                    // 1. 좌표별 그룹화
-                    const groups = {};
-                    data.forEach(item => {
-                        const coordKey = `${item.location.coordinates[1]},${item.location.coordinates[0]}`;
-                        if (!groups[coordKey]) groups[coordKey] = [];
-                        groups[coordKey].push(item);
-                    });
-
-                    // 2. 그룹별 마커 및 인포윈도우 생성
-                    Object.values(groups).forEach(items => {
-                        const firstItem = items[0];
-                        const count = items.length;
-                        const markerLabel = count > 1 ? `매물 ${count}개` : firstItem.price;
-
-                        const marker = new naver.maps.Marker({
-                            position: new naver.maps.LatLng(firstItem.location.coordinates[1], firstItem.location.coordinates[0]),
-                            map: map,
-                            icon: {
-                                content: `<div class="price-tag" style="${count > 1 ? 'background:#ff9f43;' : ''}">${markerLabel}</div>`,
-                                anchor: new naver.maps.Point(20, 10)
-                            }
-                        });
-
-                        // 인포윈도우 HTML 생성
-                        let listHtml = `<div class="info-window-container" style="padding:15px; min-width:230px; max-height:350px; overflow-y:auto;">
-                                        <h4 style="margin:0 0 10px 0; border-bottom:2px solid #4facfe; padding-bottom:5px;">🏠 매물 목록 (${count})</h4>`;
-                        
-                        items.forEach(item => {
-                            const safeAddr = (item.address || '').replace(/'/g, "\\'");
-                            const safeType = (item.rent_type || '').replace(/'/g, "\\'");
-                            const safeFloor = (item.floor || '').replace(/'/g, "\\'");
-                            const safeParking = (item.hasParking || '').replace(/'/g, "\\'");
-                            const optionsJson = JSON.stringify(item.options || []).replace(/'/g, "\\'");
-
-                            listHtml += `
-                                <div class="info-item" style="margin-bottom:12px; font-size:13px; border-bottom:1px solid #eee; padding-bottom:8px;">
-                                    <div style="font-weight:bold; color:#333;">[${item.rent_type}] <span style="color:#e74c3c;">${item.price}</span></div>
-                                    <div style="color:#666; font-size:11px; margin-top:2px;">📍 ${item.address}</div>
-                                    <div style="color:#888; font-size:11px;">🏢 ${item.floor} | 🚗 ${item.hasParking}</div>
-                                    <button onclick="showPropertyDetail('${item._id}', '${safeType}', '${safeAddr}', '${item.deposit}', '${safeFloor}', '${safeParking}', '${optionsJson}')" 
-                                            style="margin-top:5px; background:#4facfe; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:11px; width:100%;">
-                                        상세보기
-                                    </button>
-                                </div>`;
-                        });
-                        listHtml += `</div>`;
-
-                        const infoWindow = new naver.maps.InfoWindow({
-                            content: listHtml,
-                            backgroundColor: "#fff",
-                            borderWidth: 0,
-                            disableAnchor: false
-                        });
-
-                        naver.maps.Event.addListener(marker, 'click', () => {
-                            if (infoWindow.getMap()) infoWindow.close();
-                            else infoWindow.open(map, marker);
-                        });
-                        markers.push(marker);
-                    });
-                });
-        }
+                if (zoom < 14) {
+                    renderGu(data);
+                    closeAllInfoWindows();
+                } else {
+                    allProperties = data;
+                    renderProperties(data);
+                }
+            });
     }
 
-    function showPropertyDetail(id, type, addr, deposit, floor, parking, optionsJson) {
-        const options = JSON.parse(optionsJson.replace(/\\'/g, "'"));
-        const detailContent = `
-[매물 상세 정보]
---------------------------
-구분: ${type}
-보증금: ${deposit}
-층수: ${floor}
-주차: ${parking}
-주소: ${addr}
+    function renderGu(stats) {
+        document.getElementById('status-text').innerText = "💡 지도를 확대하면 상세 매물이 보입니다.";
+        stats.forEach(gu => {
+            const marker = new naver.maps.Marker({
+                position: new naver.maps.LatLng(gu.lat, gu.lng),
+                map: map,
+                icon: { content: `<div class="gu-tag">${gu._id}</div>`, anchor: new naver.maps.Point(40, 20) }
+            });
 
-[포함 옵션]
-${options.length > 0 ? options.join(', ') : '없음'}
---------------------------`;
-        alert(detailContent);
+            // [수정] morph 함수를 사용하여 중앙 이동과 줌을 동시에 처리
+            naver.maps.Event.addListener(marker, 'click', () => {
+                map.morph(marker.getPosition(), 15); 
+            });
+            markers.push(marker);
+        });
     }
+
+    function renderProperties(data) {
+        document.getElementById('status-text').innerText = `📍 현재 영역 매물 ${data.length.toLocaleString()}개`;
+        const groups = {};
+        data.forEach(item => {
+            const key = `${item.location.coordinates[1]},${item.location.coordinates[0]}`;
+            if (!groups[key]) groups[key] = [];
+            groups[key].push(item);
+        });
+
+        const newInfoWindows = [];
+        Object.entries(groups).forEach(([key, items]) => {
+            const first = items[0];
+            const markerPos = new naver.maps.LatLng(first.location.coordinates[1], first.location.coordinates[0]);
+            const marker = new naver.maps.Marker({
+                position: markerPos,
+                map: map,
+                icon: { content: `<div class="price-tag">${items.length > 1 ? '매물 ' + items.length : first.price}</div>`, anchor: new naver.maps.Point(30, 15) },
+                zIndex: 200
+            });
+
+            let html = `<div class="iw-container">`;
+            items.forEach(item => {
+                html += `
+                    <div class="iw-item">
+                        <div class="iw-title">${item.rent_type} ${item.price}</div>
+                        <div style="font-size:12px; color:#666; margin-bottom:8px;">🏢 ${formatFloor(item.floor)}</div>
+                        <button class="iw-btn" onclick="openDetail('${item._id}')">상세정보 보기</button>
+                    </div>`;
+            });
+            html += `</div>`;
+
+            const iw = new naver.maps.InfoWindow({ content: html, borderWidth: 0, backgroundColor: "transparent", disableAnchor: true });
+            if (openInfoWindowId === key) iw.open(map, marker);
+
+            naver.maps.Event.addListener(marker, 'click', () => {
+                if (iw.getMap()) { iw.close(); openInfoWindowId = null; } 
+                else { closeAllInfoWindows(); iw.open(map, marker); openInfoWindowId = key; map.panTo(markerPos); }
+            });
+            markers.push(marker);
+            newInfoWindows.push(iw);
+        });
+        infoWindows = newInfoWindows;
+    }
+
+    function openDetail(id) {
+        const prop = allProperties.find(p => p._id === id);
+        if (!prop) return;
+        window.currentSelectedProp = prop;
+        const isFav = myFavorites.includes(id);
+        const favBtn = document.getElementById('favoriteBtn');
+        favBtn.innerHTML = isFav ? '💔 찜 취소하기' : '❤️ 찜하기';
+        favBtn.className = isFav ? 'fav-btn fav-inactive' : 'fav-btn fav-active';
+        document.getElementById('modal-body').innerHTML = `
+            <div class="detail-row"><span>주소</span><b>${prop.address}</b></div>
+            <div class="detail-row"><span>가격</span><b style="color:#e74c3c">${prop.price}</b></div>
+            <div class="detail-row"><span>층수</span><b>${formatFloor(prop.floor)}</b></div>
+            <div class="detail-row"><span>종류</span><b>${prop.rent_type}</b></div>
+        `;
+        document.getElementById('propertyModal').style.display = 'block';
+    }
+
+    function handleFavorite() {
+        const prop = window.currentSelectedProp;
+        if (!prop) return;
+        const index = myFavorites.indexOf(prop._id);
+        if (index === -1) { myFavorites.push(prop._id); alert("찜 목록에 추가되었습니다!"); } 
+        else { myFavorites.splice(index, 1); alert("찜이 취소되었습니다."); }
+        localStorage.setItem('property_favs', JSON.stringify(myFavorites));
+        openDetail(prop._id);
+    }
+
+    function closeModal() { document.getElementById('propertyModal').style.display = 'none'; }
+    window.onclick = function(e) { if (e.target.className === 'modal') closeModal(); }
 </script>
 </body>
 </html>
