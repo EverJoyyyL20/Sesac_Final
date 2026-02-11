@@ -176,3 +176,54 @@ h2 {
 #complete-screen h2 {
     margin-top: 10px;
 }
+
+.rec-card {
+    background: #fff;
+    border: 2px solid #f0f7ff;
+    border-radius: 15px;
+    padding: 15px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+}
+
+.rec-card:hover {
+    transform: translateY(-3px);
+    border-color: #4facfe;
+    box-shadow: 0 6px 12px rgba(79, 172, 254, 0.2);
+}
+
+.match-score {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #4facfe;
+}
+.q-card { display: none; }
+.q-card.active { display: block; animation: fadeIn 0.5s; }
+.sub-q { font-weight: bold; margin: 20px 0 10px; color: #333; }
+.input-group { margin-bottom: 15px; }
+.conditional-area { display: none; padding: 15px; background: #f9f9f9; border-radius: 10px; margin-top: 10px; }
+        
+        /* 로딩 스크린 스타일 */
+#loading-screen {
+    display: none;
+    text-align: center;
+    padding: 100px 20px;
+    }
+.loader {
+    border: 8px solid #f3f3f3;
+    border-top: 8px solid #4facfe;
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 20px;
+}
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* 진행 바 스타일 */
+.progress-area { margin-bottom: 30px; }
+.gauge-background { width: 100%; height: 10px; background: #eee; border-radius: 5px; overflow: hidden; }
+#gauge-fill { width: 0%; height: 100%; background: linear-gradient(to right, #4facfe, #00f2fe); transition: width 0.3s; }
+.progress-text { margin-top: 10px; font-size: 0.9rem; color: #666; text-align: center; }

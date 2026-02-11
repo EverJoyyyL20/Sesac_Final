@@ -1,0 +1,228 @@
+/* 1. 공통 레이아웃 및 폰트 */
+body {
+    background-color: #f8f9fa;
+    margin: 0;
+    font-family: 'Pretendard', -apple-system, sans-serif;
+    color: #333;
+}
+
+.container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 60px 20px;
+}
+
+/* 2. 헤더 및 섹션 타이틀 (중앙 정렬) */
+.header {
+    text-align: center;
+    margin-bottom: 50px;
+}
+
+.header h1 {
+    font-size: 2.2rem;
+    font-weight: 800;
+    margin-bottom: 10px;
+}
+
+.header p {
+    color: #666;
+    font-size: 1.1rem;
+}
+
+.section-title {
+    font-size: 1.6rem;
+    font-weight: 800;
+    margin-bottom: 40px;
+    color: #222;
+    text-align: center; /* 타이틀 중앙 정렬 */
+}
+
+/* 3. 포디움(TOP 3) 그리드 시스템 */
+.podium-grid {
+    display: flex;
+    align-items: flex-end; /* 아래쪽을 맞춰서 높이 차이 강조 */
+    justify-content: center;
+    gap: 20px;
+    margin: 0 auto 100px;
+    max-width: 850px;
+}
+
+/* 4. TOP 3 카드 개별 디자인 */
+.top-card {
+    flex: 1;
+    background: #fff;
+    border-radius: 28px;
+    overflow: hidden;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.07);
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    position: relative;
+    text-align: center; /* 내부 텍스트 중앙 정렬 */
+}
+
+.top-card:hover {
+    transform: translateY(-12px);
+    box-shadow: 0 20px 45px rgba(0,0,0,0.12);
+}
+
+/* 순위별 높이 및 포인트 차별화 */
+.rank-1 {
+    z-index: 2;
+    border: 3px solid #ffd700; /* 골드 테두리 */
+}
+.rank-1 img { height: 260px; } /* 1위 이미지 */
+.rank-2 img, .rank-3 img { height: 180px; }
+
+.top-card img {
+    width: 100%;
+    object-fit: cover;
+}
+
+/* 순위 뱃지 */
+.rank-badge {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    background: rgba(0,0,0,0.5);
+    color: #fff;
+    padding: 6px 14px;
+    border-radius: 50px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    backdrop-filter: blur(4px);
+}
+
+.rank-badge.gold {
+    background: #ffd700;
+    color: #000;
+}
+
+/* 카드 텍스트 정보 */
+.card-content {
+    padding: 25px 15px;
+}
+
+.match-rate {
+    font-size: 1.3rem;
+    font-weight: 900;
+    color: #4facfe;
+    margin-bottom: 10px;
+}
+
+.match-rate.main {
+    font-size: 1.8rem;
+    color: #ff4d4f;
+}
+
+.price {
+    display: block;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #222;
+}
+
+.price.big { font-size: 1.4rem; }
+
+.addr {
+    display: block;
+    font-size: 0.9rem;
+    color: #888;
+    margin-top: 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* 5. 쇼츠 배너 (중앙 정렬) */
+.shorts-banner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 700px;
+    margin: 0 auto 80px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 25px 40px;
+    border-radius: 20px;
+    color: #fff;
+    text-decoration: none;
+    box-shadow: 0 10px 25px rgba(118, 75, 162, 0.3);
+}
+
+/* 6. 하단 리스트 영역 (중앙 정렬 리스트) */
+.others-area {
+    width: 100%;
+}
+
+.list-wrapper {
+    max-width: 750px; /* 리스트 폭을 제한해서 중앙에 모음 */
+    margin: 0 auto;
+}
+
+.list-item {
+    display: flex;
+    align-items: center;
+    background: #fff;
+    padding: 20px 30px;
+    border-radius: 22px;
+    margin-bottom: 15px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.03);
+    cursor: pointer;
+    transition: 0.2s ease-in-out;
+}
+
+.list-item:hover {
+    background: #f0f7ff;
+    transform: scale(1.02);
+}
+
+.list-rank {
+    font-weight: 800;
+    color: #ccc;
+    font-size: 1.1rem;
+    width: 40px;
+}
+
+.list-img {
+    width: 70px;
+    height: 70px;
+    border-radius: 15px;
+    object-fit: cover;
+    margin: 0 20px;
+}
+
+.list-info {
+    flex: 1;
+}
+
+.list-info .price {
+    font-size: 1.1rem;
+}
+
+.list-score {
+    font-weight: 900;
+    color: #4facfe;
+    font-size: 1.1rem;
+}
+
+/* 7. 더보기 버튼 및 푸터 버튼 */
+.more-btn-container {
+    text-align: center;
+    margin-top: 40px;
+}
+
+#load-more-btn {
+    padding: 16px 50px;
+    border: none;
+    background: #e9ecef;
+    color: #495057;
+    border-radius: 50px;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+#load-more-btn:hover {
+    background: #333;
+    color: #fff;
+}

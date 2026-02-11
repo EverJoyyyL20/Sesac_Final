@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/result.css') }}">
+    </head>
+<body>
+
+<section class="top-three-area">
+    <div class="section-title">🏆 맞춤 추천 TOP 3</div>
+    <div class="podium-grid">
+        {% if top_3|length >= 3 %}
+            <div class="top-card rank-2" onclick="location.href='/find_property?id={{ top_3[1]._id }}'">
+                <div class="rank-badge">2위</div>
+                <img src="{{ top_3[1].image_url or url_for('static', filename='img/default_room.jpg') }}">
+                <div class="card-content">
+                    <div class="match-rate">{{ top_3[1].match_score | round(1) }}점</div>
+                    <span class="price">{{ top_3[1].rent_type }} {{ top_3[1].price or top_3[1].deposit }}</span>
+                    <span class="addr">{{ top_3[1].address }}</span>
+                </div>
+            </div>
+
+            <div class="top-card rank-1" onclick="location.href='/find_property?id={{ top_3[0]._id }}'">
+                <div class="rank-badge gold">1위</div>
+                <img src="{{ top_3[0].image_url or url_for('static', filename='img/default_room.jpg') }}">
+                <div class="card-content">
+                    <div class="match-rate main">{{ top_3[0].match_score | round(1) }}점</div>
+                    <span class="price big">{{ top_3[0].rent_type }} {{ top_3[0].price or top_3[0].deposit }}</span>
+                    <span class="addr">{{ top_3[0].address }}</span>
+                </div>
+            </div>
+
+            <div class="top-card rank-3" onclick="location.href='/find_property?id={{ top_3[2]._id }}'">
+                <div class="rank-badge">3위</div>
+                <img src="{{ top_3[2].image_url or url_for('static', filename='img/default_room.jpg') }}">
+                <div class="card-content">
+                    <div class="match-rate">{{ top_3[2].match_score | round(1) }}점</div>
+                    <span class="price">{{ top_3[2].rent_type }} {{ top_3[2].price or top_3[2].deposit }}</span>
+                    <span class="addr">{{ top_3[2].address }}</span>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</section>
+
+<section class="others-area">
+    <div class="section-title">🔍 이런 매물도 놓치지 마세요</div>
+    <div class="list-wrapper" id="others-list">
+        {% for item in others %}
+        <div class="list-item hidden-item" style="display: none;" onclick="location.href='/find_property?id={{ item._id }}'">
+            <div class="list-rank">{{ loop.index + 3 }}</div>
+            <img src="{{ item.image_url or url_for('static', filename='img/default_room.jpg') }}" class="list-img">
+            <div class="list-info">
+                <span class="price">{{ item.rent_type }} {{ item.price or item.deposit }}</span>
+                <span class="addr">{{ item.address }}</span>
+            </div>
+            <div class="list-score">{{ item.match_score | round(1) }}점</div>
+        </div>
+        {% endfor %}
+    </div>
+    <div class="more-btn-container">
+        <button id="load-more-btn" onclick="showMore()">더 많은 매물 보기 ⌵</button>
+    </div>
+</section>
+
+<script>
+    function showMore() {
+        const hiddenItems = document.querySelectorAll('.hidden-item');
+        hiddenItems.forEach(item => item.style.display = 'flex');
+        document.getElementById('load-more-btn').style.display = 'none';
+    }
+</script>
+</body>
+</html>
