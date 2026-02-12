@@ -133,6 +133,15 @@
                 </div>
             </div>
 
+            <div class="f-section">
+                <label>보증금 (만원)</label>
+                <div class="f-row">
+                    <input type="number" id="min-deposit" placeholder="최소" min="0" oninput="validateNonNegative(this); updateMarkers()">
+                    <span>~</span>
+                    <input type="number" id="max-deposit" placeholder="최대" min="0" oninput="validateNonNegative(this); updateMarkers()">
+                </div>
+            </div>
+
             <div class="f-section" id="monthly-price-section">
                 <label>월세 (만원)</label>
                 <div class="f-row">
@@ -142,14 +151,7 @@
                 </div>
             </div>
 
-            <div class="f-section">
-                <label>보증금 (만원)</label>
-                <div class="f-row">
-                    <input type="number" id="min-deposit" placeholder="최소" min="0" oninput="validateNonNegative(this); updateMarkers()">
-                    <span>~</span>
-                    <input type="number" id="max-deposit" placeholder="최대" min="0" oninput="validateNonNegative(this); updateMarkers()">
-                </div>
-            </div>
+            
 
             <div class="f-section">
                 <label>면적 (㎡)</label>
@@ -353,7 +355,7 @@ function toggleFilter() {
         Object.entries(groups).forEach(([key, items]) => {
             const first = items[0];
             const markerPos = new naver.maps.LatLng(first.location.coordinates[1], first.location.coordinates[0]);
-            const priceLabel = first.rent_type === '월세' ? `${first.price}/${first.deposit}` : (first.price || first.deposit);
+            const priceLabel = first.rent_type === '월세' ? `${first.deposit}/${first.price}` : (first.deposit || first.price);
 
             const marker = new naver.maps.Marker({
                 position: markerPos,
@@ -449,7 +451,7 @@ function openDetail(id) {
     }
 
     function formatPrice(item) {
-        if (item.rent_type === '월세') return `월세 ${item.price}/${item.deposit}`;
+        if (item.rent_type === '월세') return `월세 ${item.deposit}/${item.price}`;
         return `${item.rent_type} ${item.deposit || item.price}`;
     }
 
