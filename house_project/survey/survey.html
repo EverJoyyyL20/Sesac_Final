@@ -7,13 +7,16 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/survey.css') }}">
     <style>
-        /* 추가적인 레이아웃 보정 */
         #loading-screen { display: none; text-align: center; padding: 50px 20px; }
         .q-card { display: none; }
         .q-card.active { display: block; animation: fadeIn 0.5s ease; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .selected { background-color: #4facfe !important; color: white !important; border-color: #4facfe !important; }
         .conditional-area { display: none; margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 12px; }
+        /* 범위 입력 필드 나란히 배치 */
+        .range-group { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .range-group input { flex: 1; }
+        .range-sep { font-weight: bold; color: #666; }
     </style>
 </head>
 <body>
@@ -43,15 +46,28 @@
             </div>
 
             <div id="monthly-area" class="conditional-area">
-                <p class="sub-q">보증금 최대 (만원)</p>
-                <input type="number" id="m_dep_max" class="input-field" placeholder="예: 5000">
-                <p class="sub-q" style="margin-top:10px;">월세 최대 (만원)</p>
-                <input type="number" id="m_rent_max" class="input-field" placeholder="예: 60">
+                <p class="sub-q">보증금 범위 (만원)</p>
+                <div class="range-group">
+                    <input type="number" id="m_dep_min" class="input-field" placeholder="최소 (예: 500)">
+                    <span class="range-sep">~</span>
+                    <input type="number" id="m_dep_max" class="input-field" placeholder="최대 (예: 5000)">
+                </div>
+                
+                <p class="sub-q" style="margin-top:15px;">월세 범위 (만원)</p>
+                <div class="range-group">
+                    <input type="number" id="m_rent_min" class="input-field" placeholder="최소 (예: 30)">
+                    <span class="range-sep">~</span>
+                    <input type="number" id="m_rent_max" class="input-field" placeholder="최대 (예: 60)">
+                </div>
             </div>
 
             <div id="jeonse-area" class="conditional-area">
-                <p class="sub-q">전세금 최대 (만원)</p>
-                <input type="number" id="j_dep_max" class="input-field" placeholder="예: 20000">
+                <p class="sub-q">전세금 범위 (만원)</p>
+                <div class="range-group">
+                    <input type="number" id="j_dep_min" class="input-field" placeholder="최소 (예: 15000)">
+                    <span class="range-sep">~</span>
+                    <input type="number" id="j_dep_max" class="input-field" placeholder="최대 (예: 25000)">
+                </div>
             </div>
 
             <div class="next-btn-container">
@@ -66,7 +82,6 @@
             <p style="color:#888; font-size:0.85rem; margin-bottom:15px;">
                 {{ '최대 3개까지 선택 가능합니다.' if q.multiple else '하나만 선택해주세요.' }}
             </p>
-
             <div class="options-group">
                 {% for option in q.options %}
                 <button type="button" class="opt-btn weight-opt" 
@@ -76,9 +91,7 @@
                 </button>
                 {% endfor %}
             </div>
-            
             <p class="limit-info weight-empty" style="color: orange; display: none; margin-top: 10px; text-align: center;">항목을 선택해주세요! ⚠️</p>
-            
             <div class="next-btn-container">
                 {% if loop.last %}
                 <button type="button" class="confirm-btn" onclick="submitFinalSurvey()">분석 완료</button>
@@ -101,11 +114,10 @@
     let currentIdx = 0;
     const totalSteps = 2 + {{ questions|length }}; 
 
-    // 최종 전송할 데이터 구조
     const surveyResults = { 
         location: "", 
         contract_type: "", 
-        budget: { max_dep: 0, max_rent: 0 }, 
+        budget: { min_dep: 0, max_dep: 0, min_rent: 0, max_rent: 0 }, // min 필드 추가
         category_log: [] 
     };
 
@@ -135,11 +147,21 @@
         if (!surveyResults.contract_type) { alert("계약 형태를 선택해주세요!"); return; }
         
         if (surveyResults.contract_type === 'monthly') {
+            surveyResults.budget.min_dep = document.getElementById('m_dep_min').value || 0;
             surveyResults.budget.max_dep = document.getElementById('m_dep_max').value || 0;
+            surveyResults.budget.min_rent = document.getElementById('m_rent_min').value || 0;
             surveyResults.budget.max_rent = document.getElementById('m_rent_max').value || 0;
         } else {
+            surveyResults.budget.min_dep = document.getElementById('j_dep_min').value || 0;
             surveyResults.budget.max_dep = document.getElementById('j_dep_max').value || 0;
+            surveyResults.budget.min_rent = 0;
             surveyResults.budget.max_rent = 0;
+        }
+
+        // 간단한 유효성 검사 (최소가 최대보다 클 경우)
+        if (parseInt(surveyResults.budget.min_dep) > parseInt(surveyResults.budget.max_dep) && surveyResults.budget.max_dep != 0) {
+            alert("최소 보증금이 최대 보증금보다 클 수 없습니다.");
+            return;
         }
         nextStep(2);
     }
@@ -157,7 +179,6 @@
             }
             btn.classList.toggle('selected');
         }
-        // 선택하면 경고 문구 숨김
         card.querySelector('.weight-empty').style.display = 'none';
     }
 
@@ -177,24 +198,19 @@
             return;
         }
 
-        // 화면 전환
         document.getElementById('survey-form').style.display = 'none';
         document.getElementById('loading-screen').style.display = 'block';
         document.getElementById('gauge-fill').style.width = '100%';
         document.getElementById('status-txt').innerText = '분석 완료! 저장 중...';
 
-        // 데이터 최종 취합
         surveyResults.location = document.getElementById('pref_location').value;
         surveyResults.category_log = [];
         
-        // 모든 카드에서 선택된 카테고리들을 수집
         document.querySelectorAll('.weight-opt.selected').forEach(b => {
             const cats = JSON.parse(b.getAttribute('data-categories'));
-            // 카테고리 배열을 하나로 합침
             cats.forEach(c => surveyResults.category_log.push(c));
         });
 
-        // 서버 전송 (fetch)
         fetch('/survey/save', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
@@ -204,8 +220,7 @@
         .then(data => {
             if (data.status === "success") {
                 setTimeout(() => {
-                    alert('성공적으로 분석되었습니다! 최신 결과 페이지로 이동합니다.');
-                    location.href = `/survey/result/${data.target_index}`; // /survey/result/0 으로 이동
+                    location.href = `/survey/result/${data.target_index}`;
                 }, 1500);
             } else {
                 alert(data.message || "오류가 발생했습니다.");

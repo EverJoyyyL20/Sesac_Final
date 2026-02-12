@@ -17,7 +17,8 @@ category_map = {
 def survey_page():
     if 'user_id' not in session:
         return "<script>alert('로그인이 필요한 서비스입니다.'); window.location.href='/login';</script>"
-    # (질문 데이터는 기존과 동일하게 유지됩니다)
+    
+    # 질문 데이터 (생략 - 기존과 동일)
     questions = [
         {"title": "현재 나의 라이프스타일과 가장 가까운 유형은?", "multiple": False, "options": [{"text": "갓생형 (운동과 자기계발, 규칙적인 생활)", "categories": ["health", "living"]}, {"text": "인싸형 (문화생활, 모임, 활동적인 생활)", "categories": ["play", "convenience"]}, {"text": "워라밸형 (휴식, 여유, 조용한 환경)", "categories": ["green", "living"]}, {"text": "효율형 (출퇴근 시간 및 이동 효율 중시)", "categories": ["traffic", "living"]}]},
         {"title": "이사 갈 집 주변에 '꼭' 있어야 하는 시설은? (최대 3개)", "multiple": True, "max_choice": 3, "options": [{"text": "지하철/버스역", "categories": ["traffic"]}, {"text": "대형마트", "categories": ["convenience", "living"]}, {"text": "공원/산책로", "categories": ["green", "health"]}, {"text": "CCTV/파출소", "categories": ["safety"]}]},
@@ -42,7 +43,7 @@ def save_survey():
     if not data:
         return jsonify({"status": "error", "message": "전송된 데이터가 없습니다."}), 400
 
-    # 💡 [중요] 저장 시 예산 데이터를 미리 숫자로 변환하여 쿼리 오류 방지
+    # 💡 [수정] 최소~최대 예산 데이터를 모두 숫자로 변환하여 저장
     budget_raw = data.get('budget', {})
     
     new_survey = {
@@ -50,7 +51,9 @@ def save_survey():
         "location": data.get('location', ""),
         "contract_type": data.get('contract_type', ""),
         "budget": {
+            "min_dep": int(budget_raw.get('min_dep', 0)),
             "max_dep": int(budget_raw.get('max_dep', 0)),
+            "min_rent": int(budget_raw.get('min_rent', 0)),
             "max_rent": int(budget_raw.get('max_rent', 0))
         },
         "category_log": data.get('category_log', []),
@@ -70,7 +73,6 @@ def survey_result(index):
         return "<script>alert('로그인이 필요한 서비스입니다.'); window.location.href='/login';</script>"
     
     user_id = session['user_id']
-    # 최신순으로 설문 결과 로드
     surveys = list(db.survey_results.find({"user_id": user_id}).sort("created_at", -1))
     
     if not surveys or index >= len(surveys):
@@ -78,26 +80,16 @@ def survey_result(index):
 
     selected_survey = surveys[index]
     
-    # 1. [가중합 로직] 설문 가중치 정규화 계산
-    total_counts = {
-        'traffic': 6, 'convenience': 10, 'green': 7, 
-        'play': 6, 'health': 6, 'living': 13, 'safety': 10
-    }
-    
+    # 1. 가중합 로직 (기존과 동일)
+    total_counts = {'traffic': 6, 'convenience': 10, 'green': 7, 'play': 6, 'health': 6, 'living': 13, 'safety': 10}
     user_log = selected_survey.get('category_log', [])
     log_counts = Counter(user_log)
     
-    raw_weights = {}
-    for cat, total in total_counts.items():
-        raw_weights[cat] = log_counts.get(cat, 0) / total
-    
+    raw_weights = {cat: log_counts.get(cat, 0) / total for cat, total in total_counts.items()}
     sum_raw_weights = sum(raw_weights.values())
-    if sum_raw_weights == 0:
-        user_weights = {k: 1/7 for k in total_counts.keys()}
-    else:
-        user_weights = {k: v / sum_raw_weights for k, v in raw_weights.items()}
+    user_weights = {k: (v / sum_raw_weights if sum_raw_weights > 0 else 1/7) for k, v in raw_weights.items()}
 
-    # 2. [필터링] DB 필드명(rent_type, price)에 맞춘 쿼리 생성
+    # 2. [필터링] 최소~최대 범위를 반영한 쿼리 생성
     query = {}
     
     # 지역 필터
@@ -105,21 +97,32 @@ def survey_result(index):
     if loc and loc.strip():
         query['address'] = {"$regex": loc}
     
-    # 계약 유형 (DB 필드명: rent_type)
+    # 계약 유형
     c_type = selected_survey.get('contract_type')
     mapping = {"jeonse": "전세", "monthly": "월세"}
     if c_type:
         query['rent_type'] = mapping.get(c_type, c_type)
     
-    # 예산 필터 (DB 필드명: deposit, price)
+    # 💡 [수정] 예산 필터 (최소/최대 범위 쿼리)
     budget_data = selected_survey.get('budget', {})
+    min_dep = budget_data.get('min_dep', 0)
     max_dep = budget_data.get('max_dep', 0)
+    min_rent = budget_data.get('min_rent', 0)
     max_rent = budget_data.get('max_rent', 0)
     
-    if max_dep > 0: query['deposit'] = {"$lte": max_dep}
-    if max_rent > 0: query['price'] = {"$lte": max_rent} # 월세는 'price' 필드 사용
+    # 보증금 범위 적용
+    dep_query = {}
+    if min_dep > 0: dep_query["$gte"] = min_dep
+    if max_dep > 0: dep_query["$lte"] = max_dep
+    if dep_query: query['deposit'] = dep_query
 
-    # 3. 매물 검색 (1차 필터링)
+    # 월세 범위 적용 (DB 필드명: price)
+    rent_query = {}
+    if min_rent > 0: rent_query["$gte"] = min_rent
+    if max_rent > 0: rent_query["$lte"] = max_rent
+    if rent_query: query['price'] = rent_query
+
+    # 3. 매물 검색
     filtered_houses = list(houses_col.find(query).limit(500))
 
     # [Fallback] 결과가 너무 적으면 예산 필터를 풀고 재검색
@@ -129,67 +132,28 @@ def survey_result(index):
         if c_type: relaxed_query['rent_type'] = mapping.get(c_type, c_type)
         filtered_houses = list(houses_col.find(relaxed_query).limit(100))
 
-    # 4. [가중합 로직 적용] 필터링된 매물들에 대해서만 점수 매기기
-    # 4. [가중합 로직 적용] 필터링된 매물들에 대해서만 점수 매기기
+    # 4. 가공 및 점수 매기기
     matched_properties = []
     for house in filtered_houses:
-        # DB의 'category_scores' 필드 활용
         infra_scores = house.get('category_scores', {})
+        final_score_raw = sum(infra_scores.get(cat, 0) * user_weights.get(cat, 0) for cat in total_counts.keys())
         
-        # 가중합 계산: (인프라 점수 * 사용자 가중치)의 합
-        final_score_raw = sum(
-            infra_scores.get(cat, 0) * user_weights.get(cat, 0) 
-            for cat in total_counts.keys()
-        )
-        
-        # 100점 만점으로 변환
         house['match_score'] = round(final_score_raw * 100, 1)
         house['_id_str'] = str(house['_id'])
         
-        # --- [추가/수정] 가격 표시 로직 ---
-        # 템플릿에서 '1000/50' 형태로 쉽게 쓰도록 가공
+        # 💡 [중요] 가격 표시 가공
         if house.get('rent_type') == '월세':
-            # 보증금과 월세를 '보증금/월세' 형태로 합쳐서 저장
-            deposit = house.get('deposit', 0)
-            rent = house.get('price', 0)
-            house['price_display'] = f"{deposit}/{rent}"
+            house['price_display'] = f"{house.get('deposit', 0)}/{house.get('price', 0)}"
         else:
-            # 전세일 경우 보증금만 표시 (단위: 만원)
             house['price_display'] = f"{house.get('deposit', 0)}"
         
-        # 기존 호환성 유지
         house['rent'] = house.get('price', 0)
-        
-        if 'images' not in house or not house['images']:
-            house['images'] = []
-            
+        if 'images' not in house or not house['images']: house['images'] = []
         matched_properties.append(house)
 
-    # 5. 정렬 및 상위 10개 추출
+    # 5. 정렬 및 상위 추출
     matched_properties = sorted(matched_properties, key=lambda x: x['match_score'], reverse=True)[:10]
-
     top_3 = matched_properties[:3]
     others = matched_properties[3:]
 
-    return render_template('result.html', 
-                           survey=selected_survey, 
-                           top_3=top_3, 
-                           others=others, 
-                           current_index=index,
-                           survey_id=str(selected_survey['_id']))
-
-@survey_bp.route('/survey/shorts/<int:index>')
-def result_shorts(index):
-    if 'user_id' not in session:
-        return "<script>alert('로그인이 필요합니다.'); window.location.href='/login';</script>"
-    
-    user_id = session['user_id']
-    surveys = list(db.survey_results.find({"user_id": user_id}).sort("created_at", -1))
-    
-    if not surveys or index >= len(surveys):
-        return "<script>alert('데이터를 찾을 수 없습니다.'); window.location.href='/mypage';</script>"
-        
-    result_data = surveys[index]
-    return render_template('shorts.html', 
-                           recommendations=result_data.get('recommendations', []),
-                           current_index=index)
+    return render_template('result.html', survey=selected_survey, top_3=top_3, others=others, current_index=index, survey_id=str(selected_survey['_id']))   
