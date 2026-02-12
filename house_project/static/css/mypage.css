@@ -1,127 +1,152 @@
-/* mypage.css */
-
-/* --- 1. 컨테이너: 가로를 1400px까지 대폭 확장 --- */
+/* --- 1. 기본 레이아웃 (가로폭 960px 유지) --- */
 .container { 
-    max-width: 1400px; /* 기존 1200px에서 더 확장 */
-    margin: 50px auto; 
-    padding: 0 40px; 
+    max-width: 960px; 
+    margin: 60px auto; 
+    padding: 0 30px; 
+    box-sizing: border-box; /* 패딩이 너비에 영향을 주지 않도록 설정 */
 }
 
-/* 프로필 카드 및 콘텐츠 박스 */
 .profile-card, .content-box {
     background: white;
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.06);
-    margin-bottom: 30px;
+    border-radius: 16px; 
+    box-shadow: 0 10px 30px rgba(0,0,0,0.04);
+    margin-bottom: 40px; 
 }
 
+/* --- 2. 프로필 섹션 --- */
 .profile-card {
-    padding: 40px 80px; /* 좌우 여백을 더 늘려 가로감을 강조 */
+    padding: 50px 60px; 
     display: flex;
-    gap: 100px; /* 사진과 정보 영역 사이를 시원하게 벌림 */
+    gap: 60px; 
     align-items: center;
 }
 
-/* --- 2. 프로필 이미지 영역: 크기 유지 (비율 안정감) --- */
-.profile-left { flex: 0 0 160px; text-align: center; }
+.profile-left { flex: 0 0 150px; text-align: center; }
 .profile-img-preview {
-    width: 160px; height: 160px;
+    width: 150px; height: 150px; 
     border-radius: 50%; 
     object-fit: cover;
-    border: 3px solid #4facfe;
+    border: 4px solid #4facfe;
 }
 
-.file-label {
-    display: inline-block;
-    background-color: #f8f9fa;
-    color: #666;
-    font-size: 11px;
-    padding: 7px 16px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    cursor: pointer;
-    margin-top: 15px;
-}
-
-/* --- 3. 정보 영역: 가로로 길게 뻗는 구조 --- */
-.profile-right {
-    flex: 1; /* 확장된 가로 공간을 모두 사용 */
-}
+.profile-right { flex: 1; min-width: 0; } /* 내부 텍스트 넘침 방지 */
 
 .info-row { 
-    margin-bottom: 20px; 
-    border-bottom: 1px solid #f9f9f9; 
-    padding-bottom: 10px; 
+    margin-bottom: 25px; 
+    border-bottom: 1px solid #f2f2f2; 
+    padding-bottom: 12px; 
 }
 
-.info-label { 
-    font-weight: bold; 
-    color: #aaa; 
-    font-size: 13px; 
-    display: block; 
-    margin-bottom: 6px; 
-}
+.info-label { font-weight: bold; color: #bbb; font-size: 13px; display: block; margin-bottom: 8px; }
+.info-value { font-size: 18px; color: #333; font-weight: 500; }
 
-.info-value { 
-    font-size: 16px; 
-    color: #333; 
-    font-weight: 500; 
+/* --- 3. 버튼 시스템 --- */
+.btn-group { display: flex; gap: 15px; margin-top: 40px; align-items: center; }
+.btn-edit { 
+    display: inline-block; background-color: #4facfe; color: white; 
+    border-radius: 10px; padding: 14px 35px; text-decoration: none; 
+    font-weight: 600; font-size: 15px; transition: 0.3s; 
 }
-
-/* 입력창 스타일: 가로로 길게 밑줄이 그어짐 */
-.edit-input {
-    width: 100%;
-    padding: 10px 0;
-    border: none;
-    border-bottom: 2px solid #f0f0f0;
-    font-size: 16px;
-    color: #333;
-    background-color: transparent;
-    outline: none;
-    transition: 0.3s;
-}
-
-.edit-input:focus {
-    border-bottom-color: #4facfe;
-}
-
-/* --- 4. 버튼 시스템 --- */
-.btn-group { 
-    display: flex; 
-    gap: 15px; 
-    margin-top: 40px; 
-    align-items: center; 
-}
-
-.btn { 
-    padding: 12px 40px; /* 버튼도 가로로 좀 더 길게 */
-    border-radius: 8px; 
-    font-size: 14px; 
-    font-weight: bold; 
-    border: none; 
-    cursor: pointer; 
-    transition: 0.2s;
-}
-
-.btn-edit { background-color: #4facfe; color: white; }
-.btn-edit:hover { background-color: #00c6ff; }
+.btn-edit:hover { background-color: #007bff; transform: translateY(-2px); }
 
 .btn-withdraw { 
-    background-color: transparent; 
-    color: #ccc; 
-    margin-left: auto; 
-    text-decoration: underline; 
-    font-size: 12px;
+    background-color: #ffeded; color: #ee7474; border: 1px solid #ee7474; 
+    border-radius: 10px; padding: 10px 20px; font-size: 13px; font-weight: 600; 
+    text-decoration: none; margin-left: auto;
 }
 
-/* --- 5. 콘텐츠 영역 (하단 2분할 가로 확장) --- */
+/* --- 4. 콘텐츠 섹션 & 슬라이더 (가로 고정 핵심) --- */
 .content-section { 
     display: grid; 
-    grid-template-columns: 1fr 1fr; 
+    grid-template-columns: 1fr 1fr; /* 5:5 비율 고정 */
     gap: 30px; 
 }
 
 .content-box { 
     padding: 35px; 
-    min-height: 220px; 
+    min-height: 280px; 
+    min-width: 0; /* 자식 요소의 오버플로우 방지 핵심 */
 }
+
+.box-header { margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; }
+.box-header h3 { font-size: 1.25rem; margin: 0; }
+
+/* 슬라이더 영역 제어 */
+.slider-container {
+    position: relative;
+    overflow: hidden; /* 영역 밖으로 나가는 카드 숨김 */
+    width: 100%;
+}
+
+.slider-wrapper {
+    display: flex;
+    transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+    gap: 15px;
+}
+
+.slide-item {
+    /* 2개씩 보일 때 부모 너비를 절대 넘지 못하도록 강제 */
+    flex: 0 0 calc(50% - 8px); 
+    max-width: calc(50% - 8px); 
+    box-sizing: border-box;
+}
+
+#survey-slider .slide-item {
+    flex: 0 0 100%; 
+    max-width: 100%;
+}
+
+/* --- 5. 카드 스타일 (텍스트 넘침 방지) --- */
+.property-card-mini {
+    background: #fff;
+    border: 1px solid #f0f0f0;
+    border-radius: 15px;
+    overflow: hidden;
+    height: 210px; 
+    cursor: pointer;
+    transition: 0.3s;
+    display: flex;
+    flex-direction: column;
+}
+
+.prop-img-sm { width: 100%; height: 120px; object-fit: cover; flex-shrink: 0; }
+
+.prop-info-sm { 
+    padding: 15px; 
+    min-width: 0; /* 텍스트 생략 기능을 위한 설정 */
+}
+
+.prop-info-sm .p-price { 
+    font-weight: bold; color: #ff4d4f; font-size: 16px; margin-bottom: 5px; 
+    white-space: nowrap; 
+    overflow: hidden; 
+    text-overflow: ellipsis; /* 가격이 길어도 한 줄로 처리 */
+}
+
+.prop-info-sm .p-addr { 
+    font-size: 12px; color: #888; 
+    white-space: nowrap; 
+    overflow: hidden; 
+    text-overflow: ellipsis; /* 주소가 길어도 카드를 밀어내지 않고 생략 */
+}
+
+/* 네비게이션 버튼 */
+.nav-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+.nav-btn.prev { left: -5px; }
+.nav-btn.next { right: -5px; }
+
+/* 공용 요소 */
+.empty-box { text-align: center; padding: 60px 0; color: #ccc; font-size: 14px; }
+.view-all { font-size: 13px; color: #aaa; text-decoration: none; }

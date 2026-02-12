@@ -6,12 +6,6 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/find_property.css') }}">
     <script type="text/javascript" src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId={{ client_id }}"></script>
-    <style>
-        /* 층수 강조용 스타일 추가 */
-        .floor-tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.9em; background: #f0f4f8; color: #334e68; }
-        .floor-danger { background: #fff5f5; color: #e03131; font-weight: bold; border: 1px solid #ffa8a8; }
-        .floor-warn { background: #fff9db; color: #f08c00; font-weight: bold; border: 1px solid #ffe066; }
-    </style>
 </head>
 <body>
 
@@ -33,6 +27,68 @@
 
 <div id="map-container">
     <div class="status-header"><span id="status-text">매물을 불러오는 중...</span></div>
+
+    <div class="search-box">
+    <button id="toggle-btn" onclick="toggleFilter()"><</button>
+    
+    <div class="search-header">
+        <strong>🔍 매물 상세 필터</strong>
+        </div>
+    
+    <div id="filter-content">
+        <div class="f-section">
+            <label>거래/건물 용도</label>
+            <div class="f-row">
+                <select id="filter-type" onchange="handleTypeChange()">
+                    <option value="">전체 거래</option>
+                    <option value="월세">월세</option>
+                    <option value="전세">전세</option>
+                </select>
+                <select id="filter-use" onchange="updateMarkers()">
+                    <option value="">전체 용도</option>
+                    <option value="원룸">원룸</option>
+                    <option value="투룸">투룸</option>
+                    <option value="오피스텔">오피스텔</option>
+                </select>
+                </div>
+            </div>
+
+            <div class="f-section" id="monthly-price-section">
+                <label>월세 (만원)</label>
+                <div class="f-row">
+                    <input type="number" id="min-price" placeholder="최소" min="0" oninput="validateNonNegative(this); updateMarkers()">
+                    <span>~</span>
+                    <input type="number" id="max-price" placeholder="최대" min="0" oninput="validateNonNegative(this); updateMarkers()">
+                </div>
+            </div>
+
+            <div class="f-section">
+                <label>보증금 (만원)</label>
+                <div class="f-row">
+                    <input type="number" id="min-deposit" placeholder="최소" min="0" oninput="validateNonNegative(this); updateMarkers()">
+                    <span>~</span>
+                    <input type="number" id="max-deposit" placeholder="최대" min="0" oninput="validateNonNegative(this); updateMarkers()">
+                </div>
+            </div>
+
+            <div class="f-section">
+                <label>면적 (㎡)</label>
+                <div class="f-row">
+                    <input type="number" id="min-size" placeholder="최소" min="0" oninput="validateNonNegative(this); updateMarkers()">
+                    <span>~</span>
+                    <input type="number" id="max-size" placeholder="최대" min="0" oninput="validateNonNegative(this); updateMarkers()">
+                </div>
+            </div>
+
+            <div class="f-section">
+                <div class="f-check-row">
+                    <label><input type="checkbox" id="filter-parking" onchange="updateMarkers()"> 주차 가능만</label>
+                    <label><input type="checkbox" id="exclude-under" onchange="updateMarkers()"> 반지하 제외</label>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="map"></div>
 </div>
 
@@ -42,7 +98,7 @@
         <div id="modal-body"></div>
         <div style="margin-top:25px; display:flex; gap:12px;">
             <button id="favoriteBtn" class="fav-btn" onclick="handleFavorite()" style="flex:1; padding:14px; background:#fff; border:1px solid #ddd; border-radius:12px; cursor:pointer; font-weight:bold;">❤️ 찜하기</button>
-            <button id="closeModalBtn" style="flex:1; padding:14px; background:#eee; border:none; border-radius:12px; cursor:pointer;">닫기</button>
+            <button id="closeModalBtn" onclick="closeModal()" style="flex:1; padding:14px; background:#eee; border:none; border-radius:12px; cursor:pointer;">닫기</button>
         </div>
     </div>
 </div>
@@ -52,40 +108,89 @@
 
     window.onload = function() {
         map = new naver.maps.Map('map', { center: new naver.maps.LatLng(37.5665, 126.9780), zoom: 12, minZoom: 11 });
-        
         naver.maps.Event.addListener(map, 'idle', updateMarkers);
         naver.maps.Event.addListener(map, 'click', () => { if(currentOpenIw){currentOpenIw.close(); currentOpenIw=null;} });
-        
-        // ?id= 파라미터가 있을 경우 매물로 이동
         const targetId = new URLSearchParams(window.location.search).get('id');
         if (targetId) moveToSpecificProperty(targetId);
     };
 
-    function moveToSpecificProperty(id) {
-        fetch(`/api/property/${id}`).then(res => res.json()).then(prop => {
-            if (prop && prop.location) {
-                const pos = new naver.maps.LatLng(prop.location.coordinates[1], prop.location.coordinates[0]);
-                map.setCenter(pos);
-                map.setZoom(17);
-                setTimeout(() => openDetail(id), 500);
-            }
-        });
+    // --- 추가 및 수정한 필터 제어 함수 시작 ---
+    
+    function validateNonNegative(input) {
+        if (input.value < 0) {
+            input.value = 0; // 음수 입력 시 0으로 고정
+        }
     }
+
+    function handleTypeChange() {
+        const type = document.getElementById('filter-type').value;
+        const monthlySection = document.getElementById('monthly-price-section');
+        
+        if (type === "전세") {
+            monthlySection.style.display = "none";
+            document.getElementById('min-price').value = ""; // 값 초기화
+            document.getElementById('max-price').value = "";
+        } else {
+            monthlySection.style.display = "block";
+        }
+        updateMarkers(); // 변경사항 반영하여 마커 새로고침
+    }
+
+    // --- 추가 및 수정한 필터 제어 함수 끝 ---
+
+function toggleFilter() {
+    const searchBox = document.querySelector('.search-box');
+    const btn = document.getElementById('toggle-btn');
+    
+    // closed 클래스 토글 (CSS의 transform 실행)
+    searchBox.classList.toggle('closed');
+    
+    // 버튼 모양 변경
+    if (searchBox.classList.contains('closed')) {
+        btn.innerText = ">";  // 닫혔을 때는 나오게 하는 버튼
+    } else {
+        btn.innerText = "<";  // 열렸을 때는 들어가는 버튼
+    }
+}
 
     function updateMarkers() {
         const zoom = map.getZoom();
         const bounds = map.getBounds();
         const requestId = ++lastRequestId;
+
+        const type = document.getElementById('filter-type').value;
+        const bUse = document.getElementById('filter-use').value;
+        const minDep = document.getElementById('min-deposit').value;
+        const maxDep = document.getElementById('max-deposit').value;
+        const minPri = document.getElementById('min-price').value;
+        const maxPri = document.getElementById('max-price').value;
+        const minSize = document.getElementById('min-size').value;
+        const maxSize = document.getElementById('max-size').value;
+        const parking = document.getElementById('filter-parking').checked ? "주차 가능" : "";
+        const excludeUnder = document.getElementById('exclude-under').checked ? "true" : "false";
+
         let apiUrl = zoom < 14 ? '/api/stats/gu' : `/api/properties?sw_lat=${bounds.getSW().lat()}&sw_lng=${bounds.getSW().lng()}&ne_lat=${bounds.getNE().lat()}&ne_lng=${bounds.getNE().lng()}`;
+
+        if (zoom >= 14) {
+            apiUrl += `&type=${type}&building_use=${bUse}&min_deposit=${minDep}&max_deposit=${maxDep}`;
+            apiUrl += `&min_price=${minPri}&max_price=${maxPri}&min_size=${minSize}&max_size=${maxSize}`;
+            apiUrl += `&parking=${parking}&exclude_under=${excludeUnder}`;
+        }
 
         fetch(apiUrl).then(res => res.json()).then(data => {
             if (requestId !== lastRequestId) return;
             markers.forEach(m => m.setMap(null));
             markers = [];
 
-            if (zoom < 14) { renderGu(data); } 
-            else { renderProperties(data); }
-            document.getElementById('status-text').innerText = "📍 주변 매물을 확인해보세요";
+            if (zoom < 14) { 
+                renderGu(data); 
+                document.getElementById('status-text').innerText = "서울 지역별 매물 현황";
+            } 
+            else { 
+                renderProperties(data); 
+                const count = data.length;
+                document.getElementById('status-text').innerText = count > 0 ? `📍 주변 매물 ${count}건` : "😥 조건에 맞는 매물이 없어요";
+            }
         });
     }
 
@@ -141,14 +246,13 @@
             const favBtn = document.getElementById('favoriteBtn');
             favBtn.innerText = prop.is_favorite ? '💔 찜 취소' : '❤️ 찜하기';
             
-            // 층수 강조 로직
             let floorClass = "floor-tag";
             if(prop.floor.includes("반지하")) floorClass += " floor-danger";
             else if(prop.floor.includes("옥탑")) floorClass += " floor-warn";
 
             document.getElementById('modal-body').innerHTML = `
                 <div class="detail-row"><span>📍 주소</span><b>${prop.address}</b></div>
-                <div class="detail-row"><span>💰 가격</span><b style="font-size:1.1em;">${formatPrice(prop)}</b></div>
+                <div class="detail-row"><span>💰 가격</span><b style="color:#2ecc71; font-size:1.1em;">${formatPrice(prop)}</b></div>
                 <div class="detail-row"><span>🏢 층수</span><span class="${floorClass}">${prop.floor}</span></div>
             `;
             document.getElementById('propertyModal').style.display = 'block';
@@ -174,7 +278,19 @@
         return `${item.rent_type} ${item.deposit || item.price}`;
     }
 
-    document.getElementById('closeModalBtn').onclick = () => document.getElementById('propertyModal').style.display = 'none';
+    function closeModal() { document.getElementById('propertyModal').style.display = 'none'; }
+    function moveToSpecificProperty(id) {
+        fetch(`/api/property/${id}`).then(res => res.json()).then(prop => {
+            if (prop && prop.location) {
+                const pos = new naver.maps.LatLng(prop.location.coordinates[1], prop.location.coordinates[0]);
+                map.setCenter(pos);
+                map.setZoom(17);
+                setTimeout(() => openDetail(id), 500);
+            }
+        });
+    }
+
+    document.getElementById('closeModalBtn').onclick = closeModal;
 </script>
 </body>
 </html>
