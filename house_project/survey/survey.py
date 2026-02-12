@@ -160,36 +160,44 @@ def survey_result(index):
     surveys = list(db.survey_results.find({"user_id": user_id}).sort("created_at", -1))
     
     if not surveys or index >= len(surveys):
-        msg = f"해당 설문 내역이 없습니다. (현재 저장된 설문: {len(surveys)}개)"
-        return f"<script>alert('{msg}'); window.location.href='/mypage';</script>"
+        return f"<script>alert('해당 설문 내역이 없습니다.'); window.location.href='/mypage';</script>"
 
-    # 1. 요청한 순번의 설문 선택 (변수 정의)
     selected_survey = surveys[index]
     
-    # 2. 매칭 로직 (매물 DB에서 가져오기)
-    # 실제로는 selected_survey['category_log'] 등을 활용해 필터링해야 합니다.
-    # 여기서는 예시로 상위 10개를 가져와 임의의 매칭 점수를 부여합니다.
-    category_weights = selected_survey.get('category_log', [])
+    # 설문에서 얻은 카테고리 가중치 (예: ['traffic', 'green', 'safety'])
+    user_categories = selected_survey.get('category_log', [])
     
+    # 1. 기본적인 필터링 쿼리 (예: 예산, 계약 방식 등 적용 가능)
     query = {}
-    # (선택 사항) 지역 필터링 예시: 
-    # if selected_survey.get('location'):
-    #     query['address'] = {"$regex": selected_survey['location']}
-
-    all_houses = list(houses_col.find(query).limit(10))
+    if selected_survey.get('location'):
+        query['address'] = {"$regex": selected_survey['location']}
+    
+    # 2. 매물 가져오기
+    all_houses = list(houses_col.find(query).limit(20)) # 넉넉히 가져와서 점수 계산
     
     matched_properties = []
     for house in all_houses:
-        # 임의의 점수 부여 로직 (실제 서비스에서는 카테고리 일치도에 따라 계산)
-        house['match_score'] = 85.5 + (len(category_weights) % 10) 
-        # _id를 문자열로 변환 (HTML에서 깨짐 방지)
+        # --- [중요] 이미지 배열 처리 확인 ---
+        # DB에 images 필드가 없거나 비어있을 경우 빈 배열로 세팅
+        if 'images' not in house or not house['images']:
+            house['images'] = []
+            
+        # --- 매칭 점수 계산 로직 (간단한 예시) ---
+        score = 70.0  # 기본 점수
+        # 매물 데이터에 있는 시설 카테고리와 유저 카테고리 비교
+        # 예: house['categories'] = ['traffic', 'convenience']
+        house_categories = house.get('categories', [])
+        match_count = len(set(user_categories) & set(house_categories))
+        score += (match_count * 10) # 겹치는 카테고리당 10점 추가
+        
+        house['match_score'] = min(score, 99.9) # 최대 99.9점
         house['_id_str'] = str(house['_id'])
         matched_properties.append(house)
 
-    # 점수 높은 순으로 정렬
-    matched_properties = sorted(matched_properties, key=lambda x: x['match_score'], reverse=True)
+    # 3. 점수 높은 순 정렬 및 상위 10개 추출
+    matched_properties = sorted(matched_properties, key=lambda x: x['match_score'], reverse=True)[:10]
 
-    # 3. 데이터 분리 및 렌더링
+    # 4. 데이터 분리 (TOP 3와 나머지)
     top_3 = matched_properties[:3]
     others = matched_properties[3:]
 

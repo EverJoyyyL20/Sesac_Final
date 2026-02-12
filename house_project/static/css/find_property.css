@@ -1,8 +1,13 @@
-/* 지도 컨테이너 */
+/* ==========================================================================
+   서울 부동산 매물 탐색 - 최종 통합 슬림 스타일
+   ========================================================================== */
+
+/* 1. 지도 컨테이너 및 기본 레이아웃 */
 #map-container {
     flex: 1;
     position: relative;
     width: 100%;
+    height: calc(100vh - 60px);
 }
 
 #map {
@@ -10,177 +15,227 @@
     height: 100%;
 }
 
-/* 상태 헤더 */
+/* 2. 상태 헤더 (중앙 상단) */
 .status-header {
     position: absolute;
     top: 15px;
     left: 50%;
     transform: translateX(-50%);
-    z-index: 1000;
+    z-index: 1001;
     background: rgba(255, 255, 255, 0.95);
-    padding: 10px 22px;
+    padding: 8px 20px;
     border-radius: 30px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.12);
     font-weight: 600;
-    font-size: 14px;
-    border: 1px solid #eee;
-    pointer-events: none; /* 헤더가 마커 클릭을 방해하지 않도록 */
-}
-
-/* 마커 디자인 */
-.price-tag {
-    background: #4facfe;
-    color: white;
-    padding: 6px 14px;
-    border-radius: 20px;
     font-size: 13px;
-    font-weight: bold;
-    cursor: pointer;
-    border: 2px solid white;
-    box-shadow: 0 3px 8px rgba(0,0,0,0.2);
-    white-space: nowrap;
-    transition: transform 0.2s, background 0.2s;
+    border: 1px solid #eee;
+    pointer-events: none;
 }
 
-.price-tag:hover {
-    transform: translateY(-3px) scale(1.05);
-    background: #007bff;
+/* 3. 사이드바 필터 박스 (애니메이션 및 슬림화) */
+.search-box {
+    position: absolute; 
+    top: 30px; 
+    left: 20px; 
+    z-index: 1000;
+    width: 290px; /* 슬림하게 고정 */
+    background: white; 
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15); 
+    border: 1px solid #eee;
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    /* 내부 요소가 밖으로 튀어나오는 것을 방지 */
+    box-sizing: border-box; 
 }
 
-.gu-tag {
-    background: #ffffff;
-    color: #333;
-    padding: 10px 20px;
-    border-radius: 25px;
-    font-size: 15px;
-    font-weight: 800;
-    cursor: pointer;
-    border: 2px solid #4facfe;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); /* 부드러운 호버 애니메이션 */
+/* 필터가 닫혔을 때 (손잡이만 남기고 왼쪽으로 숨김) */
+.search-box.closed {
+    transform: translateX(-310px); 
 }
 
-/* [추가] 구 버튼 호버 시 색상 반전 효과 */
-.gu-tag:hover {
-    background: #4facfe;
-    color: white;
-    transform: scale(1.1);
-    box-shadow: 0 6px 20px rgba(79, 172, 254, 0.4);
-}
-
-/* 네이버 지도 정보창 커스텀 */
-.iw-container {
-    padding: 10px;
-    min-width: 260px;
+/* 4. 열기/닫기 손잡이 버튼 (박스 외부에 고정) */
+#toggle-btn {
+    position: absolute;
+    right: -36px; /* 박스 본체 우측 끝에 딱 붙여서 노출 */
+    top: 20px;
+    width: 36px;
+    height: 48px;
     background: white;
-    border-radius: 15px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-}
-
-.iw-item {
-    padding: 12px 5px;
-    border-bottom: 1px solid #f0f0f0;
-}
-
-.iw-item:last-child {
-    border-bottom: none;
-}
-
-.iw-title {
-    font-size: 16px;
-    font-weight: 800;
-    color: #e74c3c;
-    margin-bottom: 5px;
-}
-
-.iw-btn {
-    width: 100%;
-    background: #f0f7ff;
+    border: 1px solid #ddd;
+    border-left: none;
+    border-radius: 0 10px 10px 0;
+    cursor: pointer;
+    box-shadow: 4px 0 8px rgba(0,0,0,0.1);
+    font-weight: bold;
+    font-size: 18px;
     color: #4facfe;
-    border: 1px solid #4facfe;
-    padding: 8px;
-    border-radius: 8px;
-    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1001;
+}
+
+#toggle-btn:hover {
+    color: #007bff;
+    background: #f8f9fa;
+}
+
+/* 5. 필터 내부 콘텐츠 (스크롤 제거 및 간격 최적화) */
+.search-header { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center;
+    padding: 14px 18px; 
+    background: #fff; 
+    border-bottom: 1px solid #f0f0f0;
+    border-radius: 16px 16px 0 0;
+}
+.search-header strong { font-size: 14px; color: #333; }
+
+#filter-content { 
+    padding: 15px 18px; 
+    max-height: none; /* 높이 제한 해제 */
+    overflow: visible; /* 스크롤바가 안 보이게 설정 */
+}
+
+/* 각 필터 섹션 */
+.f-section { margin-bottom: 12px; }
+.f-section label { 
+    display: block; 
+    margin-bottom: 5px; 
+    font-weight: bold; 
+    color: #666; 
+    font-size: 12px; 
+}
+
+/* 입력 행과 입력창 (박스 크기 초과 방지) */
+.f-row { display: flex; align-items: center; gap: 6px; }
+.f-row input, .f-row select { 
+    flex: 1; 
+    padding: 7px 10px; 
+    height: 34px; 
+    border: 1px solid #ddd; 
+    border-radius: 8px; 
+    outline: none;
     font-size: 12px;
-    font-weight: bold;
-    margin-top: 8px;
-    transition: all 0.2s;
+    /* 핵심: 패딩과 테두리가 너비에 포함되도록 설정 */
+    box-sizing: border-box; 
+    width: 100%; /* 부모 flex 안에서 꽉 차게 */
+}
+.f-row input:focus, .f-row select:focus { border-color: #4facfe; }
+
+.f-check-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
+.f-check-row label { 
+    font-weight: normal; 
+    font-size: 12px; 
+    cursor: pointer; 
+    display: flex; 
+    align-items: center; 
+    gap: 5px; 
+    color: #777;
 }
 
-.iw-btn:hover {
-    background: #4facfe;
-    color: white;
+/* 6. 마커 및 태그 디자인 */
+.price-tag {
+    background: #4facfe; color: white; padding: 6px 14px;
+    border-radius: 20px; font-size: 12px; font-weight: bold;
+    border: 2px solid white; box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+}
+.gu-tag {
+    background: #ffffff; color: #333; padding: 10px 20px;
+    border-radius: 25px; font-size: 14px; font-weight: 800;
+    border: 2px solid #4facfe; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+.gu-tag:hover { background: #4facfe; color: white; transform: scale(1.05); }
+
+/* 7. 정보창 및 모달 */
+.iw-container { padding: 8px; min-width: 220px; background: white; border-radius: 12px; }
+.iw-title { font-size: 15px; font-weight: 800; color: #e74c3c; margin-bottom: 4px; }
+.iw-btn {
+    width: 100%; background: #f0f7ff; color: #4facfe; border: 1px solid #4facfe;
+    padding: 7px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold;
 }
 
-/* 모달 디자인 */
 .modal {
-    display: none;
-    position: fixed;
-    z-index: 10001;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(4px);
+    display: none; position: fixed; z-index: 10001;
+    left: 0; top: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(4px);
+}
+.modal-content {
+    background: white; margin: 15vh auto; padding: 25px; border-radius: 24px;
+    width: 90%; max-width: 400px; box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+    animation: modalFadeIn 0.3s ease-out;
 }
 
-.modal-content {
-    background: white;
-    margin: 15vh auto;
-    padding: 30px;
-    border-radius: 24px;
-    width: 90%;
-    max-width: 420px;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.2);
-    animation: modalFadeIn 0.3s ease-out; /* 모달 등장 애니메이션 */
-}
+/* 8. 특수 강조용 (층수 등) */
+.floor-tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.9em; background: #f0f4f8; }
+.floor-danger { background: #fff5f5; color: #e03131; font-weight: bold; border: 1px solid #ffa8a8; }
+.floor-warn { background: #fff9db; color: #f08c00; font-weight: bold; border: 1px solid #ffe066; }
 
 @keyframes modalFadeIn {
     from { opacity: 0; transform: translateY(20px); }
     to { opacity: 1; transform: translateY(0); }
 }
-
-.detail-row {
+/* 슬라이더 공통 구조 */
+.slider-container {
+    position: relative;
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 12px 0;
-    border-bottom: 1px solid #f5f5f5;
+    flex: 1;
+    overflow: hidden;
 }
 
-.detail-row span {
-    color: #888;
-    font-size: 14px;
+.slider-wrapper {
+    display: flex;
+    transition: transform 0.4s ease-in-out;
+    width: 100%;
+    gap: 15px;
 }
 
-.detail-row b {
-    color: #333;
-    font-size: 15px;
+.slide-item {
+    flex: 0 0 calc(50% - 8px); /* 한 번에 2개씩 보이게 설정 */
+    box-sizing: border-box;
 }
 
-/* 찜하기 버튼 */
-.fav-btn {
-    flex: 1.5;
-    padding: 16px;
-    border: none;
-    border-radius: 14px;
+/* 설문의 경우 한 번에 하나씩 보고 싶다면 아래 flex를 100%로 변경하세요 */
+#survey-slider .slide-item {
+    flex: 0 0 100%; 
+}
+
+/* 네비게이션 버튼 */
+.nav-btn {
+    position: absolute;
+    z-index: 10;
+    background: rgba(255,255,255,0.8);
+    border: 1px solid #eee;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
     cursor: pointer;
-    font-weight: 700;
-    font-size: 15px;
-    transition: transform 0.2s, background 0.3s;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
+.nav-btn.prev { left: -10px; }
+.nav-btn.next { right: -10px; }
+.nav-btn:hover { background: #4facfe; color: white; }
 
-.fav-btn:active {
-    transform: scale(0.96);
+/* 전체보기 버튼 스타일 */
+.view-all {
+    font-size: 12px;
+    color: #aaa;
+    text-decoration: none;
+    margin-left: 10px;
 }
+.view-all:hover { color: #4facfe; text-decoration: underline; }
 
-.fav-active {
-    background: #ff5a5f;
-    color: white;
+/* 찜 매물 카드 미니화 */
+.property-card-mini {
+    background: #fff;
+    border: 1px solid #f0f0f0;
+    border-radius: 12px;
+    overflow: hidden;
+    height: 180px;
 }
-
-.fav-inactive {
-    background: #f2f2f2;
-    color: #666;
-}
+.prop-img-sm { width: 100%; height: 100px; object-fit: cover; }
+.prop-info-sm { padding: 10px; }
+.prop-info-sm .p-price { font-weight: bold; color: #ff4d4f; font-size: 14px; }
+.prop-info-sm .p-addr { font-size: 11px; color: #888; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
