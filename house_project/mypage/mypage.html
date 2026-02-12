@@ -6,6 +6,41 @@
     <title>마이페이지 - AI 라이프 매칭</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/mypage.css') }}">
+    <style>
+        /* 🚀 추천 스타일: 결과보기 버튼 */
+        .btn-result-link {
+            display: block;
+            margin-top: 15px;
+            padding: 12px;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white !important;
+            text-align: center;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 14px;
+            text-decoration: none;
+            box-shadow: 0 4px 10px rgba(79, 172, 254, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .btn-result-link:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(79, 172, 254, 0.4);
+            filter: brightness(1.05);
+        }
+
+        .survey-item-card {
+            border: 1px solid #eee;
+            border-radius: 15px;
+            padding: 15px;
+            background: #fff;
+            transition: border-color 0.3s;
+        }
+        
+        .survey-item-card:hover {
+            border-color: #4facfe;
+        }
+    </style>
 </head>
 <body>
 
@@ -54,10 +89,10 @@
                     <div class="slider-wrapper" id="survey-slider">
                         {% for s in surveys %}
                         <div class="slide-item">
-                            <div class="survey-item-card" onclick="location.href='/survey/result/{{ s._id }}'">
+                            <div class="survey-item-card">
                                 <div class="survey-card-header">
                                     <span class="count-badge">{{ s.date }} 리포트</span>
-                                    <span class="view-all">결과보기</span>
+                                    <span style="color: #4facfe; font-size: 12px; font-weight: bold;">분석 완료</span>
                                 </div>
                                 
                                 <div class="survey-card-body" style="margin-top: 15px;">
@@ -77,6 +112,10 @@
                                             </span>
                                         {% endfor %}
                                     </div>
+
+                                    <a href="/survey/result/{{ loop.index0 }}" class="btn-result-link">
+                                        리포트 결과 보기
+                                    </a>
                                 </div>
                             </div>
                         </div>
@@ -141,22 +180,18 @@
         const items = wrapper.getElementsByClassName('slide-item');
         const totalItems = items.length;
         
-        // 설문은 1개(100%), 매물은 2개(50%)씩 노출된다는 CSS 가정하에 계산
         const perPage = (type === 'survey') ? 1 : 2;
         const maxIndex = Math.ceil(totalItems / perPage) - 1;
 
         slideIndices[type] += direction;
 
-        // 경계 설정
         if (slideIndices[type] < 0) slideIndices[type] = 0;
         if (slideIndices[type] > maxIndex) slideIndices[type] = maxIndex;
 
-        // 이동 애니메이션 (1개당 100% 혹은 2개당 100% 이동)
         const offset = slideIndices[type] * 100;
         wrapper.style.transform = `translateX(-${offset}%)`;
     }
 
-    // 모달 기능을 만드실 경우 사용될 함수 예시
     function openModal(type) {
         alert(type === 'survey' ? '전체 설문 목록 창을 엽니다.' : '전체 찜 목록 창을 엽니다.');
     }
