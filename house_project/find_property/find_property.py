@@ -3,7 +3,7 @@ from flask import Blueprint, render_template, current_app, request, jsonify, ses
 from datetime import datetime
 from database import houses_col, db, users_col
 
-find_property_bp = Blueprint('find_property', __name__, template_folder='.')
+find_bp = Blueprint('find', __name__, template_folder='.')
 
 # 서울 각 구별 중심 좌표 (클러스터링 대용)
 GU_COORDS = {
@@ -22,18 +22,18 @@ GU_COORDS = {
     "중랑구": {"lat": 37.60380556, "lng": 127.0947778}
 }
 
-@find_property_bp.route('/find_property')
-def find_property():
+@find_bp.route('/find')
+def find():
     client_id = current_app.config.get('NAVER_CLIENT_ID')
     return render_template('find_property.html', client_id=client_id)
 
-@find_property_bp.route('/api/stats/gu')
+@find_bp.route('/api/stats/gu')
 def get_gu_stats():
     result = [{"_id": k, "lat": v['lat'], "lng": v['lng']} for k, v in GU_COORDS.items()]
     return jsonify(result)
 
 # find_property.py 내의 get_property_by_id 부분 수정
-@find_property_bp.route('/api/property/<prop_id>')
+@find_bp.route('/api/property/<prop_id>')
 def get_property_by_id(prop_id):
     try:
         search_query = [{'_id': prop_id}]
@@ -79,7 +79,7 @@ def get_property_by_id(prop_id):
     except:
         return jsonify({"error": "에러"}), 500
 
-@find_property_bp.route('/api/favorite', methods=['POST'])
+@find_bp.route('/api/favorite', methods=['POST'])
 def add_favorite():
     if 'user_id' not in session:
         return jsonify({"status": "error", "message": "로그인이 필요합니다."}), 401
@@ -127,7 +127,7 @@ def add_favorite():
         )
         return jsonify({"status": "success", "message": "찜 목록에 추가되었습니다!", "action": "added"})
 
-@find_property_bp.route('/api/properties')
+@find_bp.route('/api/properties')
 def get_properties():
     # 1. 위치 파라미터 추출
     sw_lat = request.args.get('sw_lat', type=float)

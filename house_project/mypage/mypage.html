@@ -12,7 +12,7 @@
 <div class="navbar">
     <div class="nav-left">
         <a href="{{ url_for('main.index') }}">Home</a>
-        <a href="{{ url_for('find_property.find_property') }}">매물찾기</a>
+        <a href="{{ url_for('find.find') }}">매물찾기</a>
     </div>
     <div class="nav-links">
         <a href="{{ url_for('mypage.mypage') }}">My Page</a>
@@ -107,7 +107,7 @@
                     <div class="slider-wrapper" id="property-slider">
                         {% for fav in favorites %}
                         <div class="slide-item">
-                            <div class="property-card-mini" onclick="location.href='/find_property?id={{ fav._id_str or fav.id }}'">
+                            <div class="property-card-mini" onclick="location.href='/find?id={{ fav._id_str or fav.id }}'">
                                 <img src="{{ fav.images[0] if fav.images else url_for('static', filename='img/default_room.jpg') }}" class="prop-img-sm">
                                 <div class="prop-info-sm">
                                     <p class="p-price">{{ fav.price }}</p>
@@ -121,7 +121,7 @@
                 {% else %}
                     <div class="empty-box">
                         <p>찜한 매물이 없습니다.</p>
-                        <a href="{{ url_for('find_property.find_property') }}" class="btn-sm">매물 보러가기</a>
+                        <a href="{{ url_for('find.find') }}" class="btn-sm">매물 보러가기</a>
                     </div>
                 {% endif %}
             </div>

@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from main.main_route import main_bp
 from auth.auth_route import auth_bp
 from mypage.mypage_route import mypage_bp
-from find_property.find_property import find_property_bp
+from find_property.find_property import find_bp
 from survey.survey import survey_bp
 # database.py에서 oauth 객체를 가져옵니다.
 from database import oauth 
@@ -37,7 +37,7 @@ oauth.register(
 app.register_blueprint(mypage_bp)
 app.register_blueprint(main_bp)
 app.register_blueprint(auth_bp)
-app.register_blueprint(find_property_bp)
+app.register_blueprint(find_bp)
 app.register_blueprint(survey_bp)
 
 if __name__ == '__main__':
