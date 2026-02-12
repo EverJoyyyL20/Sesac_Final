@@ -70,8 +70,12 @@ def get_property_by_id(prop_id):
                 "deposit": item.get('deposit'),
                 "rent_type": item.get('rent_type', item.get('type')),
                 "address": item.get('address'),
-                "floor": floor_display, # 가공된 텍스트 전달
+                "floor": floor_display,
                 "location": item.get('location'),
+                
+                # ✅ [확인] 리스트가 아니면 빈 리스트로 처리하는 안전장치
+                "images": item.get('images') if isinstance(item.get('images'), list) else [],
+                
                 "is_favorite": is_fav
             }
             return jsonify(processed)

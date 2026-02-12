@@ -2,10 +2,90 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
+    <meta name="referrer" content="no-referrer">
     <title>서울 부동산 매물 탐색</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/find_property.css') }}">
     <script type="text/javascript" src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId={{ client_id }}"></script>
+    <style>
+.image-slider-wrapper {
+    position: relative;
+    width: 100%;
+    margin-bottom: 15px;
+}
+.modal-img-container {
+    display: flex;
+    gap: 10px;
+    padding-bottom: 5px;
+    /* 스크롤은 되지만 스크롤바는 숨김 */
+    overflow-x: scroll;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none;  /* IE/Edge */
+    /* 부드러운 스크롤 및 스냅 효과 */
+    scroll-behavior: smooth;
+    scroll-snap-type: x mandatory;
+}
+.modal-img-container::-webkit-scrollbar {
+    display: none;
+}
+    .modal-img-container::-webkit-scrollbar {
+        display: none; /* Chrome, Safari, Opera */
+    }
+.prop-img {
+    /* 이미지 너비를 고정해야 스크롤 계산이 정확합니다 */
+    width: 280px;
+    height: 200px;
+    object-fit: cover;
+    border-radius: 8px;
+    flex-shrink: 0;
+    /* 스크롤 시 이미지가 가운데 정렬되도록 스냅 */
+    scroll-snap-align: center;
+    background-color: #f0f0f0;
+}
+.slider-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: rgba(0, 0, 0, 0.5); /* 반투명 검은색 배경 */
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+    cursor: pointer;
+    z-index: 10; /* 이미지 위에 떠있어야 함 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.3s;
+}
+
+.slider-btn:hover {
+    background-color: rgba(0, 0, 0, 0.8);
+}
+
+/* 왼쪽 버튼 위치 */
+.prev-btn {
+    left: 10px;
+}
+/* 오른쪽 버튼 위치 */
+.next-btn {
+    right: 10px;
+}
+    .no-img-placeholder {
+        width: 100%;
+        height: 150px;
+        background-color: #eee;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        color: #888;
+        font-size: 0.9em;
+        margin-bottom: 15px;
+    }
+    </style>
 </head>
 <body>
 
@@ -116,6 +196,20 @@
 
     // --- 추가 및 수정한 필터 제어 함수 시작 ---
     
+
+    function scrollSlider(direction) {
+    const container = document.getElementById('modalImgContainer');
+    if (!container) return;
+
+    // 한 번에 스크롤할 양 (이미지 너비 280px + 간격 10px = 290px)
+    const scrollAmount = 290; 
+    
+    // 현재 스크롤 위치에서 계산된 양만큼 이동
+    container.scrollBy({
+        left: direction * scrollAmount,
+        behavior: 'smooth' // 부드럽게 이동
+    });
+}
     function validateNonNegative(input) {
         if (input.value < 0) {
             input.value = 0; // 음수 입력 시 0으로 고정
@@ -240,9 +334,12 @@ function toggleFilter() {
         });
     }
 
-    function openDetail(id) {
-        fetch(`/api/property/${id}`).then(res => res.json()).then(prop => {
+function openDetail(id) {
+    fetch(`/api/property/${id}`)
+        .then(res => res.json())
+        .then(prop => {
             window.currentSelectedProp = prop;
+            
             const favBtn = document.getElementById('favoriteBtn');
             favBtn.innerText = prop.is_favorite ? '💔 찜 취소' : '❤️ 찜하기';
             
@@ -250,14 +347,50 @@ function toggleFilter() {
             if(prop.floor.includes("반지하")) floorClass += " floor-danger";
             else if(prop.floor.includes("옥탑")) floorClass += " floor-warn";
 
+            let imgHtml = '';
+            if (Array.isArray(prop.images) && prop.images.length > 0) {
+                // 1. 전체를 감싸는 래퍼 시작
+                imgHtml += `<div class="image-slider-wrapper">`;
+                
+                // 2. 이미지가 2개 이상일 때만 '이전' 버튼 추가
+                if (prop.images.length > 1) {
+                    imgHtml += `<button class="slider-btn prev-btn" onclick="scrollSlider(-1)">&#10094;</button>`;
+                }
+                
+                // 3. 이미지 컨테이너 (ID 'modalImgContainer' 추가됨)
+                imgHtml += `<div class="modal-img-container" id="modalImgContainer">`;
+                prop.images.forEach(url => {
+                    if (url && url.trim() !== "") {
+                        // ?w=800 추가 로직 유지
+                        let finalUrl = url.includes('?') ? url + '&w=800' : url + '?w=800';
+                        imgHtml += `<img src="${finalUrl}" class="prop-img" referrerpolicy="no-referrer" onerror="this.src='https://via.placeholder.com/280x200?text=No+Image'">`;
+                    }
+                });
+                imgHtml += `</div>`; // 컨테이너 닫기
+
+                // 4. 이미지가 2개 이상일 때만 '다음' 버튼 추가
+                if (prop.images.length > 1) {
+                    imgHtml += `<button class="slider-btn next-btn" onclick="scrollSlider(1)">&#10095;</button>`;
+                }
+
+                imgHtml += `</div>`; // 래퍼 닫기
+            } else {
+                imgHtml = `<div class="no-img-placeholder">이미지가 없는 매물입니다.</div>`;
+            }
+            // ✅ [핵심 수정 부분 끝]
+
+
+            // 모달 내용 주입 (기존과 동일)
             document.getElementById('modal-body').innerHTML = `
+                ${imgHtml}
                 <div class="detail-row"><span>📍 주소</span><b>${prop.address}</b></div>
                 <div class="detail-row"><span>💰 가격</span><b style="color:#2ecc71; font-size:1.1em;">${formatPrice(prop)}</b></div>
                 <div class="detail-row"><span>🏢 층수</span><span class="${floorClass}">${prop.floor}</span></div>
             `;
             document.getElementById('propertyModal').style.display = 'block';
-        });
-    }
+        })
+        .catch(err => { /* 에러 처리 */ });
+}
 
     function handleFavorite() {
         const prop = window.currentSelectedProp;
