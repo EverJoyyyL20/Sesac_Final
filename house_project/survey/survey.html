@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>맞춤 매물 분석 설문</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/survey.css') }}">
+    <style>
+        /* 추가적인 레이아웃 보정 */
+        #loading-screen { display: none; text-align: center; padding: 50px 20px; }
+        .q-card { display: none; }
+        .q-card.active { display: block; animation: fadeIn 0.5s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .selected { background-color: #4facfe !important; color: white !important; border-color: #4facfe !important; }
+        .conditional-area { display: none; margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 12px; }
+    </style>
+</head>
+<body>
+
+<div class="survey-wrapper">
+    <div class="progress-area">
+        <div class="gauge-background"><div id="gauge-fill" style="width: 0%;"></div></div>
+        <div class="progress-text" id="status-txt">분석 준비 중...</div>
+    </div>
+
+    <form id="survey-form">
+        <div class="q-card active" id="step-0">
+            <h2>📍 선호하시는 지역이 있나요?</h2>
+            <div class="input-group">
+                <input type="text" id="pref_location" class="input-field" placeholder="예: 서울시 강남구 역삼동">
+            </div>
+            <div class="next-btn-container">
+                <button type="button" class="confirm-btn" onclick="nextStep(1)">다음 단계로</button>
+            </div>
+        </div>
+
+        <div class="q-card" id="step-1">
+            <h2>💰 희망하는 예산 범위를 알려주세요.</h2>
+            <div class="options-group">
+                <button type="button" class="opt-btn" onclick="selectContract('monthly', this)">월세</button>
+                <button type="button" class="opt-btn" onclick="selectContract('jeonse', this)">전세</button>
+            </div>
+
+            <div id="monthly-area" class="conditional-area">
+                <p class="sub-q">보증금 최대 (만원)</p>
+                <input type="number" id="m_dep_max" class="input-field" placeholder="예: 5000">
+                <p class="sub-q" style="margin-top:10px;">월세 최대 (만원)</p>
+                <input type="number" id="m_rent_max" class="input-field" placeholder="예: 60">
+            </div>
+
+            <div id="jeonse-area" class="conditional-area">
+                <p class="sub-q">전세금 최대 (만원)</p>
+                <input type="number" id="j_dep_max" class="input-field" placeholder="예: 20000">
+            </div>
+
+            <div class="next-btn-container">
+                <button type="button" class="confirm-btn" onclick="validateStep1()">다음 단계로</button>
+            </div>
+        </div>
+
+        {% for q in questions %}
+        {% set step_num = 2 + loop.index0 %}
+        <div class="q-card" id="step-{{ step_num }}">
+            <h2>🌳 {{ q.title }}</h2>
+            <p style="color:#888; font-size:0.85rem; margin-bottom:15px;">
+                {{ '최대 3개까지 선택 가능합니다.' if q.multiple else '하나만 선택해주세요.' }}
+            </p>
+
+            <div class="options-group">
+                {% for option in q.options %}
+                <button type="button" class="opt-btn weight-opt" 
+                        data-categories='{{ option.categories | tojson | safe }}'
+                        onclick="handleWeightClick(this, {{ q.max_choice if q.multiple else 1 }}, {{ 'true' if q.multiple else 'false' }})">
+                    {{ option.text }}
+                </button>
+                {% endfor %}
+            </div>
+            
+            <p class="limit-info weight-empty" style="color: orange; display: none; margin-top: 10px; text-align: center;">항목을 선택해주세요! ⚠️</p>
+            
+            <div class="next-btn-container">
+                {% if loop.last %}
+                <button type="button" class="confirm-btn" onclick="submitFinalSurvey()">분석 완료</button>
+                {% else %}
+                <button type="button" class="confirm-btn" onclick="validateAndNext({{ step_num + 1 }})">다음 질문으로</button>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </form>
+
+    <div id="loading-screen">
+        <div class="loader"></div>
+        <h2 style="margin-top:20px;">AI가 맞춤 매물을 분석 중입니다...</h2>
+        <p>{{ session.get('nickname', '사용자') }}님께 가장 잘 어울리는 동네를 찾고 있어요.</p>
+    </div>
+</div>
+
+<script>
+    let currentIdx = 0;
+    const totalSteps = 2 + {{ questions|length }}; 
+
+    // 최종 전송할 데이터 구조
+    const surveyResults = { 
+        location: "", 
+        contract_type: "", 
+        budget: { max_dep: 0, max_rent: 0 }, 
+        category_log: [] 
+    };
+
+    function updateUI() {
+        const percent = Math.round((currentIdx / totalSteps) * 100);
+        document.getElementById('gauge-fill').style.width = percent + '%';
+        document.getElementById('status-txt').innerText = `${percent}% 분석 중...`;
+    }
+
+    function nextStep(idx) {
+        document.getElementById(`step-${currentIdx}`).classList.remove('active');
+        currentIdx = idx;
+        document.getElementById(`step-${currentIdx}`).classList.add('active');
+        updateUI();
+        window.scrollTo(0, 0);
+    }
+
+    function selectContract(type, btn) {
+        surveyResults.contract_type = type;
+        btn.parentElement.querySelectorAll('.opt-btn').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        document.getElementById('monthly-area').style.display = (type === 'monthly') ? 'block' : 'none';
+        document.getElementById('jeonse-area').style.display = (type === 'jeonse') ? 'block' : 'none';
+    }
+
+    function validateStep1() {
+        if (!surveyResults.contract_type) { alert("계약 형태를 선택해주세요!"); return; }
+        
+        if (surveyResults.contract_type === 'monthly') {
+            surveyResults.budget.max_dep = document.getElementById('m_dep_max').value || 0;
+            surveyResults.budget.max_rent = document.getElementById('m_rent_max').value || 0;
+        } else {
+            surveyResults.budget.max_dep = document.getElementById('j_dep_max').value || 0;
+            surveyResults.budget.max_rent = 0;
+        }
+        nextStep(2);
+    }
+
+    function handleWeightClick(btn, max, isMultiple) {
+        const card = btn.closest('.q-card');
+        if (!isMultiple) {
+            card.querySelectorAll('.weight-opt').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+        } else {
+            const selectedCount = card.querySelectorAll('.weight-opt.selected').length;
+            if (!btn.classList.contains('selected') && selectedCount >= max) {
+                alert(`최대 ${max}개까지 선택 가능합니다.`);
+                return;
+            }
+            btn.classList.toggle('selected');
+        }
+        // 선택하면 경고 문구 숨김
+        card.querySelector('.weight-empty').style.display = 'none';
+    }
+
+    function validateAndNext(nextIdx) {
+        const currentCard = document.getElementById(`step-${currentIdx}`);
+        if (currentCard.querySelectorAll('.weight-opt.selected').length === 0) {
+            currentCard.querySelector('.weight-empty').style.display = 'block';
+            return;
+        }
+        nextStep(nextIdx);
+    }
+
+    function submitFinalSurvey() {
+        const currentCard = document.getElementById(`step-${currentIdx}`);
+        if (currentCard.querySelectorAll('.weight-opt.selected').length === 0) {
+            currentCard.querySelector('.weight-empty').style.display = 'block';
+            return;
+        }
+
+        // 화면 전환
+        document.getElementById('survey-form').style.display = 'none';
+        document.getElementById('loading-screen').style.display = 'block';
+        document.getElementById('gauge-fill').style.width = '100%';
+        document.getElementById('status-txt').innerText = '분석 완료! 저장 중...';
+
+        // 데이터 최종 취합
+        surveyResults.location = document.getElementById('pref_location').value;
+        surveyResults.category_log = [];
+        
+        // 모든 카드에서 선택된 카테고리들을 수집
+        document.querySelectorAll('.weight-opt.selected').forEach(b => {
+            const cats = JSON.parse(b.getAttribute('data-categories'));
+            // 카테고리 배열을 하나로 합침
+            cats.forEach(c => surveyResults.category_log.push(c));
+        });
+
+        // 서버 전송 (fetch)
+        fetch('/survey/save', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(surveyResults)
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === "success") {
+                setTimeout(() => {
+                    alert('성공적으로 분석되었습니다! 최신 결과 페이지로 이동합니다.');
+                    location.href = `/survey/result/${data.target_index}`; // /survey/result/0 으로 이동
+                }, 1500);
+            } else {
+                alert(data.message || "오류가 발생했습니다.");
+                location.reload();
+            }
+        })
+        .catch(err => {
+            alert("서버와 통신에 실패했습니다.");
+            location.reload();
+        });
+    }
+</script>
+</body>
+</html>

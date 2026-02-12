@@ -1,0 +1,186 @@
+/* 지도 컨테이너 */
+#map-container {
+    flex: 1;
+    position: relative;
+    width: 100%;
+}
+
+#map {
+    width: 100%;
+    height: 100%;
+}
+
+/* 상태 헤더 */
+.status-header {
+    position: absolute;
+    top: 15px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    background: rgba(255, 255, 255, 0.95);
+    padding: 10px 22px;
+    border-radius: 30px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    font-weight: 600;
+    font-size: 14px;
+    border: 1px solid #eee;
+    pointer-events: none; /* 헤더가 마커 클릭을 방해하지 않도록 */
+}
+
+/* 마커 디자인 */
+.price-tag {
+    background: #4facfe;
+    color: white;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: bold;
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+    white-space: nowrap;
+    transition: transform 0.2s, background 0.2s;
+}
+
+.price-tag:hover {
+    transform: translateY(-3px) scale(1.05);
+    background: #007bff;
+}
+
+.gu-tag {
+    background: #ffffff;
+    color: #333;
+    padding: 10px 20px;
+    border-radius: 25px;
+    font-size: 15px;
+    font-weight: 800;
+    cursor: pointer;
+    border: 2px solid #4facfe;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); /* 부드러운 호버 애니메이션 */
+}
+
+/* [추가] 구 버튼 호버 시 색상 반전 효과 */
+.gu-tag:hover {
+    background: #4facfe;
+    color: white;
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(79, 172, 254, 0.4);
+}
+
+/* 네이버 지도 정보창 커스텀 */
+.iw-container {
+    padding: 10px;
+    min-width: 260px;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+}
+
+.iw-item {
+    padding: 12px 5px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.iw-item:last-child {
+    border-bottom: none;
+}
+
+.iw-title {
+    font-size: 16px;
+    font-weight: 800;
+    color: #e74c3c;
+    margin-bottom: 5px;
+}
+
+.iw-btn {
+    width: 100%;
+    background: #f0f7ff;
+    color: #4facfe;
+    border: 1px solid #4facfe;
+    padding: 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: bold;
+    margin-top: 8px;
+    transition: all 0.2s;
+}
+
+.iw-btn:hover {
+    background: #4facfe;
+    color: white;
+}
+
+/* 모달 디자인 */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 10001;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+}
+
+.modal-content {
+    background: white;
+    margin: 15vh auto;
+    padding: 30px;
+    border-radius: 24px;
+    width: 90%;
+    max-width: 420px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+    animation: modalFadeIn 0.3s ease-out; /* 모달 등장 애니메이션 */
+}
+
+@keyframes modalFadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #f5f5f5;
+}
+
+.detail-row span {
+    color: #888;
+    font-size: 14px;
+}
+
+.detail-row b {
+    color: #333;
+    font-size: 15px;
+}
+
+/* 찜하기 버튼 */
+.fav-btn {
+    flex: 1.5;
+    padding: 16px;
+    border: none;
+    border-radius: 14px;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 15px;
+    transition: transform 0.2s, background 0.3s;
+}
+
+.fav-btn:active {
+    transform: scale(0.96);
+}
+
+.fav-active {
+    background: #ff5a5f;
+    color: white;
+}
+
+.fav-inactive {
+    background: #f2f2f2;
+    color: #666;
+}

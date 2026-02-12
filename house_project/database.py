@@ -26,8 +26,8 @@ try:
     # 다른 파일에서 불러다 쓸 컬렉션들
     users_col = db['user']
     infra_col = db['infra']
-    houses_col = db['house']
+    houses_col = db['properties_test2']
 
-    print("✅ MongoDB 접속 성공! (환경 변수 사용)")
+    print("✅ MongoDB 접속 성공! (환경 변수 사용)",houses_col.count_documents({}))
 except Exception as e:
     print("❌ MongoDB 접속 실패:", e)

@@ -3,36 +3,71 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>마이페이지 - 안전한 집 찾기</title>
+    <title>마이페이지 - AI 라이프 매칭</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/mypage.css') }}">
     <style>
-        .btn-withdraw {
-            background-color: #ee7474;
-            color: white;
-            border: none;
-            cursor: pointer;
+        /* 버튼 스타일링 */
+        .btn-withdraw { background-color: #ffeded; color: #ee7474; border: 1px solid #ee7474; border-radius: 8px; cursor: pointer; text-decoration: none; padding: 10px 20px; font-weight: 600; transition: 0.3s; }
+        .btn-withdraw:hover { background-color: #ee7474; color: white; }
+        
+        .btn-edit { background-color: #4facfe; color: white; border-radius: 8px; padding: 10px 20px; text-decoration: none; font-weight: 600; transition: 0.3s; }
+        .btn-edit:hover { background-color: #007bff; }
+
+        /* 추천 결과 바로보기 전용 버튼 */
+        .btn-result-direct {
+            display: inline-block;
+            margin-top: 10px;
+            background: #f0f7ff;
+            color: #4facfe;
+            padding: 12px;
+            border-radius: 12px;
             text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
+            font-weight: 700;
+            text-align: center;
+            border: 1px solid #4facfe;
+            transition: 0.3s;
         }
-        .btn-withdraw:hover {
-            background-color: #ed5a5a;
+        .btn-result-direct:hover { background: #4facfe; color: white; }
+
+        /* 찜한 매물 그리드 */
+        .property-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr); /* 2열 배치 */
+            gap: 12px;
+            margin-top: 15px;
         }
+        .property-card {
+            border: 1px solid #f0f0f0;
+            border-radius: 15px;
+            background: #fff;
+            transition: 0.3s;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .property-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.08); }
+        .property-img { width: 100%; height: 110px; object-fit: cover; background: #f9f9f9; }
+        .property-info { padding: 12px; }
+        .property-info h4 { margin: 0; font-size: 0.9rem; color: #222; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .property-info p { color: #ff4d4f; font-size: 0.85rem; margin: 5px 0; font-weight: 800; }
+        
+        /* 스크롤 가능한 영역 (매물이 많을 때 대비) */
+        .scroll-area { max-height: 400px; overflow-y: auto; padding-right: 5px; }
+        .scroll-area::-webkit-scrollbar { width: 4px; }
+        .scroll-area::-webkit-scrollbar-thumb { background: #eee; border-radius: 10px; }
     </style>
 </head>
 <body>
 
 <div class="navbar">
     <div class="nav-left">
-        <a href="{{ url_for('main.index') }}">HOME</a>
-        <a href="{{ url_for('main.find_property') }}">매물찾기</a>
+        <a href="{{ url_for('main.index') }}">🏠 Home</a>
+        <a href="{{ url_for('find_property.find_property') }}">🔍 매물찾기</a>
     </div>
-    
     <div class="nav-links">
         {% if session.get('user_id') %}
-            <a href="{{ url_for('mypage.mypage') }}">My Page</a>
+            <a href="{{ url_for('mypage.mypage') }}" style="color: #4facfe; font-weight: 800;">My Page</a>
             <a href="{{ url_for('auth.logout') }}">Logout</a>
         {% else %}
             <a href="{{ url_for('auth.login') }}">Login</a>
@@ -46,55 +81,75 @@
         <div class="profile-left">
             <img class="profile-img-preview" 
                  src="{{ url_for('static', filename='profile_pics/' + profile_img) if profile_img and profile_img != 'default.png' else url_for('static', filename='profile_pics/default.png') }}" 
-                 alt="프로필 사진" 
-                 onerror="this.src='https://via.placeholder.com/150'">
+                 alt="프로필 사진">
         </div>
-
         <div class="profile-right">
-            <div class="info-row">
-                <span class="info-label">이메일 계정</span>
-                <span class="info-value user-email-text">{{ user_email }}</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">닉네임</span>
-                <span class="info-value">{{ nickname if nickname else '설정된 닉네임이 없습니다.' }}</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">한 줄 소개</span>
-                <span class="info-value">{{ bio if bio else '소개글을 등록해 보세요.' }}</span>
-            </div>
-            
+            <div class="info-row"><span class="info-label">이메일</span><span class="info-value">{{ user_email }}</span></div>
+            <div class="info-row"><span class="info-label">닉네임</span><span class="info-value">{{ nickname if nickname else '설정된 닉네임이 없습니다.' }}</span></div>
+            <div class="info-row"><span class="info-label">소개</span><span class="info-value">{{ bio if bio else '소개글을 등록해 보세요.' }}</span></div>
             <div class="btn-group">
-                <a href="{{ url_for('mypage.edit_profile') }}" class="btn btn-edit">내 정보 수정</a>
-                <a href="{{ url_for('mypage.delete_confirm') }}" class="btn btn-withdraw">회원 탈퇴</a>
+                <a href="{{ url_for('mypage.edit_profile') }}" class="btn-edit">내 정보 수정</a>
+                <a href="{{ url_for('mypage.delete_confirm') }}" class="btn-withdraw">회원 탈퇴</a>
             </div>
         </div>
     </div>
 
-    <div class="content-section">
-        <div class="content-box">
+    <div class="content-section" style="display: flex; gap: 20px; align-items: stretch; margin-top: 30px;">
+        
+        <div class="content-box" style="flex: 1; min-height: 450px; display: flex; flex-direction: column;">
             <h3>📝 최근 설문 결과</h3>
-            {% if survey %}
-                <div class="survey-summary">
-                    <p>📍 <strong>희망 지역:</strong> {{ survey.location if survey.location else '미지정' }}</p>
-                    <p>💰 <strong>계약 형태:</strong> {{ '월세' if survey.contract_type == 'monthly' else '전세' }}</p>
-                    <p>🏠 <strong>선호 건물:</strong> 
-                        {% for t in survey.building_type %}{{ t }}{% if not loop.last %}, {% endif %}{% endfor %}
-                    </p>
-                    <p>✨ <strong>건물 연식:</strong> 
-                        {% for a in survey.building_age %}{{ a }}{% if not loop.last %}, {% endif %}{% endfor %}
-                    </p>
-                    <p>🚗 <strong>주차 필요:</strong> {{ '필요함' if survey.parking == 'yes' else '상관없음' }}</p>
-                </div>
-                <a href="{{ url_for('main.survey') }}" class="btn-resurvey" style="font-size: 0.8rem; color: #4facfe; text-decoration: none; margin-top: 10px; display: inline-block;">다시 조사하기 ></a>
-            {% else %}
-                <p class="empty-text">진행한 설문 내역이 없습니다.</p>
-                <a href="{{ url_for('main.survey') }}" class="btn btn-edit" style="font-size: 0.8rem; padding: 5px 10px;">설문 시작하기</a>
-            {% endif %}
+            <div style="flex: 1; margin-top: 15px;">
+                {% if survey %}
+                    <div class="survey-summary" style="line-height: 2; padding: 15px; background: #fbfbfb; border-radius: 15px;">
+                        <p>📍 <strong>희망 지역:</strong> {{ survey.location }}</p>
+                        <p>💰 <strong>계약 형태:</strong> {{ '월세' if survey.contract_type == 'monthly' else '전세' }}</p>
+                        <p>🏠 <strong>선호 건물:</strong> {{ survey.building_type|join(', ') }}</p>
+                        <p>✨ <strong>건물 연식:</strong> {{ survey.building_age|join(', ') }}</p>
+                    </div>
+                {% else %}
+                    <div style="height: 100%; display: flex; align-items: center; justify-content: center; text-align: center;">
+                        <p class="empty-text">아직 설문을 진행하지 않았습니다.<br><small style="color:#aaa;">AI 추천을 받으려면 설문을 시작하세요!</small></p>
+                    </div>
+                {% endif %}
+            </div>
+            
+            <a href="{{ url_for('survey.survey_result', index=0) }}" class="btn-result-direct">🚀 맞춤 추천 결과 바로보기</a>
+            
+            <a href="{{ url_for('survey.survey_page') }}" style="text-align: center; margin-top: 15px; font-size: 0.85rem; color: #888; text-decoration: none;">
+                {% if survey %}다시 조사하기 →{% else %}설문 시작하기 →{% endif %}
+            </a>
         </div>
-        <div class="content-box">
-            <h3>⭐ 찜한 매물</h3>
-            <p class="empty-text">저장된 매물이 없습니다.</p>
+
+        <div class="content-box" style="flex: 1; min-height: 450px; display: flex; flex-direction: column;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3>❤️ 내가 찜한 매물</h3>
+                <span style="background: #fff0f0; color: #ff4d4f; padding: 4px 10px; border-radius: 10px; font-size: 0.8rem; font-weight: bold;">{{ favorites|length }}개</span>
+            </div>
+            
+            <div class="scroll-area" style="flex: 1; margin-top: 15px;">
+                {% if favorites %}
+                    <div class="property-grid">
+                        {% for property in favorites %}
+                        <div class="property-card">
+                            <img src="{{ property.img if property.img else url_for('static', filename='images/no-image.png') }}" class="property-img">
+                            <div class="property-info">
+                                <h4>{{ property.title if property.title else '서울시 매물' }}</h4>
+                                <p>{{ property.price }}</p>
+                                <a href="{{ url_for('find_property.find_property', id=property.id) }}" style="text-decoration: none; color: #4facfe; font-size: 0.75rem; font-weight: bold;">상세보기 →</a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div style="height: 100%; display: flex; align-items: center; justify-content: center;">
+                        <p class="empty-text">찜한 매물이 없습니다.</p>
+                    </div>
+                {% endif %}
+            </div>
+            
+            <a href="{{ url_for('find_property.find_property') }}" style="text-align: center; margin-top: 15px; font-size: 0.85rem; color: #4facfe; font-weight: bold; text-decoration: none;">
+                매물 더 찾아보기 →
+            </a>
         </div>
     </div>
 </div>

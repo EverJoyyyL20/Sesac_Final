@@ -1,57 +1,57 @@
-/* static/css/survey.css */
+/* survey.css */
 
-/* 기본 배경 및 폰트 */
+/* 1. 기본 레이아웃 및 배경 */
 body {
     background-color: #f8f9fa;
-    font-family: 'Pretendard', sans-serif;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
     margin: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
 }
 
 .survey-wrapper {
     width: 100%;
-    max-width: 480px;
+    max-width: 550px; /* 상세 조건이 많으므로 약간 넓게 조정 */
+    margin: 60px auto; /* 내비바 여백 및 중앙 정렬 */
     background: #ffffff;
-    padding: 30px;
-    border-radius: 20px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+    padding: 50px 40px;
+    border-radius: 24px;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.06);
+    box-sizing: border-box;
 }
 
-/* 진행 바 스타일 */
+/* 2. 진행 바 (Progress Bar) */
 .progress-area {
-    margin-bottom: 30px;
+    margin-bottom: 40px;
 }
 
 .gauge-background {
     width: 100%;
     height: 8px;
-    background: #eee;
+    background: #f0f0f0;
     border-radius: 10px;
     overflow: hidden;
 }
 
 #gauge-fill {
-    width: 0%;
+    width: 5%; /* 초기값 */
     height: 100%;
     background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
-    transition: width 0.4s ease;
+    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .progress-text {
     font-size: 0.85rem;
     color: #4facfe;
-    font-weight: bold;
-    margin-top: 8px;
+    font-weight: 700;
+    margin-top: 10px;
     text-align: right;
 }
 
-/* 카드 시스템 */
+/* 3. 질문 카드 및 텍스트 */
 .q-card {
     display: none;
-    animation: fadeIn 0.5s ease;
+    animation: fadeIn 0.4s ease-out;
 }
 
 .q-card.active {
@@ -59,99 +59,171 @@ body {
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
+    from { opacity: 0; transform: translateY(15px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* 텍스트 스타일 */
 h2 {
-    font-size: 1.4rem;
-    margin-bottom: 20px;
+    font-size: 1.6rem;
+    line-height: 1.4;
+    margin-bottom: 30px;
+    color: #222;
     word-break: keep-all;
+    font-weight: 800;
 }
 
 .sub-q {
-    font-weight: bold;
-    margin: 25px 0 10px;
-    color: #333;
-    font-size: 1rem;
+    font-weight: 700;
+    margin: 30px 0 12px;
+    color: #444;
+    font-size: 0.95rem;
 }
 
-/* 버튼 및 입력창 */
-.input-group {
-    margin-bottom: 20px;
-}
-
-.input-field {
-    width: 100%;
-    padding: 15px;
-    border: 1px solid #ddd;
-    border-radius: 12px;
-    box-sizing: border-box;
-    font-size: 1rem;
-}
-
+/* 4. 옵션 버튼 (Grid Layout) */
 .options-group {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* 기본 2열 */
+    gap: 12px;
     margin-top: 15px;
 }
 
 .opt-btn {
-    flex: 1 1 calc(50% - 10px);
-    padding: 15px;
-    border: 2px solid #eee;
+    padding: 16px;
+    border: 2px solid #f1f1f1;
     background: #fff;
-    border-radius: 12px;
+    border-radius: 14px;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
     font-size: 0.95rem;
+    font-weight: 500;
+    color: #666;
+    text-align: center;
+}
+
+.opt-btn:hover {
+    border-color: #4facfe;
+    background: #f0f7ff;
 }
 
 .opt-btn.selected {
     border-color: #4facfe;
     background-color: #f0f7ff;
     color: #4facfe;
-    font-weight: bold;
+    font-weight: 700;
+    box-shadow: 0 4px 12px rgba(79, 172, 254, 0.1);
 }
 
-/* 조건부 영역 */
+/* 5. 입력 필드 및 조건부 영역 */
+.input-field {
+    width: 100%;
+    padding: 16px;
+    border: 2px solid #f1f1f1;
+    border-radius: 14px;
+    box-sizing: border-box;
+    font-size: 1rem;
+    transition: all 0.3s;
+}
+
+.input-field:focus {
+    border-color: #4facfe;
+    outline: none;
+    background-color: #fff;
+}
+
 .conditional-area {
-    display: none;
+    display: none; /* JS에서 조절 */
     padding: 20px;
-    background: #f9f9f9;
-    border-radius: 15px;
-    margin-top: 15px;
+    background: #f9fbff; /* 살짝 푸른 빛이 도는 배경 */
+    border-radius: 16px;
+    margin-top: 20px;
+    border: 1px dashed #d0e8ff;
 }
 
-/* 경고 문구 */
-.limit-info {
-    font-size: 0.8rem;
-    color: #ff4d4f;
-    display: none;
-    margin-top: 10px;
-    text-align: center;
-}
-
-/* 하단 확인 버튼 */
+/* 6. 하단 확인 버튼 */
 .next-btn-container {
-    margin-top: 30px;
+    margin-top: 40px;
 }
 
 .confirm-btn {
     width: 100%;
-    padding: 16px;
-    background-color: #333;
+    padding: 18px;
+    background: #4facfe;
     color: white;
     border: none;
-    border-radius: 15px;
+    border-radius: 16px;
     font-size: 1.1rem;
-    font-weight: bold;
+    font-weight: 700;
     cursor: pointer;
-    transition: background 0.3s;
+    transition: all 0.3s;
+    box-shadow: 0 5px 15px rgba(79, 172, 254, 0.3);
 }
 
 .confirm-btn:hover {
-    background-color: #000;
+    background: #00c6ff;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(79, 172, 254, 0.4);
 }
+
+/* 7. 경고 메시지 */
+.limit-info {
+    font-size: 0.85rem;
+    margin-top: 12px;
+    text-align: center;
+    font-weight: 600;
+}
+
+/* 완료 화면 정렬 */
+#complete-screen h2 {
+    margin-top: 10px;
+}
+
+.rec-card {
+    background: #fff;
+    border: 2px solid #f0f7ff;
+    border-radius: 15px;
+    padding: 15px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+}
+
+.rec-card:hover {
+    transform: translateY(-3px);
+    border-color: #4facfe;
+    box-shadow: 0 6px 12px rgba(79, 172, 254, 0.2);
+}
+
+.match-score {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #4facfe;
+}
+.q-card { display: none; }
+.q-card.active { display: block; animation: fadeIn 0.5s; }
+.sub-q { font-weight: bold; margin: 20px 0 10px; color: #333; }
+.input-group { margin-bottom: 15px; }
+.conditional-area { display: none; padding: 15px; background: #f9f9f9; border-radius: 10px; margin-top: 10px; }
+        
+        /* 로딩 스크린 스타일 */
+#loading-screen {
+    display: none;
+    text-align: center;
+    padding: 100px 20px;
+    }
+.loader {
+    border: 8px solid #f3f3f3;
+    border-top: 8px solid #4facfe;
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 20px;
+}
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* 진행 바 스타일 */
+.progress-area { margin-bottom: 30px; }
+.gauge-background { width: 100%; height: 10px; background: #eee; border-radius: 5px; overflow: hidden; }
+#gauge-fill { width: 0%; height: 100%; background: linear-gradient(to right, #4facfe, #00f2fe); transition: width 0.3s; }
+.progress-text { margin-top: 10px; font-size: 0.9rem; color: #666; text-align: center; }
