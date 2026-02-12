@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, jsonify, session, redirec
 from database import houses_col, db  # db 객체와 매물 컬렉션 임포트
 from bson.objectid import ObjectId
 from datetime import datetime
+from collections import Counter
 
 # Blueprint 설정
 survey_bp = Blueprint('survey', __name__, template_folder='.')
@@ -151,6 +152,9 @@ def save_survey():
     # 4. JSON으로 성공 응답 전송 (JS가 이걸 받고 redirect를 수행함)
     return jsonify({"status": "success", "target_index": 0})
 
+from collections import Counter
+
+## 변경 부분 정규화 추가
 @survey_bp.route('/survey/result/<int:index>')
 def survey_result(index):
     if 'user_id' not in session:
@@ -164,40 +168,60 @@ def survey_result(index):
 
     selected_survey = surveys[index]
     
-    # 설문에서 얻은 카테고리 가중치 (예: ['traffic', 'green', 'safety'])
-    user_categories = selected_survey.get('category_log', [])
+    # 1. [핵심] 설문 가중치 정규화 계산
+    # 설문 전체 설계상의 카테고리 등장 횟수 (데이터 기반)
+    total_counts = {
+        'traffic': 6, 'convenience': 10, 'green': 7, 
+        'play': 6, 'health': 6, 'living': 13, 'safety': 10
+    }
     
-    # 1. 기본적인 필터링 쿼리 (예: 예산, 계약 방식 등 적용 가능)
+    user_log = selected_survey.get('category_log', [])
+    log_counts = Counter(user_log) # 사용자가 각 카테고리를 몇 번 선택했는지 카운트
+    
+    # 등장 빈도 대비 선택 확률로 정규화 후 비중 산출
+    raw_weights = {}
+    for cat, total in total_counts.items():
+        # (선택 횟수 / 등장 횟수) 계산
+        raw_weights[cat] = log_counts.get(cat, 0) / total
+    
+    sum_raw_weights = sum(raw_weights.values())
+    if sum_raw_weights == 0:
+        user_weights = {k: 1/7 for k in total_counts.keys()} # 선택 없을 시 균등
+    else:
+        user_weights = {k: v / sum_raw_weights for k, v in raw_weights.items()}
+
+    # 2. 필터링 쿼리
     query = {}
     if selected_survey.get('location'):
         query['address'] = {"$regex": selected_survey['location']}
     
-    # 2. 매물 가져오기
-    all_houses = list(houses_col.find(query).limit(20)) # 넉넉히 가져와서 점수 계산
+    # 3. 매물 점수 계산 (DB에 저장된 category_scores 활용)
+    all_houses = list(houses_col.find(query).limit(100)) # 변별력을 위해 100개 로드
     
     matched_properties = []
     for house in all_houses:
-        # --- [중요] 이미지 배열 처리 확인 ---
-        # DB에 images 필드가 없거나 비어있을 경우 빈 배열로 세팅
         if 'images' not in house or not house['images']:
             house['images'] = []
             
-        # --- 매칭 점수 계산 로직 (간단한 예시) ---
-        score = 70.0  # 기본 점수
-        # 매물 데이터에 있는 시설 카테고리와 유저 카테고리 비교
-        # 예: house['categories'] = ['traffic', 'convenience']
-        house_categories = house.get('categories', [])
-        match_count = len(set(user_categories) & set(house_categories))
-        score += (match_count * 10) # 겹치는 카테고리당 10점 추가
+        # --- [변경] 고도화된 점수 합산 로직 ---
+        # DB의 'category_scores' 필드와 'user_weights'를 가중합(Weighted Sum)
+        infra_scores = house.get('category_scores', {})
         
-        house['match_score'] = min(score, 99.9) # 최대 99.9점
+        # 가중합 계산: (카테고리 인프라 점수 * 설문 가중치)의 합
+        # 인프라 점수(0~1) * 가중치(비중)이므로 최종값도 0~1 사이
+        final_score_raw = sum(
+            infra_scores.get(cat, 0) * user_weights.get(cat, 0) 
+            for cat in total_counts.keys()
+        )
+        
+        # 100점 만점으로 변환하여 시각화
+        house['match_score'] = round(final_score_raw * 100, 1)
         house['_id_str'] = str(house['_id'])
         matched_properties.append(house)
 
-    # 3. 점수 높은 순 정렬 및 상위 10개 추출
+    # 4. 정렬 및 상위 10개 추출
     matched_properties = sorted(matched_properties, key=lambda x: x['match_score'], reverse=True)[:10]
 
-    # 4. 데이터 분리 (TOP 3와 나머지)
     top_3 = matched_properties[:3]
     others = matched_properties[3:]
 
