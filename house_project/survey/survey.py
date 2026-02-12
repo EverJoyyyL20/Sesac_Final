@@ -15,6 +15,8 @@ category_map = {
 
 @survey_bp.route('/survey')
 def survey_page():
+    if 'user_id' not in session:
+        return "<script>alert('로그인이 필요한 서비스입니다.'); window.location.href='/login';</script>"
     # (질문 데이터는 기존과 동일하게 유지됩니다)
     questions = [
         {"title": "현재 나의 라이프스타일과 가장 가까운 유형은?", "multiple": False, "options": [{"text": "갓생형 (운동과 자기계발, 규칙적인 생활)", "categories": ["health", "living"]}, {"text": "인싸형 (문화생활, 모임, 활동적인 생활)", "categories": ["play", "convenience"]}, {"text": "워라밸형 (휴식, 여유, 조용한 환경)", "categories": ["green", "living"]}, {"text": "효율형 (출퇴근 시간 및 이동 효율 중시)", "categories": ["traffic", "living"]}]},

@@ -187,11 +187,53 @@
     let map, markers = [], lastRequestId = 0, currentOpenIw = null;
 
     window.onload = function() {
-        map = new naver.maps.Map('map', { center: new naver.maps.LatLng(37.5665, 126.9780), zoom: 12, minZoom: 11 });
+        // 1. 지도 초기화 (기존 유지)
+        map = new naver.maps.Map('map', { 
+            center: new naver.maps.LatLng(37.5665, 126.9780), 
+            zoom: 12, 
+            minZoom: 11 
+        });
+
+        // 2. 이벤트 리스너 등록 (기존 유지)
         naver.maps.Event.addListener(map, 'idle', updateMarkers);
-        naver.maps.Event.addListener(map, 'click', () => { if(currentOpenIw){currentOpenIw.close(); currentOpenIw=null;} });
-        const targetId = new URLSearchParams(window.location.search).get('id');
-        if (targetId) moveToSpecificProperty(targetId);
+        naver.maps.Event.addListener(map, 'click', () => { 
+            if(currentOpenIw){currentOpenIw.close(); currentOpenIw=null;} 
+        });
+
+        // 3. [추가] 마이페이지로부터 넘어온 필터 파라미터 처리
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        // 거래 유형 (월세/전세)
+        if (urlParams.has('type')) {
+            const typeSelect = document.getElementById('filter-type');
+            if (typeSelect) {
+                typeSelect.value = urlParams.get('type');
+                // 월세인 경우 가격 입력창 활성화 등 이벤트 강제 실행
+                if (typeof handleTypeChange === "function") handleTypeChange();
+            }
+        }
+
+        // 보증금 최대값 설정
+        if (urlParams.has('max_deposit')) {
+            const maxDepInput = document.getElementById('max-deposit');
+            if (maxDepInput) maxDepInput.value = urlParams.get('max_deposit');
+        }
+
+        // 월세 최대값 설정
+        if (urlParams.has('max_price')) {
+            const maxPriceInput = document.getElementById('max-price');
+            if (maxPriceInput) maxPriceInput.value = urlParams.get('max_price');
+        }
+
+        // 4. 특정 매물 이동 혹은 필터 기반 마커 업데이트 (기존 유지 및 확장)
+        const targetId = urlParams.get('id');
+        if (targetId) {
+            // 특정 매물 ID가 있으면 해당 위치로 이동
+            moveToSpecificProperty(targetId);
+        } else {
+            // ID가 없더라도 필터값이 들어왔다면 마커를 즉시 새로고침
+            if (typeof updateMarkers === "function") updateMarkers();
+        }
     };
 
     // --- 추가 및 수정한 필터 제어 함수 시작 ---
