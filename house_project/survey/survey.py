@@ -130,6 +130,7 @@ def survey_result(index):
         filtered_houses = list(houses_col.find(relaxed_query).limit(100))
 
     # 4. [가중합 로직 적용] 필터링된 매물들에 대해서만 점수 매기기
+    # 4. [가중합 로직 적용] 필터링된 매물들에 대해서만 점수 매기기
     matched_properties = []
     for house in filtered_houses:
         # DB의 'category_scores' 필드 활용
@@ -145,7 +146,18 @@ def survey_result(index):
         house['match_score'] = round(final_score_raw * 100, 1)
         house['_id_str'] = str(house['_id'])
         
-        # 템플릿 호환성을 위해 price를 rent로도 저장
+        # --- [추가/수정] 가격 표시 로직 ---
+        # 템플릿에서 '1000/50' 형태로 쉽게 쓰도록 가공
+        if house.get('rent_type') == '월세':
+            # 보증금과 월세를 '보증금/월세' 형태로 합쳐서 저장
+            deposit = house.get('deposit', 0)
+            rent = house.get('price', 0)
+            house['price_display'] = f"{deposit}/{rent}"
+        else:
+            # 전세일 경우 보증금만 표시 (단위: 만원)
+            house['price_display'] = f"{house.get('deposit', 0)}"
+        
+        # 기존 호환성 유지
         house['rent'] = house.get('price', 0)
         
         if 'images' not in house or not house['images']:
