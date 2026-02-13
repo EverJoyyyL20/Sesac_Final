@@ -69,25 +69,36 @@
     transform: translateY(-2px);
 }
 
-/* 구글 버튼 */
 .google-btn {
     width: 100%;
-    padding: 14px;
-    background-color: white;
+    height: 52px;
+    border-radius: 10px;
     border: 1px solid #ddd;
-    border-radius: 12px;
+    background: white;
+    
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 12px;
-    font-size: 14px;
-    font-weight: 600;
-    color: #555;
+    gap: 10px;
+
+    font-size: 16px;
+    font-weight: 500;
     cursor: pointer;
-    transition: 0.2s;
+
+    /* 👇 추가 */
+    box-sizing: border-box;
+    padding: 0 16px;
 }
 
-.google-btn:hover { background-color: #f9f9f9; }
+.google-btn:hover {
+    background-color: #f9f9f9;
+}
+.google-btn img {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+}
+
 
 /* 5. 구분선 및 링크 */
 .divider {
