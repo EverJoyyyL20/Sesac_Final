@@ -18,10 +18,15 @@ def allowed_file(filename):
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 # -----------------------------------------------------------
-# 1. 팝업 및 세션 관리 API
+# 1. 팝업 및 세션 관리 API # DB 기억
 # -----------------------------------------------------------
 @mypage_bp.route('/disable_setup_popup', methods=['POST'])
 def disable_setup_popup():
+    user_email = session.get('user_id')
+    if user_email:
+        # DB에 이 유저는 팝업을 이미 확인했거나 설정을 건너뛰었다고 저장
+        users_col.update_one({'email': user_email}, {'$set': {'is_setup_done': True}})
+    
     session.pop('needs_setup', None) 
     return jsonify({"success": True})
 
@@ -156,7 +161,10 @@ def update_profile():
     session['nickname'] = new_nickname
 
     # 2. 팝업 방지 로직: 가입 후 첫 수정이라면 세션 삭제 (없어도 무방)
-    session.pop('needs_setup', None)
+    # 업데이트 데이터에 'is_setup_done' 필드 추가
+    update_data['is_setup_done'] = True
+    users_col.update_one({'email': session['user_id']}, {'$set': update_data})
+    session.pop('needs_setup', None) # 세션 제거
 
     # 3. 요청 방식에 따른 응답 분기
     # (팝업에서 온 요청이면 JSON, 일반 페이지면 스크립트 리턴)
