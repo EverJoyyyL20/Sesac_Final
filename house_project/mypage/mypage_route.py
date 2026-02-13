@@ -102,7 +102,8 @@ def mypage():
 
     return render_template('mypage.html', 
                             user_email=user['email'], 
-                            nickname=user.get('nickname', '닉네임 없음'), 
+                            nickname=user.get('nickname', '닉네임 없음'),
+                            introduction=user.get('introduction', ''), # 한줄 소개 데이터 넘겨줌
                             profile_img=user.get('Profile_IMG', 'default.png'),
                             surveys=surveys,
                             favorites=favorite_properties)
@@ -152,7 +153,9 @@ def update_profile():
         update_data['Profile_IMG'] = filename
     users_col.update_one({'email': session['user_id']}, {'$set': update_data})
     session['nickname'] = new_nickname
-    return "<script>alert('성공적으로 수정되었습니다.'); location.href='/mypage/mypage';</script>"
+    # url_for를 사용하여 'mypage' 블루프린트의 'mypage' 함수 주소를 동적으로 가져옴.
+    target_url = url_for('mypage.mypage') 
+    return f"<script>alert('성공적으로 수정되었습니다.'); location.href='{target_url}';</script>"
 
 # -----------------------------------------------------------
 # 4. 매물 찜하기 토글 (개수 제한 제거 버전)
