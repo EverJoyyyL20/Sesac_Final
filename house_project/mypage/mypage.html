@@ -7,72 +7,51 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/mypage.css') }}">
     <style>
-        /* 버튼 스타일링 */
-        .btn-withdraw { background-color: #ffeded; color: #ee7474; border: 1px solid #ee7474; border-radius: 8px; cursor: pointer; text-decoration: none; padding: 10px 20px; font-weight: 600; transition: 0.3s; }
-        .btn-withdraw:hover { background-color: #ee7474; color: white; }
-        
-        .btn-edit { background-color: #4facfe; color: white; border-radius: 8px; padding: 10px 20px; text-decoration: none; font-weight: 600; transition: 0.3s; }
-        .btn-edit:hover { background-color: #007bff; }
-
-        /* 추천 결과 바로보기 전용 버튼 */
-        .btn-result-direct {
-            display: inline-block;
-            margin-top: 10px;
-            background: #f0f7ff;
-            color: #4facfe;
-            padding: 12px;
-            border-radius: 12px;
-            text-decoration: none;
-            font-weight: 700;
-            text-align: center;
-            border: 1px solid #4facfe;
-            transition: 0.3s;
-        }
-        .btn-result-direct:hover { background: #4facfe; color: white; }
-
-        /* 찜한 매물 그리드 */
-        .property-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr); /* 2열 배치 */
-            gap: 12px;
+        /* 🚀 추천 스타일: 결과보기 버튼 */
+        .btn-result-link {
+            display: block;
             margin-top: 15px;
+            padding: 12px;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white !important;
+            text-align: center;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 14px;
+            text-decoration: none;
+            box-shadow: 0 4px 10px rgba(79, 172, 254, 0.3);
+            transition: all 0.3s ease;
         }
-        .property-card {
-            border: 1px solid #f0f0f0;
+
+        .btn-result-link:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(79, 172, 254, 0.4);
+            filter: brightness(1.05);
+        }
+
+        .survey-item-card {
+            border: 1px solid #eee;
             border-radius: 15px;
+            padding: 15px;
             background: #fff;
-            transition: 0.3s;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
+            transition: border-color 0.3s;
         }
-        .property-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.08); }
-        .property-img { width: 100%; height: 110px; object-fit: cover; background: #f9f9f9; }
-        .property-info { padding: 12px; }
-        .property-info h4 { margin: 0; font-size: 0.9rem; color: #222; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .property-info p { color: #ff4d4f; font-size: 0.85rem; margin: 5px 0; font-weight: 800; }
         
-        /* 스크롤 가능한 영역 (매물이 많을 때 대비) */
-        .scroll-area { max-height: 400px; overflow-y: auto; padding-right: 5px; }
-        .scroll-area::-webkit-scrollbar { width: 4px; }
-        .scroll-area::-webkit-scrollbar-thumb { background: #eee; border-radius: 10px; }
+        .survey-item-card:hover {
+            border-color: #4facfe;
+        }
     </style>
 </head>
 <body>
 
 <div class="navbar">
     <div class="nav-left">
-        <a href="{{ url_for('main.index') }}">🏠 Home</a>
-        <a href="{{ url_for('find_property.find_property') }}">🔍 매물찾기</a>
+        <a href="{{ url_for('main.index') }}">Home</a>
+        <a href="{{ url_for('find.find') }}">매물찾기</a>
     </div>
     <div class="nav-links">
-        {% if session.get('user_id') %}
-            <a href="{{ url_for('mypage.mypage') }}" style="color: #4facfe; font-weight: 800;">My Page</a>
-            <a href="{{ url_for('auth.logout') }}">Logout</a>
-        {% else %}
-            <a href="{{ url_for('auth.login') }}">Login</a>
-            <a href="{{ url_for('auth.register') }}">Register</a>
-        {% endif %}
+        <a href="{{ url_for('mypage.mypage') }}">My Page</a>
+        <a href="{{ url_for('auth.logout') }}">Logout</a>
     </div>
 </div>
 
@@ -86,7 +65,6 @@
         <div class="profile-right">
             <div class="info-row"><span class="info-label">이메일</span><span class="info-value">{{ user_email }}</span></div>
             <div class="info-row"><span class="info-label">닉네임</span><span class="info-value">{{ nickname if nickname else '설정된 닉네임이 없습니다.' }}</span></div>
-            <div class="info-row"><span class="info-label">소개</span><span class="info-value">{{ bio if bio else '소개글을 등록해 보세요.' }}</span></div>
             <div class="btn-group">
                 <a href="{{ url_for('mypage.edit_profile') }}" class="btn-edit">내 정보 수정</a>
                 <a href="{{ url_for('mypage.delete_confirm') }}" class="btn-withdraw">회원 탈퇴</a>
@@ -94,65 +72,130 @@
         </div>
     </div>
 
-    <div class="content-section" style="display: flex; gap: 20px; align-items: stretch; margin-top: 30px;">
+    <div class="content-section">
         
-        <div class="content-box" style="flex: 1; min-height: 450px; display: flex; flex-direction: column;">
-            <h3>📝 최근 설문 결과</h3>
-            <div style="flex: 1; margin-top: 15px;">
-                {% if survey %}
-                    <div class="survey-summary" style="line-height: 2; padding: 15px; background: #fbfbfb; border-radius: 15px;">
-                        <p>📍 <strong>희망 지역:</strong> {{ survey.location }}</p>
-                        <p>💰 <strong>계약 형태:</strong> {{ '월세' if survey.contract_type == 'monthly' else '전세' }}</p>
-                        <p>🏠 <strong>선호 건물:</strong> {{ survey.building_type|join(', ') }}</p>
-                        <p>✨ <strong>건물 연식:</strong> {{ survey.building_age|join(', ') }}</p>
-                    </div>
-                {% else %}
-                    <div style="height: 100%; display: flex; align-items: center; justify-content: center; text-align: center;">
-                        <p class="empty-text">아직 설문을 진행하지 않았습니다.<br><small style="color:#aaa;">AI 추천을 받으려면 설문을 시작하세요!</small></p>
-                    </div>
-                {% endif %}
+        <div class="content-box">
+            <div class="box-header">
+                <h3>📝 최근 설문 목록</h3>
+                <div class="header-right">
+                    <span class="count-badge">{{ surveys|length if surveys else 0 }}건</span>
+                    <a href="#" class="view-all" onclick="openModal('survey')">전체보기</a>
+                </div>
             </div>
             
-            <a href="{{ url_for('survey.survey_result', index=0) }}" class="btn-result-direct">🚀 맞춤 추천 결과 바로보기</a>
-            
-            <a href="{{ url_for('survey.survey_page') }}" style="text-align: center; margin-top: 15px; font-size: 0.85rem; color: #888; text-decoration: none;">
-                {% if survey %}다시 조사하기 →{% else %}설문 시작하기 →{% endif %}
-            </a>
-        </div>
+            <div class="slider-container">
+                {% if surveys %}
+                    <button class="nav-btn prev" onclick="moveSlide('survey', -1)">&#10094;</button>
+                    <div class="slider-wrapper" id="survey-slider">
+                        {% for s in surveys %}
+                        <div class="slide-item">
+                            <div class="survey-item-card">
+                                <div class="survey-card-header">
+                                    <span class="count-badge">{{ s.date }} 리포트</span>
+                                    <span style="color: #4facfe; font-size: 12px; font-weight: bold;">분석 완료</span>
+                                </div>
+                                
+                                <div class="survey-card-body" style="margin-top: 15px;">
+                                    <h4 style="margin: 0 0 6px 0; color: #333; font-size: 16px;">📍 {{ s.location }}</h4>
+                                    <p style="font-size: 13px; color: #4facfe; font-weight: 600; margin: 4px 0;">
+                                        {{ s.main_info }}
+                                    </p>
+                                    
+                                    <p style="font-size: 14px; color: #555; margin: 8px 0; font-weight: 500;">
+                                        💰 {{ s.budget }}
+                                    </p>
+                                    
+                                    <div class="survey-tags" style="margin-top: 12px; display: flex; flex-wrap: wrap; gap: 6px;">
+                                        {% for tag in s.tags %}
+                                            <span style="font-size: 11px; background: #f8f9fa; color: #888; padding: 3px 10px; border-radius: 20px; border: 1px solid #eee;">
+                                                # {{ tag }}
+                                            </span>
+                                        {% endfor %}
+                                    </div>
 
-        <div class="content-box" style="flex: 1; min-height: 450px; display: flex; flex-direction: column;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <h3>❤️ 내가 찜한 매물</h3>
-                <span style="background: #fff0f0; color: #ff4d4f; padding: 4px 10px; border-radius: 10px; font-size: 0.8rem; font-weight: bold;">{{ favorites|length }}개</span>
-            </div>
-            
-            <div class="scroll-area" style="flex: 1; margin-top: 15px;">
-                {% if favorites %}
-                    <div class="property-grid">
-                        {% for property in favorites %}
-                        <div class="property-card">
-                            <img src="{{ property.img if property.img else url_for('static', filename='images/no-image.png') }}" class="property-img">
-                            <div class="property-info">
-                                <h4>{{ property.title if property.title else '서울시 매물' }}</h4>
-                                <p>{{ property.price }}</p>
-                                <a href="{{ url_for('find_property.find_property', id=property.id) }}" style="text-decoration: none; color: #4facfe; font-size: 0.75rem; font-weight: bold;">상세보기 →</a>
+                                    <a href="/survey/result/{{ loop.index0 }}" class="btn-result-link">
+                                        리포트 결과 보기
+                                    </a>
+                                </div>
                             </div>
                         </div>
                         {% endfor %}
                     </div>
+                    <button class="nav-btn next" onclick="moveSlide('survey', 1)">&#10095;</button>
                 {% else %}
-                    <div style="height: 100%; display: flex; align-items: center; justify-content: center;">
-                        <p class="empty-text">찜한 매물이 없습니다.</p>
+                    <div class="empty-box">
+                        <p>진행한 설문이 없습니다.</p>
+                        <a href="{{ url_for('survey.survey_page') }}" class="btn-sm">설문 시작하기</a>
                     </div>
                 {% endif %}
             </div>
-            
-            <a href="{{ url_for('find_property.find_property') }}" style="text-align: center; margin-top: 15px; font-size: 0.85rem; color: #4facfe; font-weight: bold; text-decoration: none;">
-                매물 더 찾아보기 →
-            </a>
         </div>
+
+        <div class="content-box">
+            <div class="box-header">
+                <h3>❤️ 내가 찜한 매물</h3>
+                <div class="header-right">
+                    <span class="count-badge red">{{ favorites|length if favorites else 0 }}개</span>
+                    <a href="#" class="view-all" onclick="openModal('property')">전체보기</a>
+                </div>
+            </div>
+            
+            <div class="slider-container">
+                {% if favorites %}
+                    <button class="nav-btn prev" onclick="moveSlide('property', -1)">&#10094;</button>
+                    <div class="slider-wrapper" id="property-slider">
+                        {% for fav in favorites %}
+                        <div class="slide-item">
+                            <div class="property-card-mini" onclick="location.href='/find?id={{ fav._id_str or fav.id }}'">
+                                <img src="{{ fav.images[0] if fav.images else url_for('static', filename='img/default_room.jpg') }}" class="prop-img-sm">
+                                <div class="prop-info-sm">
+                                    <p class="p-price">{{ fav.price }}</p>
+                                    <p class="p-addr">{{ fav.address }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <button class="nav-btn next" onclick="moveSlide('property', 1)">&#10095;</button>
+                {% else %}
+                    <div class="empty-box">
+                        <p>찜한 매물이 없습니다.</p>
+                        <a href="{{ url_for('find.find') }}" class="btn-sm">매물 보러가기</a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
     </div>
 </div>
+
+<script>
+    let slideIndices = {
+        survey: 0,
+        property: 0
+    };
+
+    function moveSlide(type, direction) {
+        const wrapper = document.getElementById(`${type}-slider`);
+        const items = wrapper.getElementsByClassName('slide-item');
+        const totalItems = items.length;
+        
+        const perPage = (type === 'survey') ? 1 : 2;
+        const maxIndex = Math.ceil(totalItems / perPage) - 1;
+
+        slideIndices[type] += direction;
+
+        if (slideIndices[type] < 0) slideIndices[type] = 0;
+        if (slideIndices[type] > maxIndex) slideIndices[type] = maxIndex;
+
+        const offset = slideIndices[type] * 100;
+        wrapper.style.transform = `translateX(-${offset}%)`;
+    }
+
+    function openModal(type) {
+        alert(type === 'survey' ? '전체 설문 목록 창을 엽니다.' : '전체 찜 목록 창을 엽니다.');
+    }
+</script>
 
 </body>
 </html>

@@ -40,7 +40,7 @@
                 <span class="match-badge">매칭점수 {{ item.match_score | round(2) }}</span>
                 <h1 style="font-size: 2rem; margin: 15px 0 5px;">{{ item.rent_type }} {{ item.price or item.deposit }}</h1>
                 <p style="opacity: 0.8;">📍 {{ item.address }}</p>
-                <button onclick="location.href='/find_property?id={{item._id}}'" 
+                <button onclick="location.href='/find?id={{item._id}}'" 
                         style="margin-top:20px; padding:10px 20px; border-radius:10px; border:none; background:white; font-weight:bold;">
                     지도에서 위치 확인
                 </button>

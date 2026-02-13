@@ -1,9 +1,9 @@
 import os
 from flask import Blueprint, render_template, current_app, request, jsonify, session
 from datetime import datetime
-from database import houses_col, db 
+from database import houses_col, db, users_col
 
-find_property_bp = Blueprint('find_property', __name__, template_folder='.')
+find_bp = Blueprint('find', __name__, template_folder='.')
 
 # 서울 각 구별 중심 좌표 (클러스터링 대용)
 GU_COORDS = {
@@ -22,18 +22,18 @@ GU_COORDS = {
     "중랑구": {"lat": 37.60380556, "lng": 127.0947778}
 }
 
-@find_property_bp.route('/find_property')
-def find_property():
+@find_bp.route('/find')
+def find():
     client_id = current_app.config.get('NAVER_CLIENT_ID')
     return render_template('find_property.html', client_id=client_id)
 
-@find_property_bp.route('/api/stats/gu')
+@find_bp.route('/api/stats/gu')
 def get_gu_stats():
     result = [{"_id": k, "lat": v['lat'], "lng": v['lng']} for k, v in GU_COORDS.items()]
     return jsonify(result)
 
 # find_property.py 내의 get_property_by_id 부분 수정
-@find_property_bp.route('/api/property/<prop_id>')
+@find_bp.route('/api/property/<prop_id>')
 def get_property_by_id(prop_id):
     try:
         search_query = [{'_id': prop_id}]
@@ -70,8 +70,12 @@ def get_property_by_id(prop_id):
                 "deposit": item.get('deposit'),
                 "rent_type": item.get('rent_type', item.get('type')),
                 "address": item.get('address'),
-                "floor": floor_display, # 가공된 텍스트 전달
+                "floor": floor_display,
                 "location": item.get('location'),
+                
+                # ✅ [확인] 리스트가 아니면 빈 리스트로 처리하는 안전장치
+                "images": item.get('images') if isinstance(item.get('images'), list) else [],
+                
                 "is_favorite": is_fav
             }
             return jsonify(processed)
@@ -79,41 +83,114 @@ def get_property_by_id(prop_id):
     except:
         return jsonify({"error": "에러"}), 500
 
-@find_property_bp.route('/api/favorite', methods=['POST'])
+@find_bp.route('/api/favorite', methods=['POST'])
 def add_favorite():
     if 'user_id' not in session:
         return jsonify({"status": "error", "message": "로그인이 필요합니다."}), 401
     
     data = request.get_json()
-    user_id = session['user_id']
+    user_email = session['user_id'] # 세션에 저장된 이메일 또는 ID
     prop_id = str(data.get('property_id'))
     
-    exists = db.favorites.find_one({"user_id": user_id, "property_id": prop_id})
-    if exists:
-        db.favorites.delete_one({"_id": exists['_id']})
+    # 1. 해당 유저 정보 가져오기
+    user = users_col.find_one({'email': user_email})
+    if not user:
+        return jsonify({"status": "error", "message": "사용자를 찾을 수 없습니다."}), 404
+
+    # 2. 이미 찜 목록에 있는지 확인 (ID 기준)
+    favorites = user.get('favorites', [])
+    is_exists = any(f.get('id') == prop_id for f in favorites)
+
+    if is_exists:
+        # 3. 이미 있다면 제거 ($pull 사용)
+        users_col.update_one(
+            {'email': user_email},
+            {'$pull': {'favorites': {'id': prop_id}}}
+        )
         return jsonify({"status": "success", "message": "찜 목록에서 삭제되었습니다.", "action": "removed"})
     
-    db.favorites.insert_one({
-        "user_id": user_id,
-        "property_id": prop_id,
-        "address": data.get('address'),
-        "price_info": data.get('price_info'),
-        "created_at": datetime.now()
-    })
-    return jsonify({"status": "success", "message": "찜 목록에 추가되었습니다!", "action": "added"})
+    else:
+        # 4. 없다면 추가 ($push 사용)
+        # 마이페이지에서 바로 보여주기 위해 필요한 정보들을 객체로 저장
+        new_favorite = {
+            "id": prop_id,
+            "address": data.get('address'),
+            "price": data.get('price_info'),  # 예: "월세 50/500"
+            "rent_type": data.get('rent_type'),
+            "images": data.get('images', []), # 이미지 배열 포함
+            "created_at": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        }
+        
+        # 최대 10개 제한 (선택 사항)
+        if len(favorites) >= 10:
+            return jsonify({"status": "error", "message": "찜은 최대 10개까지만 가능합니다."}), 400
 
-@find_property_bp.route('/api/properties')
+        users_col.update_one(
+            {'email': user_email},
+            {'$push': {'favorites': new_favorite}}
+        )
+        return jsonify({"status": "success", "message": "찜 목록에 추가되었습니다!", "action": "added"})
+
+@find_bp.route('/api/properties')
 def get_properties():
+    # 1. 위치 파라미터 추출
     sw_lat = request.args.get('sw_lat', type=float)
     sw_lng = request.args.get('sw_lng', type=float)
     ne_lat = request.args.get('ne_lat', type=float)
     ne_lng = request.args.get('ne_lng', type=float)
 
-    if not all([sw_lat, sw_lng, ne_lat, ne_lng]): return jsonify([])
+    if not all([sw_lat, sw_lng, ne_lat, ne_lng]): 
+        return jsonify([])
 
-    query = {"location": {"$geoWithin": {"$box": [[sw_lng, sw_lat], [ne_lng, ne_lat]]}}}
-    try:
-        items = list(houses_col.find(query).limit(300))
-        return jsonify([{**item, "_id": str(item['_id'])} for item in items])
-    except:
-        return jsonify([]), 500
+    # 2. 기본 쿼리 생성 (위치 기반)
+    query = {
+        "location": {
+            "$geoWithin": {
+                "$box": [[sw_lng, sw_lat], [ne_lng, ne_lat]]
+            }
+        }
+    }
+
+    # 3. 거래 유형 필터 (DB에 "월세", "전세"로 저장된 경우)
+    rent_type = request.args.get('type')
+    if rent_type:
+        query["rent_type"] = rent_type
+
+    # 4. 금액 필터 (보증금/월세)
+    min_dep = request.args.get('min_deposit', type=int)
+    max_dep = request.args.get('max_deposit', type=int)
+    if min_dep is not None or max_dep is not None:
+        query["deposit"] = {}
+        if min_dep is not None: query["deposit"]["$gte"] = min_dep
+        if max_dep is not None: query["deposit"]["$lte"] = max_dep
+
+    min_pri = request.args.get('min_price', type=int)
+    max_pri = request.args.get('max_price', type=int)
+    if min_pri is not None or max_pri is not None:
+        query["price"] = {}
+        if min_pri is not None: query["price"]["$gte"] = min_pri
+        if max_pri is not None: query["price"]["$lte"] = max_pri
+
+    # 5. 면적 및 기타 필터
+    min_size = request.args.get('min_size', type=float)
+    max_size = request.args.get('max_size', type=float)
+    if min_size or max_size:
+        query["size_m2"] = {}
+        if min_size: query["size_m2"]["$gte"] = min_size
+        if max_size: query["size_m2"]["$lte"] = max_size
+
+    parking = request.args.get('parking')
+    if parking:
+        query["hasParking"] = parking
+
+    b_use = request.args.get('building_use')
+    if b_use:
+        query["buildingUse"] = b_use
+
+    # 6. 반지하 제외 로직
+    if request.args.get('exclude_under') == "true":
+        query["floor"] = {"$not": {"$regex": "반지하"}}
+
+    # 7. 데이터 조회 및 결과 반환
+    items = list(houses_col.find(query).limit(300))
+    return jsonify([{**item, "_id": str(item['_id'])} for item in items])

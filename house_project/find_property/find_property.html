@@ -2,15 +2,89 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
+    <meta name="referrer" content="no-referrer">
     <title>서울 부동산 매물 탐색</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/find_property.css') }}">
     <script type="text/javascript" src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId={{ client_id }}"></script>
     <style>
-        /* 층수 강조용 스타일 추가 */
-        .floor-tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.9em; background: #f0f4f8; color: #334e68; }
-        .floor-danger { background: #fff5f5; color: #e03131; font-weight: bold; border: 1px solid #ffa8a8; }
-        .floor-warn { background: #fff9db; color: #f08c00; font-weight: bold; border: 1px solid #ffe066; }
+.image-slider-wrapper {
+    position: relative;
+    width: 100%;
+    margin-bottom: 15px;
+}
+.modal-img-container {
+    display: flex;
+    gap: 10px;
+    padding-bottom: 5px;
+    /* 스크롤은 되지만 스크롤바는 숨김 */
+    overflow-x: scroll;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none;  /* IE/Edge */
+    /* 부드러운 스크롤 및 스냅 효과 */
+    scroll-behavior: smooth;
+    scroll-snap-type: x mandatory;
+}
+.modal-img-container::-webkit-scrollbar {
+    display: none;
+}
+    .modal-img-container::-webkit-scrollbar {
+        display: none; /* Chrome, Safari, Opera */
+    }
+.prop-img {
+    /* 이미지 너비를 고정해야 스크롤 계산이 정확합니다 */
+    width: 280px;
+    height: 200px;
+    object-fit: cover;
+    border-radius: 8px;
+    flex-shrink: 0;
+    /* 스크롤 시 이미지가 가운데 정렬되도록 스냅 */
+    scroll-snap-align: center;
+    background-color: #f0f0f0;
+}
+.slider-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: rgba(0, 0, 0, 0.5); /* 반투명 검은색 배경 */
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+    cursor: pointer;
+    z-index: 10; /* 이미지 위에 떠있어야 함 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.3s;
+}
+
+.slider-btn:hover {
+    background-color: rgba(0, 0, 0, 0.8);
+}
+
+/* 왼쪽 버튼 위치 */
+.prev-btn {
+    left: 10px;
+}
+/* 오른쪽 버튼 위치 */
+.next-btn {
+    right: 10px;
+}
+    .no-img-placeholder {
+        width: 100%;
+        height: 150px;
+        background-color: #eee;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        color: #888;
+        font-size: 0.9em;
+        margin-bottom: 15px;
+    }
     </style>
 </head>
 <body>
@@ -18,7 +92,7 @@
 <div class="navbar">
     <div class="nav-left">
         <a href="{{ url_for('main.index') }}">Home</a>
-        <a href="{{ url_for('find_property.find_property') }}">매물찾기</a>
+        <a href="{{ url_for('find.find') }}">매물찾기</a>
     </div>
     <div class="nav-links">
         {% if session.get('user_id') %}
@@ -33,6 +107,70 @@
 
 <div id="map-container">
     <div class="status-header"><span id="status-text">매물을 불러오는 중...</span></div>
+
+    <div class="search-box">
+    <button id="toggle-btn" onclick="toggleFilter()"><</button>
+    
+    <div class="search-header">
+        <strong>🔍 매물 상세 필터</strong>
+        </div>
+    
+    <div id="filter-content">
+        <div class="f-section">
+            <label>거래/건물 용도</label>
+            <div class="f-row">
+                <select id="filter-type" onchange="handleTypeChange()">
+                    <option value="">전체 거래</option>
+                    <option value="월세">월세</option>
+                    <option value="전세">전세</option>
+                </select>
+                <select id="filter-use" onchange="updateMarkers()">
+                    <option value="">전체 용도</option>
+                    <option value="원룸">원룸</option>
+                    <option value="투룸">투룸</option>
+                    <option value="오피스텔">오피스텔</option>
+                </select>
+                </div>
+            </div>
+
+            <div class="f-section">
+                <label>보증금 (만원)</label>
+                <div class="f-row">
+                    <input type="number" id="min-deposit" placeholder="최소" min="0" oninput="validateNonNegative(this); updateMarkers()">
+                    <span>~</span>
+                    <input type="number" id="max-deposit" placeholder="최대" min="0" oninput="validateNonNegative(this); updateMarkers()">
+                </div>
+            </div>
+
+            <div class="f-section" id="monthly-price-section">
+                <label>월세 (만원)</label>
+                <div class="f-row">
+                    <input type="number" id="min-price" placeholder="최소" min="0" oninput="validateNonNegative(this); updateMarkers()">
+                    <span>~</span>
+                    <input type="number" id="max-price" placeholder="최대" min="0" oninput="validateNonNegative(this); updateMarkers()">
+                </div>
+            </div>
+
+            
+
+            <div class="f-section">
+                <label>면적 (㎡)</label>
+                <div class="f-row">
+                    <input type="number" id="min-size" placeholder="최소" min="0" oninput="validateNonNegative(this); updateMarkers()">
+                    <span>~</span>
+                    <input type="number" id="max-size" placeholder="최대" min="0" oninput="validateNonNegative(this); updateMarkers()">
+                </div>
+            </div>
+
+            <div class="f-section">
+                <div class="f-check-row">
+                    <label><input type="checkbox" id="filter-parking" onchange="updateMarkers()"> 주차 가능만</label>
+                    <label><input type="checkbox" id="exclude-under" onchange="updateMarkers()"> 반지하 제외</label>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="map"></div>
 </div>
 
@@ -42,7 +180,7 @@
         <div id="modal-body"></div>
         <div style="margin-top:25px; display:flex; gap:12px;">
             <button id="favoriteBtn" class="fav-btn" onclick="handleFavorite()" style="flex:1; padding:14px; background:#fff; border:1px solid #ddd; border-radius:12px; cursor:pointer; font-weight:bold;">❤️ 찜하기</button>
-            <button id="closeModalBtn" style="flex:1; padding:14px; background:#eee; border:none; border-radius:12px; cursor:pointer;">닫기</button>
+            <button id="closeModalBtn" onclick="closeModal()" style="flex:1; padding:14px; background:#eee; border:none; border-radius:12px; cursor:pointer;">닫기</button>
         </div>
     </div>
 </div>
@@ -51,41 +189,146 @@
     let map, markers = [], lastRequestId = 0, currentOpenIw = null;
 
     window.onload = function() {
-        map = new naver.maps.Map('map', { center: new naver.maps.LatLng(37.5665, 126.9780), zoom: 12, minZoom: 11 });
-        
+        // 1. 지도 초기화 (기존 유지)
+        map = new naver.maps.Map('map', { 
+            center: new naver.maps.LatLng(37.5665, 126.9780), 
+            zoom: 12, 
+            minZoom: 11 
+        });
+
+        // 2. 이벤트 리스너 등록 (기존 유지)
         naver.maps.Event.addListener(map, 'idle', updateMarkers);
-        naver.maps.Event.addListener(map, 'click', () => { if(currentOpenIw){currentOpenIw.close(); currentOpenIw=null;} });
+        naver.maps.Event.addListener(map, 'click', () => { 
+            if(currentOpenIw){currentOpenIw.close(); currentOpenIw=null;} 
+        });
+
+        // 3. [추가] 마이페이지로부터 넘어온 필터 파라미터 처리
+        const urlParams = new URLSearchParams(window.location.search);
         
-        // ?id= 파라미터가 있을 경우 매물로 이동
-        const targetId = new URLSearchParams(window.location.search).get('id');
-        if (targetId) moveToSpecificProperty(targetId);
+        // 거래 유형 (월세/전세)
+        if (urlParams.has('type')) {
+            const typeSelect = document.getElementById('filter-type');
+            if (typeSelect) {
+                typeSelect.value = urlParams.get('type');
+                // 월세인 경우 가격 입력창 활성화 등 이벤트 강제 실행
+                if (typeof handleTypeChange === "function") handleTypeChange();
+            }
+        }
+
+        // 보증금 최대값 설정
+        if (urlParams.has('max_deposit')) {
+            const maxDepInput = document.getElementById('max-deposit');
+            if (maxDepInput) maxDepInput.value = urlParams.get('max_deposit');
+        }
+
+        // 월세 최대값 설정
+        if (urlParams.has('max_price')) {
+            const maxPriceInput = document.getElementById('max-price');
+            if (maxPriceInput) maxPriceInput.value = urlParams.get('max_price');
+        }
+
+        // 4. 특정 매물 이동 혹은 필터 기반 마커 업데이트 (기존 유지 및 확장)
+        const targetId = urlParams.get('id');
+        if (targetId) {
+            // 특정 매물 ID가 있으면 해당 위치로 이동
+            moveToSpecificProperty(targetId);
+        } else {
+            // ID가 없더라도 필터값이 들어왔다면 마커를 즉시 새로고침
+            if (typeof updateMarkers === "function") updateMarkers();
+        }
     };
 
-    function moveToSpecificProperty(id) {
-        fetch(`/api/property/${id}`).then(res => res.json()).then(prop => {
-            if (prop && prop.location) {
-                const pos = new naver.maps.LatLng(prop.location.coordinates[1], prop.location.coordinates[0]);
-                map.setCenter(pos);
-                map.setZoom(17);
-                setTimeout(() => openDetail(id), 500);
-            }
-        });
+    // --- 추가 및 수정한 필터 제어 함수 시작 ---
+    
+
+    function scrollSlider(direction) {
+    const container = document.getElementById('modalImgContainer');
+    if (!container) return;
+
+    // 한 번에 스크롤할 양 (이미지 너비 280px + 간격 10px = 290px)
+    const scrollAmount = 290; 
+    
+    // 현재 스크롤 위치에서 계산된 양만큼 이동
+    container.scrollBy({
+        left: direction * scrollAmount,
+        behavior: 'smooth' // 부드럽게 이동
+    });
+}
+    function validateNonNegative(input) {
+        if (input.value < 0) {
+            input.value = 0; // 음수 입력 시 0으로 고정
+        }
     }
+
+    function handleTypeChange() {
+        const type = document.getElementById('filter-type').value;
+        const monthlySection = document.getElementById('monthly-price-section');
+        
+        if (type === "전세") {
+            monthlySection.style.display = "none";
+            document.getElementById('min-price').value = ""; // 값 초기화
+            document.getElementById('max-price').value = "";
+        } else {
+            monthlySection.style.display = "block";
+        }
+        updateMarkers(); // 변경사항 반영하여 마커 새로고침
+    }
+
+    // --- 추가 및 수정한 필터 제어 함수 끝 ---
+
+function toggleFilter() {
+    const searchBox = document.querySelector('.search-box');
+    const btn = document.getElementById('toggle-btn');
+    
+    // closed 클래스 토글 (CSS의 transform 실행)
+    searchBox.classList.toggle('closed');
+    
+    // 버튼 모양 변경
+    if (searchBox.classList.contains('closed')) {
+        btn.innerText = ">";  // 닫혔을 때는 나오게 하는 버튼
+    } else {
+        btn.innerText = "<";  // 열렸을 때는 들어가는 버튼
+    }
+}
 
     function updateMarkers() {
         const zoom = map.getZoom();
         const bounds = map.getBounds();
         const requestId = ++lastRequestId;
+
+        const type = document.getElementById('filter-type').value;
+        const bUse = document.getElementById('filter-use').value;
+        const minDep = document.getElementById('min-deposit').value;
+        const maxDep = document.getElementById('max-deposit').value;
+        const minPri = document.getElementById('min-price').value;
+        const maxPri = document.getElementById('max-price').value;
+        const minSize = document.getElementById('min-size').value;
+        const maxSize = document.getElementById('max-size').value;
+        const parking = document.getElementById('filter-parking').checked ? "주차 가능" : "";
+        const excludeUnder = document.getElementById('exclude-under').checked ? "true" : "false";
+
         let apiUrl = zoom < 14 ? '/api/stats/gu' : `/api/properties?sw_lat=${bounds.getSW().lat()}&sw_lng=${bounds.getSW().lng()}&ne_lat=${bounds.getNE().lat()}&ne_lng=${bounds.getNE().lng()}`;
+
+        if (zoom >= 14) {
+            apiUrl += `&type=${type}&building_use=${bUse}&min_deposit=${minDep}&max_deposit=${maxDep}`;
+            apiUrl += `&min_price=${minPri}&max_price=${maxPri}&min_size=${minSize}&max_size=${maxSize}`;
+            apiUrl += `&parking=${parking}&exclude_under=${excludeUnder}`;
+        }
 
         fetch(apiUrl).then(res => res.json()).then(data => {
             if (requestId !== lastRequestId) return;
             markers.forEach(m => m.setMap(null));
             markers = [];
 
-            if (zoom < 14) { renderGu(data); } 
-            else { renderProperties(data); }
-            document.getElementById('status-text').innerText = "📍 주변 매물을 확인해보세요";
+            if (zoom < 14) { 
+                renderGu(data); 
+                document.getElementById('status-text').innerText = "서울 지역별 매물 현황";
+            } 
+            else { 
+                renderProperties(data); 
+                const count = data.length;
+                document.getElementById('status-text').innerText = count > 0 ? `📍 주변 매물 ${count}건` : "😥 조건에 맞는 매물이 없어요";
+            }
         });
     }
 
@@ -112,7 +355,7 @@
         Object.entries(groups).forEach(([key, items]) => {
             const first = items[0];
             const markerPos = new naver.maps.LatLng(first.location.coordinates[1], first.location.coordinates[0]);
-            const priceLabel = first.rent_type === '월세' ? `${first.price}/${first.deposit}` : (first.price || first.deposit);
+            const priceLabel = first.rent_type === '월세' ? `${first.deposit}/${first.price}` : (first.deposit || first.price);
 
             const marker = new naver.maps.Marker({
                 position: markerPos,
@@ -135,25 +378,63 @@
         });
     }
 
-    function openDetail(id) {
-        fetch(`/api/property/${id}`).then(res => res.json()).then(prop => {
+function openDetail(id) {
+    fetch(`/api/property/${id}`)
+        .then(res => res.json())
+        .then(prop => {
             window.currentSelectedProp = prop;
+            
             const favBtn = document.getElementById('favoriteBtn');
             favBtn.innerText = prop.is_favorite ? '💔 찜 취소' : '❤️ 찜하기';
             
-            // 층수 강조 로직
             let floorClass = "floor-tag";
             if(prop.floor.includes("반지하")) floorClass += " floor-danger";
             else if(prop.floor.includes("옥탑")) floorClass += " floor-warn";
 
+            let imgHtml = '';
+            if (Array.isArray(prop.images) && prop.images.length > 0) {
+                // 1. 전체를 감싸는 래퍼 시작
+                imgHtml += `<div class="image-slider-wrapper">`;
+                
+                // 2. 이미지가 2개 이상일 때만 '이전' 버튼 추가
+                if (prop.images.length > 1) {
+                    imgHtml += `<button class="slider-btn prev-btn" onclick="scrollSlider(-1)">&#10094;</button>`;
+                }
+                
+                // 3. 이미지 컨테이너 (ID 'modalImgContainer' 추가됨)
+                imgHtml += `<div class="modal-img-container" id="modalImgContainer">`;
+                prop.images.forEach(url => {
+                    if (url && url.trim() !== "") {
+                        // ?w=800 추가 로직 유지
+                        let finalUrl = url.includes('?') ? url + '&w=800' : url + '?w=800';
+                        imgHtml += `<img src="${finalUrl}" class="prop-img" referrerpolicy="no-referrer" onerror="this.src='https://via.placeholder.com/280x200?text=No+Image'">`;
+                    }
+                });
+                imgHtml += `</div>`; // 컨테이너 닫기
+
+                // 4. 이미지가 2개 이상일 때만 '다음' 버튼 추가
+                if (prop.images.length > 1) {
+                    imgHtml += `<button class="slider-btn next-btn" onclick="scrollSlider(1)">&#10095;</button>`;
+                }
+
+                imgHtml += `</div>`; // 래퍼 닫기
+            } else {
+                imgHtml = `<div class="no-img-placeholder">이미지가 없는 매물입니다.</div>`;
+            }
+            // ✅ [핵심 수정 부분 끝]
+
+
+            // 모달 내용 주입 (기존과 동일)
             document.getElementById('modal-body').innerHTML = `
+                ${imgHtml}
                 <div class="detail-row"><span>📍 주소</span><b>${prop.address}</b></div>
-                <div class="detail-row"><span>💰 가격</span><b style="font-size:1.1em;">${formatPrice(prop)}</b></div>
+                <div class="detail-row"><span>💰 가격</span><b style="color:#2ecc71; font-size:1.1em;">${formatPrice(prop)}</b></div>
                 <div class="detail-row"><span>🏢 층수</span><span class="${floorClass}">${prop.floor}</span></div>
             `;
             document.getElementById('propertyModal').style.display = 'block';
-        });
-    }
+        })
+        .catch(err => { /* 에러 처리 */ });
+}
 
     function handleFavorite() {
         const prop = window.currentSelectedProp;
@@ -170,11 +451,23 @@
     }
 
     function formatPrice(item) {
-        if (item.rent_type === '월세') return `월세 ${item.price}/${item.deposit}`;
+        if (item.rent_type === '월세') return `월세 ${item.deposit}/${item.price}`;
         return `${item.rent_type} ${item.deposit || item.price}`;
     }
 
-    document.getElementById('closeModalBtn').onclick = () => document.getElementById('propertyModal').style.display = 'none';
+    function closeModal() { document.getElementById('propertyModal').style.display = 'none'; }
+    function moveToSpecificProperty(id) {
+        fetch(`/api/property/${id}`).then(res => res.json()).then(prop => {
+            if (prop && prop.location) {
+                const pos = new naver.maps.LatLng(prop.location.coordinates[1], prop.location.coordinates[0]);
+                map.setCenter(pos);
+                map.setZoom(17);
+                setTimeout(() => openDetail(id), 500);
+            }
+        });
+    }
+
+    document.getElementById('closeModalBtn').onclick = closeModal;
 </script>
 </body>
 </html>

@@ -1,44 +1,74 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>맞춤 추천 결과</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/result.css') }}">
-    </head>
+</head>
 <body>
+
+<div class="navbar">
+    <div class="nav-left">
+        <a href="{{ url_for('main.index') }}">Home</a>
+        <a href="{{ url_for('find.find') }}">매물찾기</a>
+    </div>
+    <div class="nav-links">
+        {% if session.get('user_id') %}
+            <a href="{{ url_for('mypage.mypage') }}">My Page</a>
+            <a href="{{ url_for('auth.logout') }}">Logout</a>
+        {% else %}
+            <a href="{{ url_for('auth.login') }}">Login</a>
+            <a href="{{ url_for('auth.register') }}">Register</a>
+        {% endif %}
+    </div>
+</div>
 
 <section class="top-three-area">
     <div class="section-title">🏆 맞춤 추천 TOP 3</div>
     <div class="podium-grid">
         {% if top_3|length >= 3 %}
-            <div class="top-card rank-2" onclick="location.href='/find_property?id={{ top_3[1]._id }}'">
+            {# --- 2위 카드 --- #}
+            <div class="top-card rank-2" onclick="location.href='/find?id={{ top_3[1]._id }}'">
                 <div class="rank-badge">2위</div>
-                <img src="{{ top_3[1].image_url or url_for('static', filename='img/default_room.jpg') }}">
+                <div class="img-wrapper">
+                    <img src="{{ top_3[1].images[0] if top_3[1].images else url_for('static', filename='img/default_room.jpg') }}" alt="매물 이미지">
+                </div>
                 <div class="card-content">
                     <div class="match-rate">{{ top_3[1].match_score | round(1) }}점</div>
-                    <span class="price">{{ top_3[1].rent_type }} {{ top_3[1].price or top_3[1].deposit }}</span>
+                    <span class="price">{{ top_3[1].rent_type }} {{ top_3[1].price_display }}</span>
                     <span class="addr">{{ top_3[1].address }}</span>
                 </div>
             </div>
 
-            <div class="top-card rank-1" onclick="location.href='/find_property?id={{ top_3[0]._id }}'">
+            {# --- 1위 카드 --- #}
+            <div class="top-card rank-1" onclick="location.href='/find?id={{ top_3[0]._id }}'">
                 <div class="rank-badge gold">1위</div>
-                <img src="{{ top_3[0].image_url or url_for('static', filename='img/default_room.jpg') }}">
+                <div class="img-wrapper">
+                    <img src="{{ top_3[0].images[0] if top_3[0].images else url_for('static', filename='img/default_room.jpg') }}" alt="대표 이미지">
+                </div>
                 <div class="card-content">
                     <div class="match-rate main">{{ top_3[0].match_score | round(1) }}점</div>
-                    <span class="price big">{{ top_3[0].rent_type }} {{ top_3[0].price or top_3[0].deposit }}</span>
+                    <span class="price big">{{ top_3[0].rent_type }} {{ top_3[0].price_display }}</span>
                     <span class="addr">{{ top_3[0].address }}</span>
                 </div>
             </div>
 
-            <div class="top-card rank-3" onclick="location.href='/find_property?id={{ top_3[2]._id }}'">
+            {# --- 3위 카드 --- #}
+            <div class="top-card rank-3" onclick="location.href='/find?id={{ top_3[2]._id }}'">
                 <div class="rank-badge">3위</div>
-                <img src="{{ top_3[2].image_url or url_for('static', filename='img/default_room.jpg') }}">
+                <div class="img-wrapper">
+                    <img src="{{ top_3[2].images[0] if top_3[2].images else url_for('static', filename='img/default_room.jpg') }}" alt="매물 이미지">
+                </div>
                 <div class="card-content">
                     <div class="match-rate">{{ top_3[2].match_score | round(1) }}점</div>
-                    <span class="price">{{ top_3[2].rent_type }} {{ top_3[2].price or top_3[2].deposit }}</span>
+                    <span class="price">{{ top_3[2].rent_type }} {{ top_3[2].price_display }}</span>
                     <span class="addr">{{ top_3[2].address }}</span>
                 </div>
             </div>
+        {% else %}
+            <p style="text-align: center; grid-column: 1 / -1; padding: 50px;">추천 매물을 계산 중이거나 결과가 부족합니다.</p>
         {% endif %}
     </div>
 </section>
@@ -47,28 +77,35 @@
     <div class="section-title">🔍 이런 매물도 놓치지 마세요</div>
     <div class="list-wrapper" id="others-list">
         {% for item in others %}
-        <div class="list-item hidden-item" style="display: none;" onclick="location.href='/find_property?id={{ item._id }}'">
+        <div class="list-item hidden-item" style="display: none;" onclick="location.href='/find?id={{ item._id }}'">
             <div class="list-rank">{{ loop.index + 3 }}</div>
-            <img src="{{ item.image_url or url_for('static', filename='img/default_room.jpg') }}" class="list-img">
+            <img src="{{ item.images[0] if item.images else url_for('static', filename='img/default_room.jpg') }}" class="list-img" alt="매물 썸네일">
             <div class="list-info">
-                <span class="price">{{ item.rent_type }} {{ item.price or item.deposit }}</span>
+                <span class="price">{{ item.rent_type }} {{ item.price_display }}</span>
                 <span class="addr">{{ item.address }}</span>
             </div>
             <div class="list-score">{{ item.match_score | round(1) }}점</div>
         </div>
         {% endfor %}
     </div>
+    
+    {% if others|length > 0 %}
     <div class="more-btn-container">
         <button id="load-more-btn" onclick="showMore()">더 많은 매물 보기 ⌵</button>
     </div>
+    {% endif %}
 </section>
 
 <script>
     function showMore() {
         const hiddenItems = document.querySelectorAll('.hidden-item');
-        hiddenItems.forEach(item => item.style.display = 'flex');
+        hiddenItems.forEach(item => {
+            item.style.display = 'flex';
+            setTimeout(() => item.classList.add('show'), 10);
+        });
         document.getElementById('load-more-btn').style.display = 'none';
     }
 </script>
+
 </body>
 </html>
