@@ -109,7 +109,7 @@ def mypage():
                             favorites=favorite_properties)
 
 # -----------------------------------------------------------
-# 3. 프로필 수정 관련 (기존 유지)
+# 3. 프로필 수정 관련 (기존 유지) # bio -> introduction으로 모두 변경
 # -----------------------------------------------------------
 @mypage_bp.route('/edit', methods=['GET'])
 def edit_profile():
@@ -120,7 +120,7 @@ def edit_profile():
         return redirect(url_for('auth.login'))
     return render_template('edit_profile.html', 
                             nickname=user.get('nickname', ''), 
-                            bio=user.get('introduction', ''),
+                            introduction=user.get('introduction', ''),
                             profile_img=user.get('Profile_IMG', 'default.png'))
 
 @mypage_bp.route('/update', methods=['POST'])
@@ -129,11 +129,11 @@ def update_profile():
         return redirect(url_for('auth.login'))
     user = users_col.find_one({'email': session['user_id']})
     new_nickname = request.form.get('nickname', '').strip()
-    new_bio = request.form.get('bio', '').strip()
+    new_introduction = request.form.get('introduction', '').strip()
     current_pw = request.form.get('current_password')
     new_pw = request.form.get('new_password')
     confirm_pw = request.form.get('confirm_password')
-    update_data = {'nickname': new_nickname, 'introduction': new_bio}
+    update_data = {'nickname': new_nickname, 'introduction': new_introduction}
     if new_pw:
         if not current_pw or not check_password_hash(user.get('PW', ''), current_pw):
             return "<script>alert('현재 비밀번호가 일치하지 않습니다.'); history.back();</script>"
@@ -151,8 +151,20 @@ def update_profile():
         filename = secure_filename(f"user_{user_prefix}_{file.filename}")
         file.save(os.path.join(UPLOAD_FOLDER, filename))
         update_data['Profile_IMG'] = filename
+    # 1. 공통 로직: DB 데이터 업데이트 (닉네임, 한줄소개 등)
     users_col.update_one({'email': session['user_id']}, {'$set': update_data})
     session['nickname'] = new_nickname
+
+    # 2. 팝업 방지 로직: 가입 후 첫 수정이라면 세션 삭제 (없어도 무방)
+    session.pop('needs_setup', None)
+
+    # 3. 요청 방식에 따른 응답 분기
+    # (팝업에서 온 요청이면 JSON, 일반 페이지면 스크립트 리턴)
+    # 3-1. 자바스크립트(main.html의 <script>안 saveProfile() 함수의 fetch) 요청인 경우 JSON 응답
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({"success": True, "message": "성공적으로 수정되었습니다."})
+
+    # 3-2. 일반적인 폼 제출 (마이 페이지 수정 페이지 등)
     # url_for를 사용하여 'mypage' 블루프린트의 'mypage' 함수 주소를 동적으로 가져옴.
     target_url = url_for('mypage.mypage') 
     return f"<script>alert('성공적으로 수정되었습니다.'); location.href='{target_url}';</script>"
