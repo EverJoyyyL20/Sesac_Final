@@ -65,6 +65,7 @@
         <div class="profile-right">
             <div class="info-row"><span class="info-label">이메일</span><span class="info-value">{{ user_email }}</span></div>
             <div class="info-row"><span class="info-label">닉네임</span><span class="info-value">{{ nickname if nickname else '설정된 닉네임이 없습니다.' }}</span></div>
+            <div class="info-row"><span class="info-label">한줄소개</span><span class="info-value">{{ introduction if introduction }}</span></div>
             <div class="btn-group">
                 <a href="{{ url_for('mypage.edit_profile') }}" class="btn-edit">내 정보 수정</a>
                 <a href="{{ url_for('mypage.delete_confirm') }}" class="btn-withdraw">회원 탈퇴</a>
