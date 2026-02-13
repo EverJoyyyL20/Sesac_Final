@@ -71,7 +71,9 @@ def login():
             session['user_id'] = user['email']
             session['nickname'] = user['nickname']
             
-            if not user.get('introduction'):
+            # [수정된 조건문] 
+            # 한줄소개가 없고 AND 팝업 닫기 기록(is_setup_done)도 없는 경우에만 팝업 생성
+            if not user.get('introduction') and not user.get('is_setup_done'):
                 session['needs_setup'] = True
                 
             return redirect(url_for('main.index'))
@@ -128,6 +130,11 @@ def google_authorize():
     session['nickname'] = user['nickname']
     # 기존 유저라도 소개글이 없으면 띄우고 싶다면 아래 주석 해제
     # if not user.get('introduction'): session['needs_setup'] = True
+    
+    # [수정된 부분] 기존 유저 로그인 시에도 체크
+    # 한줄소개가 없고 AND 팝업 닫기 기록도 없는 '진짜' 초기 상태일 때만 세션 생성
+    if not user.get('introduction') and not user.get('is_setup_done'):
+        session['needs_setup'] = True
     
     return redirect(url_for('main.index'))
 
