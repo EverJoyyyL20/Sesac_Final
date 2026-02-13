@@ -110,17 +110,32 @@ def survey_result(index):
     min_rent = budget_data.get('min_rent', 0)
     max_rent = budget_data.get('max_rent', 0)
     
-    # 보증금 범위 적용
-    dep_query = {}
-    if min_dep > 0: dep_query["$gte"] = min_dep
-    if max_dep > 0: dep_query["$lte"] = max_dep
-    if dep_query: query['deposit'] = dep_query
+    # 💡 [핵심] DB 필드 구조에 따른 예산 필터링 분기
+    target_rent_type = mapping.get(c_type, c_type) # 필터링 기준값 확인
 
-    # 월세 범위 적용 (DB 필드명: price)
-    rent_query = {}
-    if min_rent > 0: rent_query["$gte"] = min_rent
-    if max_rent > 0: rent_query["$lte"] = max_rent
-    if rent_query: query['price'] = rent_query
+    if target_rent_type == "전세":
+        # 전세일 때: 사용자의 보증금 예산(min_dep ~ max_dep)을 DB의 'price' 컬럼에서 검색
+        price_q = {}
+        if min_dep > 0: price_q["$gte"] = min_dep
+        if max_dep > 0: price_q["$lte"] = max_dep
+        if price_q:
+            query['price'] = price_q
+        # 전세 매물은 deposit이 0이므로 검색 누락 방지를 위해 deposit 조건은 추가하지 않음
+
+    else: # 월세일 때 (target_rent_type == "월세")
+        # 1) 보증금 범위 적용 (DB의 'deposit' 필드)
+        dep_q = {}
+        if min_dep > 0: dep_q["$gte"] = min_dep
+        if max_dep > 0: dep_q["$lte"] = max_dep
+        if dep_q:
+            query['deposit'] = dep_q
+
+        # 2) 월세액 범위 적용 (DB의 'price' 필드)
+        rent_q = {}
+        if min_rent > 0: rent_q["$gte"] = min_rent
+        if max_rent > 0: rent_q["$lte"] = max_rent
+        if rent_q:
+            query['price'] = rent_q
 
     # 3. 매물 검색
     filtered_houses = list(houses_col.find(query).limit(500))
