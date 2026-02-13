@@ -132,7 +132,7 @@ def survey_result(index):
         if c_type: relaxed_query['rent_type'] = mapping.get(c_type, c_type)
         filtered_houses = list(houses_col.find(relaxed_query).limit(100))
 
-    # 4. 가공 및 점수 매기기
+    # 4. 가공 및 점수 매기기 (정렬용 sort_key 생성 추가)
     matched_properties = []
     for house in filtered_houses:
         infra_scores = house.get('category_scores', {})
@@ -141,18 +141,35 @@ def survey_result(index):
         house['match_score'] = round(final_score_raw * 100, 1)
         house['_id_str'] = str(house['_id'])
         
-        # 💡 [중요] 가격 표시 가공
-        if house.get('rent_type') == '월세':
-            house['price_display'] = f"{house.get('deposit', 0)}/{house.get('price', 0)}"
-        else:
-            house['price_display'] = f"{house.get('deposit', 0)}"
+       # 💡 [핵심] DB의 price 필드에 전세금이 들어있음!!
+        rent_type = house.get('rent_type')
+        main_price = house.get('price', 0) # 전세금 또는 월세액
         
-        house['rent'] = house.get('price', 0)
-        if 'images' not in house or not house['images']: house['images'] = []
+        if rent_type == '전세':
+            # 이미지 데이터처럼 deposit이 0이고 price에 전세금이 들어있을 때
+            house['price_display'] = f"{main_price}"
+        else:
+            # 월세는 보증금(deposit)과 월세액(price)을 함께 표시
+            dep_amount = house.get('deposit', 0)
+            house['price_display'] = f"{dep_amount}/{main_price}"
+        
+        # 정렬 기준: 전세금이든 월세액이든 price 필드값이 낮은 순
+        house['sort_key'] = main_price
+
+        if 'images' not in house or not house['images']: 
+            house['images'] = []
+            
         matched_properties.append(house)
 
-    # 5. 정렬 및 상위 추출
-    matched_properties = sorted(matched_properties, key=lambda x: x['match_score'], reverse=True)[:10]
+    # 5. 최종 정렬 (핵심)
+    # 1순위: 점수 내림차순 (-match_score)
+    # 2순위: 위에서 정한 기준가 오름차순 (sort_key)
+    matched_properties = sorted(
+        matched_properties, 
+        key=lambda x: (-x['match_score'], x['sort_key'])
+    )[:10]
+
+    # top_3, others 슬라이싱 및 return 로직
     top_3 = matched_properties[:3]
     others = matched_properties[3:]
 
