@@ -100,7 +100,10 @@ def google_authorize():
         return "<script>alert('로그인이 취소되었습니다.'); location.href='/login';</script>"
 
     # 토큰이 정상적으로 발행된 경우 (기존 로직 수행)
-    resp = google.get('userinfo')
+    # resp = google.get('userinfo')
+    # resp = google.get('userinfo_endpoint')
+    # 'userinfo'라는 별칭 대신 전체 URL을 직접 넣어줍니다.
+    resp = google.get('https://www.googleapis.com/oauth2/v3/userinfo')
     user_info = resp.json()
     email = user_info['email']
 
