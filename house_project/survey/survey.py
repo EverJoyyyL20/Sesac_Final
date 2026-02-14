@@ -102,15 +102,29 @@ def survey_result(index):
     query = {}
     
     # 지역 필터
+    # loc = selected_survey.get('location')
+    # if loc and loc.strip():
+    #     query['address'] = {"$regex": loc}
     loc = selected_survey.get('location')
     if loc and loc.strip():
-        query['address'] = {"$regex": loc}
-    
+        tokens = loc.replace("서울시", "").replace("서울특별시", "").split()
+        
+        # 구/동 단위만 추출 (구, 동, 로, 길 로 끝나는 단어)
+        key_tokens = [t for t in tokens if any(t.endswith(suffix) for suffix in ["구", "동", "로", "길"])]
+        
+        # 핵심 토큰 없으면 2글자 이상 전체 사용
+        if not key_tokens:
+            key_tokens = [t for t in tokens if len(t) >= 2]
+        
+        if key_tokens:
+            # AND 대신 각 토큰을 개별 regex로 → $and 조건
+            query["$and"] = [{"address": {"$regex": t, "$options": "i"}} for t in key_tokens]
+        
     # 계약 유형
     c_type = selected_survey.get('contract_type')
     mapping = {"jeonse": "전세", "monthly": "월세"}
     if c_type:
-        query['rent_type'] = mapping.get(c_type, c_type)
+        query['rent_type'] = {"$regex": mapping.get(c_type, c_type)}
     
     # 💡 [수정] 예산 필터 (최소/최대 범위 쿼리)
     budget_data = selected_survey.get('budget', {})
@@ -152,9 +166,14 @@ def survey_result(index):
     # [Fallback] 결과가 너무 적으면 예산 필터를 풀고 재검색
     if len(filtered_houses) < 5:
         relaxed_query = {}
-        if loc and loc.strip(): relaxed_query['address'] = {"$regex": loc}
-        if c_type: relaxed_query['rent_type'] = mapping.get(c_type, c_type)
-        filtered_houses = list(houses_col.find(relaxed_query).limit(100))
+
+        if loc and loc.strip():
+            relaxed_query["$and"] = [{"address": {"$regex": t, "$options": "i"}} for t in key_tokens]
+
+        if c_type:
+            relaxed_query['rent_type'] = {"$regex": mapping.get(c_type, c_type)}
+
+    filtered_houses = list(houses_col.find(relaxed_query).limit(100))
 
     # 4. 가공 및 점수 매기기 (정렬용 sort_key 생성 추가)
     matched_properties = []
