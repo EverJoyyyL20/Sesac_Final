@@ -272,6 +272,12 @@
         });
         document.getElementById('load-more-btn').style.display = 'none';
     }
+
+    history.pushState(null, null, location.href); 
+    window.onpopstate = function() { 
+    // 결과 페이지에서 뒤로가기 누르면 메인(/)으로 강제 이동
+    location.href = '/'; 
+    };
 </script>
 
 </body>
