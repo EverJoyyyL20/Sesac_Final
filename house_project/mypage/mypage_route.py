@@ -2,10 +2,10 @@ from flask import Blueprint, render_template, request, redirect, url_for, sessio
 import os
 from werkzeug.utils import secure_filename
 from werkzeug.security import check_password_hash, generate_password_hash
-from database import users_col, db  # db 객체 추가 (survey_results 접근용)
+from database import users_col, houses_col, db  
 from bson.objectid import ObjectId
 
-# 블루프린트 설정
+# 🔥 [핵심] 이 줄이 있어야 app.py에서 import 할 수 있습니다!
 mypage_bp = Blueprint('mypage', __name__, template_folder='.')
 
 # 프로필 사진 저장 경로 및 허용 확장자
@@ -18,20 +18,19 @@ def allowed_file(filename):
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 # -----------------------------------------------------------
-# 1. 팝업 및 세션 관리 API # DB 기억
+# 1. 팝업 및 세션 관리 API
 # -----------------------------------------------------------
 @mypage_bp.route('/disable_setup_popup', methods=['POST'])
 def disable_setup_popup():
     user_email = session.get('user_id')
     if user_email:
-        # DB에 이 유저는 팝업을 이미 확인했거나 설정을 건너뛰었다고 저장
         users_col.update_one({'email': user_email}, {'$set': {'is_setup_done': True}})
     
     session.pop('needs_setup', None) 
     return jsonify({"success": True})
 
 # -----------------------------------------------------------
-# 2. 마이페이지 메인 (수정본)
+# 2. 마이페이지 메인
 # -----------------------------------------------------------
 @mypage_bp.route('/mypage')
 def mypage():
@@ -50,7 +49,6 @@ def mypage():
     surveys = []
     
     for s in raw_surveys:
-        # [수정] 월세일 경우 보증금이 무조건 앞으로 오도록 설정
         if s.get('contract_type') == 'monthly':
             rent_val = s.get('budget', {}).get('max_rent', '0')
             dep_val = s.get('budget', {}).get('max_dep', '0')
@@ -58,7 +56,6 @@ def mypage():
         else:
             budget_text = f"전세 {s.get('budget', {}).get('max_dep', '0')}만원"
 
-        # 건물/방 정보 요약
         building_age_list = s.get('building_age', [])
         age_info = building_age_list[0] if building_age_list else '연식미상'
 
@@ -68,7 +65,6 @@ def mypage():
         room_count_list = s.get('room_count', [])
         room_info = f"방 {room_count_list[0]}개" if room_count_list else "정보 없음"
         
-        # 특수 조건 태그화
         option_tags = []
         if s.get('special_room') == 'yes': option_tags.append("옥탑/반지하 포함")
         if s.get('parking') == 'yes': option_tags.append("주차 가능")
@@ -84,45 +80,92 @@ def mypage():
         }
         surveys.append(summary)
 
-    # 2. 찜 목록 데이터 가공
-    favorite_properties = user.get('favorites', [])
-    for fav in favorite_properties:
-        pid = fav.get('id') or fav.get('_id')
-        fav['_id_str'] = str(pid)
+    # 2. 찜 목록 데이터 가공 (이미지 안 나올 때 DB 재조회하는 안전 로직 포함)
+    raw_favorites = user.get('favorites', [])
+    processed_favorites = [] 
 
-        # [수정] 찜한 매물 가격 표시도 "보증금/월세" 순으로 재배치
-        original_price = fav.get('price', '')
-        if '월세' in original_price and '/' in original_price:
+    for fav in raw_favorites:
+        if isinstance(fav, (str, ObjectId)):
+            continue
+        if not isinstance(fav, dict):
+            continue
+
+        fav_id = fav.get('id') or fav.get('_id')
+        if not fav_id: continue
+        
+        fav['_id_str'] = str(fav_id)
+
+        # 가격 표시 가공
+        r_type = fav.get('rent_type', '')
+        p_val = fav.get('price', 0)
+        d_val = fav.get('deposit', 0)
+
+        # 가격이 숫자인지 체크
+        try:
+            p_val_str = str(p_val).replace(',', '')
+            if p_val_str.isdigit() or isinstance(p_val, (int, float)):
+                 if r_type == '전세':
+                     fav['price'] = f"전세 {p_val}"
+                 elif r_type == '월세':
+                     fav['price'] = f"월세 {d_val}/{p_val}"
+        except:
+            pass
+        
+        # 이미지 처리 (DB user 컬렉션에 저장된 images 배열 사용)
+        img_list = fav.get('images', [])
+        
+        # 🔥 [안전장치] 만약 저장된 이미지가 없다면 DB에서 다시 조회 (Fallback)
+        if not img_list:
             try:
-                # "월세 50/500" -> "50/500" 분리 후 [50, 500] -> "500/50"
-                price_part = original_price.replace('월세', '').strip()
-                p_split = price_part.split('/')
-                if len(p_split) == 2:
-                    fav['price'] = f"월세 {p_split[1].strip()}/{p_split[0].strip()}"
+                rh = None
+                # 숫자 ID로 재조회 (직방)
+                if str(fav_id).isdigit():
+                     rh = houses_col.find_one({'_id': int(fav_id)})
+                # 없으면 문자/ObjectId로 재조회
+                if not rh:
+                    rh = houses_col.find_one({'_id': fav_id})
+                if not rh:
+                    rh = houses_col.find_one({'_id': ObjectId(str(fav_id))})
+                
+                if rh:
+                    img_list = rh.get('images', [])
+                    # 가격 정보도 최신화
+                    if 'price' in rh: fav['price'] = rh['price']
+                    if 'deposit' in rh: fav['deposit'] = rh['deposit']
+                    if 'rent_type' in rh: fav['rent_type'] = rh['rent_type']
             except:
                 pass
 
-        if 'images' not in fav or not fav['images']:
-            fav['images'] = [fav.get('image_url')] if fav.get('image_url') else []
+        if not isinstance(img_list, list):
+            img_list = []
+            
+        if len(img_list) > 0 and img_list[0]:
+            raw_url = str(img_list[0])
+            if '?' in raw_url:
+                fav['main_image'] = raw_url + '&w=800'
+            else:
+                fav['main_image'] = raw_url + '?w=800'
+        else:
+            fav['main_image'] = url_for('static', filename='img/default_room.jpg')
+            
+        processed_favorites.append(fav)
 
     return render_template('mypage.html', 
                             user_email=user['email'], 
                             nickname=user.get('nickname', '닉네임 없음'),
-                            introduction=user.get('introduction', ''), # 한줄 소개 데이터 넘겨줌
+                            introduction=user.get('introduction', ''),
                             profile_img=user.get('Profile_IMG', 'default.png'),
                             surveys=surveys,
-                            favorites=favorite_properties)
+                            favorites=processed_favorites)
 
 # -----------------------------------------------------------
-# 3. 프로필 수정 관련 (기존 유지) # bio -> introduction으로 모두 변경
+# 3. 프로필 수정 관련
 # -----------------------------------------------------------
 @mypage_bp.route('/edit', methods=['GET'])
 def edit_profile():
-    if 'user_id' not in session:
-        return redirect(url_for('auth.login'))
+    if 'user_id' not in session: return redirect(url_for('auth.login'))
     user = users_col.find_one({'email': session['user_id']})
-    if not user:
-        return redirect(url_for('auth.login'))
+    if not user: return redirect(url_for('auth.login'))
     return render_template('edit_profile.html', 
                             nickname=user.get('nickname', ''), 
                             introduction=user.get('introduction', ''),
@@ -130,8 +173,7 @@ def edit_profile():
 
 @mypage_bp.route('/update', methods=['POST'])
 def update_profile():
-    if 'user_id' not in session:
-        return redirect(url_for('auth.login'))
+    if 'user_id' not in session: return redirect(url_for('auth.login'))
     user = users_col.find_one({'email': session['user_id']})
     new_nickname = request.form.get('nickname', '').strip()
     new_introduction = request.form.get('introduction', '').strip()
@@ -139,16 +181,19 @@ def update_profile():
     new_pw = request.form.get('new_password')
     confirm_pw = request.form.get('confirm_password')
     update_data = {'nickname': new_nickname, 'introduction': new_introduction}
+    
     if new_pw:
         if not current_pw or not check_password_hash(user.get('PW', ''), current_pw):
             return "<script>alert('현재 비밀번호가 일치하지 않습니다.'); history.back();</script>"
         if new_pw != confirm_pw:
             return "<script>alert('새 비밀번호 확인이 일치하지 않습니다.'); history.back();</script>"
         update_data['PW'] = generate_password_hash(new_pw)
+        
     if new_nickname:
         existing_user = users_col.find_one({'nickname': new_nickname, 'email': {'$ne': session['user_id']}})
         if existing_user:
             return "<script>alert('이미 사용 중인 닉네임입니다.'); history.back();</script>"
+            
     file = request.files.get('profile_img')
     if file and file.filename != '' and allowed_file(file.filename):
         if not os.path.exists(UPLOAD_FOLDER): os.makedirs(UPLOAD_FOLDER)
@@ -156,38 +201,25 @@ def update_profile():
         filename = secure_filename(f"user_{user_prefix}_{file.filename}")
         file.save(os.path.join(UPLOAD_FOLDER, filename))
         update_data['Profile_IMG'] = filename
-    # 1. 공통 로직: DB 데이터 업데이트 (닉네임, 한줄소개 등)
+    
     users_col.update_one({'email': session['user_id']}, {'$set': update_data})
     session['nickname'] = new_nickname
-
-    # 2. 팝업 방지 로직: 가입 후 첫 수정이라면 세션 삭제 (없어도 무방)
-    # 업데이트 데이터에 'is_setup_done' 필드 추가
-    update_data['is_setup_done'] = True
-    users_col.update_one({'email': session['user_id']}, {'$set': update_data})
-    session.pop('needs_setup', None) # 세션 제거
-
-    # 3. 요청 방식에 따른 응답 분기
-    # (팝업에서 온 요청이면 JSON, 일반 페이지면 스크립트 리턴)
-    # 3-1. 자바스크립트(main.html의 <script>안 saveProfile() 함수의 fetch) 요청인 경우 JSON 응답
+    
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return jsonify({"success": True, "message": "성공적으로 수정되었습니다."})
-
-    # 3-2. 일반적인 폼 제출 (마이 페이지 수정 페이지 등)
-    # url_for를 사용하여 'mypage' 블루프린트의 'mypage' 함수 주소를 동적으로 가져옴.
-    target_url = url_for('mypage.mypage') 
-    return f"<script>alert('성공적으로 수정되었습니다.'); location.href='{target_url}';</script>"
+    return f"<script>alert('성공적으로 수정되었습니다.'); location.href='{url_for('mypage.mypage')}';</script>"
 
 # -----------------------------------------------------------
-# 4. 매물 찜하기 토글 (개수 제한 제거 버전)
+# 4. 마이페이지 찜하기 토글 (필요 시 사용)
 # -----------------------------------------------------------
 @mypage_bp.route('/toggle_favorite', methods=['POST'])
 def toggle_favorite():
+    # 마이페이지에서 찜 해제할 때 사용하는 엔드포인트
     if 'user_id' not in session:
         return jsonify({"success": False, "message": "로그인이 필요합니다."}), 401
 
     data = request.get_json()
     p_id = data.get('property_id')
-    p_info = data.get('property_info') 
 
     if not p_id:
         return jsonify({"success": False, "message": "매물 정보가 누락되었습니다."}), 400
@@ -196,22 +228,18 @@ def toggle_favorite():
     user = users_col.find_one({'email': user_email})
     favorites = user.get('favorites', [])
 
-    is_favorited = any(f.get('id') == p_id for f in favorites)
-
-    if is_favorited:
-        users_col.update_one({'email': user_email}, {'$pull': {'favorites': {'id': p_id}}})
+    # 이미 찜했는지 확인하고 삭제 (마이페이지에서는 삭제만 주로 일어남)
+    new_favorites = [f for f in favorites if str(f.get('id')) != str(p_id) and str(f.get('_id')) != str(p_id)]
+    
+    # 길이가 줄었다면 삭제된 것
+    if len(new_favorites) < len(favorites):
+        users_col.update_one({'email': user_email}, {'$set': {'favorites': new_favorites}})
         return jsonify({"success": True, "status": "removed"})
-    else:
-        # [수정] 개수 제한(10개) 로직 삭제
-        p_info['id'] = p_id
-        if 'images' not in p_info and 'image_url' in p_info:
-            p_info['images'] = [p_info['image_url']]
-            
-        users_col.update_one({'email': user_email}, {'$push': {'favorites': p_info}})
-        return jsonify({"success": True, "status": "added"})
+    
+    return jsonify({"success": False, "status": "not_found"})
 
 # -----------------------------------------------------------
-# 5. 회원 탈퇴 (기존 유지)
+# 5. 회원 탈퇴
 # -----------------------------------------------------------
 @mypage_bp.route('/delete_confirm')
 def delete_confirm():

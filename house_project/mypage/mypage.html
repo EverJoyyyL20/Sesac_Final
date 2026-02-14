@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="referrer" content="no-referrer"> <title>마이페이지 - AI 라이프 매칭</title>
     <title>마이페이지 - AI 라이프 매칭</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/mypage.css') }}">
@@ -148,7 +149,7 @@
                         {% for fav in favorites %}
                         <div class="slide-item">
                             <div class="property-card-mini" onclick="location.href='/find?id={{ fav._id_str or fav.id }}'">
-                                <img src="{{ fav.images[0] if fav.images else url_for('static', filename='img/default_room.jpg') }}" class="prop-img-sm">
+                                <img src="{{ fav.main_image }}" class="prop-img-sm" referrerpolicy="no-referrer" onerror="this.src='/static/img/default_room.jpg'">
                                 <div class="prop-info-sm">
                                     <p class="p-price">{{ fav.price }}</p>
                                     <p class="p-addr">{{ fav.address }}</p>
