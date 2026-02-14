@@ -180,9 +180,23 @@ def survey_result(index):
         # 정렬 기준: 전세금이든 월세액이든 price 필드값이 낮은 순
         house['sort_key'] = main_price
 
-        if 'images' not in house or not house['images']: 
-            house['images'] = []
+        img_list = house.get('images', [])
+        if not isinstance(img_list, list):
+            img_list = []
             
+        # 2. 대표 이미지 선정 및 리사이징 파라미터(?w=800) 추가
+        if len(img_list) > 0 and img_list[0]:
+            raw_url = img_list[0]
+            # 이미 파라미터가 있으면 &w=800, 없으면 ?w=800
+            if '?' in raw_url:
+                house['main_image'] = raw_url + '&w=800'
+            else:
+                house['main_image'] = raw_url + '?w=800'
+        else:
+            # 이미지가 없을 경우 기본 이미지 경로 사용
+            house['main_image'] = url_for('static', filename='img/default_room.jpg')
+        # ------------------------------------------------------------------
+
         matched_properties.append(house)
 
     # 5. 최종 정렬 (핵심)
