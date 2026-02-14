@@ -81,13 +81,22 @@ def survey_result(index):
     selected_survey = surveys[index]
     
     # 1. 가중합 로직 (기존과 동일)
-    total_counts = {'traffic': 6, 'convenience': 10, 'green': 7, 'play': 6, 'health': 6, 'living': 13, 'safety': 10}
+    total_counts = {
+        'traffic': 6, 'convenience': 10, 'green': 7, 
+        'play': 6, 'health': 6, 'living': 13, 'safety': 10
+    }
+    
     user_log = selected_survey.get('category_log', [])
     log_counts = Counter(user_log)
     
-    raw_weights = {cat: log_counts.get(cat, 0) / total for cat, total in total_counts.items()}
+    raw_weights = {}
+    for cat, total in total_counts.items():
+        # 🔥 [핵심 수정] 선택 횟수에 +1을 더해 0점이 되는 것을 방지함
+        raw_weights[cat] = (log_counts.get(cat, 0) + 1) / total
+    
+    # 정규화 (전체 합을 1.0으로 맞춤)
     sum_raw_weights = sum(raw_weights.values())
-    user_weights = {k: (v / sum_raw_weights if sum_raw_weights > 0 else 1/7) for k, v in raw_weights.items()}
+    user_weights = {k: v / sum_raw_weights for k, v in raw_weights.items()}
 
     # 2. [필터링] 최소~최대 범위를 반영한 쿼리 생성
     query = {}
