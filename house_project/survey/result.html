@@ -17,12 +17,8 @@
             --dark: #2d3436;
             --gold: #ffd700;
         }
-        body { background-color: var(--bg); font-family: 'Noto Sans KR', sans-serif; padding-bottom: 100px; margin: 0; }
+        body { background-color: var(--bg); padding-bottom: 100px; margin: 0; }
         
-        /* 네비게이션 (기존 유지) */
-        .navbar { display: flex; justify-content: space-between; padding: 20px 40px; background: white; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-        .nav-left a, .nav-links a { text-decoration: none; color: var(--dark); font-weight: 700; margin-left: 20px; }
-        .nav-left a { margin-right: 20px; margin-left: 0; font-size: 1.1em; color: var(--primary); }
 
         /* --- [TOP 3 영역 디자인 복원 및 사이즈 확대] --- */
         .top-three-area {
@@ -107,7 +103,7 @@
             margin-bottom: 20px; /* 중앙 정렬 보정 */
         }
         .rank-1 .img-wrapper { height: 300px; } /* 1위 이미지 더 크게 */
-        .rank-1 .price { font-size: 1.7rem; color: var(--primary); }
+        .rank-1 .price { font-size: 1.7rem; color: var(--dark); }
         .rank-1 .match-rate { font-size: 1.4rem; }
 
         /* --- [AI 추천 사유 디자인] --- */
@@ -183,7 +179,7 @@
                 </div>
                 <div class="card-content">
                     <div class="match-rate">{{ top_3[1].match_score | round(1) }}점</div>
-                    <span class="price">{{ top_3[1].rent_type }} {{ top_3[1].price_display }}</span>
+                    <span class="price">{{ top_3[1].rent_type }} {{ top_3[1].price_display }}만원</span>
                     <span class="addr">{{ top_3[1].address }}</span>
                     
                     {% if top_3[1].ai_comment %}
@@ -203,7 +199,7 @@
                 </div>
                 <div class="card-content">
                     <div class="match-rate main">{{ top_3[0].match_score | round(1) }}점</div>
-                    <span class="price big">{{ top_3[0].rent_type }} {{ top_3[0].price_display }}</span>
+                    <span class="price big">{{ top_3[0].rent_type }} {{ top_3[0].price_display }}만원</span>
                     <span class="addr">{{ top_3[0].address }}</span>
 
                     {% if top_3[0].ai_comment %}
@@ -223,7 +219,7 @@
                 </div>
                 <div class="card-content">
                     <div class="match-rate">{{ top_3[2].match_score | round(1) }}점</div>
-                    <span class="price">{{ top_3[2].rent_type }} {{ top_3[2].price_display }}</span>
+                    <span class="price">{{ top_3[2].rent_type }} {{ top_3[2].price_display }}만원</span>
                     <span class="addr">{{ top_3[2].address }}</span>
 
                     {% if top_3[2].ai_comment %}
@@ -249,7 +245,7 @@
             <div class="list-rank">{{ loop.index + 3 }}</div>
             <img src="{{ item.main_image }}" class="list-img" alt="매물 썸네일" referrerpolicy="no-referrer" onerror="this.src='/static/img/default_room.jpg'">
             <div class="list-info">
-                <span class="price">{{ item.rent_type }} {{ item.price_display }}</span>
+                <span class="price">{{ item.rent_type }} {{ item.price_display }}만원</span>
                 <span class="addr">{{ item.address }}</span>
             </div>
             <div class="list-score">{{ item.match_score | round(1) }}점</div>
