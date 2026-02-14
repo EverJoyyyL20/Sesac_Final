@@ -17,6 +17,18 @@
         .range-group { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
         .range-group input { flex: 1; }
         .range-sep { font-weight: bold; color: #666; }
+        
+        /* 이전 버튼용 스타일 추가 */
+        .back-btn { 
+            background: #eee; 
+            color: #666; 
+            border: none; 
+            border-radius: 12px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            transition: 0.3s;
+        }
+        .back-btn:hover { background: #e0e0e0; }
     </style>
 </head>
 <body>
@@ -70,8 +82,9 @@
                 </div>
             </div>
 
-            <div class="next-btn-container">
-                <button type="button" class="confirm-btn" onclick="validateStep1()">다음 단계로</button>
+            <div class="next-btn-container" style="display: flex; gap: 10px;">
+                <button type="button" class="back-btn" onclick="prevStep(0)" style="flex: 1;">이전</button>
+                <button type="button" class="confirm-btn" onclick="validateStep1()" style="flex: 2;">다음 단계로</button>
             </div>
         </div>
 
@@ -92,11 +105,13 @@
                 {% endfor %}
             </div>
             <p class="limit-info weight-empty" style="color: orange; display: none; margin-top: 10px; text-align: center;">항목을 선택해주세요! ⚠️</p>
-            <div class="next-btn-container">
+            
+            <div class="next-btn-container" style="display: flex; gap: 10px;">
+                <button type="button" class="back-btn" onclick="prevStep({{ step_num - 1 }})" style="flex: 1;">이전</button>
                 {% if loop.last %}
-                <button type="button" class="confirm-btn" onclick="submitFinalSurvey()">분석 완료</button>
+                <button type="button" class="confirm-btn" onclick="submitFinalSurvey()" style="flex: 2;">분석 완료</button>
                 {% else %}
-                <button type="button" class="confirm-btn" onclick="validateAndNext({{ step_num + 1 }})">다음 질문으로</button>
+                <button type="button" class="confirm-btn" onclick="validateAndNext({{ step_num + 1 }})" style="flex: 2;">다음 질문으로</button>
                 {% endif %}
             </div>
         </div>
@@ -117,9 +132,12 @@
     const surveyResults = { 
         location: "", 
         contract_type: "", 
-        budget: { min_dep: 0, max_dep: 0, min_rent: 0, max_rent: 0 }, // min 필드 추가
+        budget: { min_dep: 0, max_dep: 0, min_rent: 0, max_rent: 0 },
         category_log: [] 
     };
+
+    // [수정] 초기 상태를 history에 기록 (뒤로가기 제어용)
+    history.replaceState({idx: 0}, "Step 0");
 
     function updateUI() {
         const percent = Math.round((currentIdx / totalSteps) * 100);
@@ -127,13 +145,41 @@
         document.getElementById('status-txt').innerText = `${percent}% 분석 중...`;
     }
 
+    // [수정] nextStep 함수에 history.pushState 추가
     function nextStep(idx) {
         document.getElementById(`step-${currentIdx}`).classList.remove('active');
         currentIdx = idx;
         document.getElementById(`step-${currentIdx}`).classList.add('active');
+        
+        // 브라우저 뒤로가기 시 이벤트를 발생시키기 위해 상태 저장
+        history.pushState({idx: idx}, `Step ${idx}`);
+        
         updateUI();
         window.scrollTo(0, 0);
     }
+
+    // [수정] prevStep 함수 새로 추가
+    function prevStep(idx) {
+        document.getElementById(`step-${currentIdx}`).classList.remove('active');
+        currentIdx = idx;
+        document.getElementById(`step-${currentIdx}`).classList.add('active');
+        
+        // 이전으로 갈 때는 pushState 대신 replaceState를 써서 히스토리 중복 방지 가능
+        history.replaceState({idx: idx}, `Step ${idx}`);
+        
+        updateUI();
+        window.scrollTo(0, 0);
+    }
+
+    // [수정] 브라우저 뒤로가기 감지 로직 추가
+    window.onpopstate = function(event) {
+        if (event.state && typeof event.state.idx === 'number') {
+            document.getElementById(`step-${currentIdx}`).classList.remove('active');
+            currentIdx = event.state.idx;
+            document.getElementById(`step-${currentIdx}`).classList.add('active');
+            updateUI();
+        }
+    };
 
     function selectContract(type, btn) {
         surveyResults.contract_type = type;
