@@ -3,6 +3,88 @@ from database import houses_col, db
 from bson.objectid import ObjectId
 from datetime import datetime
 from collections import Counter
+import os
+# 🔥 [수정 1] load_dotenv 함수를 불러올 때 override 옵션을 쓰기 위함
+from dotenv import load_dotenv 
+from langchain_openai import ChatOpenAI
+from langchain_core.prompts import PromptTemplate
+
+# ------------------------------------------------------------------
+# 1. 환경변수 강제 로드 (기존 캐시 무시)
+# ------------------------------------------------------------------
+# override=True 옵션: 시스템에 이미 등록된 키가 있어도, .env 파일 내용으로 덮어씁니다.
+load_dotenv(override=True)
+
+# 2. 키 확인 (디버깅용)
+api_key = os.getenv("OPENAI_API_KEY")
+
+if api_key:
+    api_key = api_key.strip() # 공백 제거
+    # 🔥 [확인 포인트] 로그에 찍히는 뒤 4자리가 ...Dv8A 로 나오는지 보세요!
+    print(f"🔑 [최종 로드된 키] 끝자리 확인: ...{api_key[-4:]}") 
+else:
+    print("❌ .env 파일을 찾을 수 없거나 비어있습니다!")
+
+# 3. GPT 모델 초기화 (API Key 직접 주입)
+try:
+    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.5, openai_api_key=api_key)
+    print("✅ GPT 모델 초기화 성공")
+except Exception as e:
+    print(f"❌ GPT 초기화 실패: {e}")
+
+# ... (이하 나머지 코드 동일) ...
+
+# --- [AI 추천 사유 생성 함수] ---
+def generate_recommendation_reason(user_weights, house_info):
+    """
+    GPT-4o-mini를 사용하여 추천 사유를 생성하는 함수
+    """
+    # 1. 유저가 가장 중요하게 생각하는 요소 2가지 추출
+    sorted_weights = sorted(user_weights.items(), key=lambda x: x[1], reverse=True)
+    top_interests = [f"{category_map.get(k, k)}" for k, v in sorted_weights[:2]] # 한글 변환 적용
+    
+    # 2. 매물의 장점 요소 (점수가 높은 순) 추출
+    scores = house_info.get('scores', {})
+    sorted_scores = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+    # 점수가 높은 상위 2개 특징 (영어 Key -> 한글 변환 필요 시 category_map 사용)
+    top_strengths = []
+    for k, v in sorted_scores[:2]:
+        k_kor = category_map.get(k.lower(), k) # 대소문자 주의
+        top_strengths.append(f"{k_kor}({int(v*100)}점)")
+
+    # 3. 프롬프트 작성 (GPT-4o-mini 용)
+    template = """
+    당신은 전문 부동산 컨설턴트입니다. 
+    사용자의 선호도와 매물의 데이터를 분석하여, 이 집을 추천하는 이유를 **한 문장으로** 매력 있게 작성해주세요.
+    
+    [사용자 선호]
+    - 중요 가치: {top_interests}
+    
+    [매물 정보]
+    - 주소: {address}
+    - 가격: {price}
+    - 핵심 강점: {top_strengths}
+    
+    [작성 가이드]
+    - "~하기 때문에 고객님께 딱 맞는 매물입니다" 또는 "~한 점이 매력적입니다" 같은 말투를 사용하세요.
+    - 공백 포함 80자 이내로 짧게 요약하세요.
+    - 너무 기계적인 말투는 피하세요.
+    """
+    
+    prompt = PromptTemplate.from_template(template)
+    chain = prompt | llm
+    
+    try:
+        response = chain.invoke({
+            "top_interests": ", ".join(top_interests),
+            "address": house_info['address'],
+            "price": house_info['price_display'],
+            "top_strengths": ", ".join(top_strengths)
+        })
+        return response.content
+    except Exception as e:
+        print(f"GPT 호출 에러: {e}")
+        return "데이터를 기반으로 딱 맞는 집을 찾았습니다!"
 
 # Blueprint 설정
 survey_bp = Blueprint('survey', __name__, template_folder='.')
@@ -102,29 +184,15 @@ def survey_result(index):
     query = {}
     
     # 지역 필터
-    # loc = selected_survey.get('location')
-    # if loc and loc.strip():
-    #     query['address'] = {"$regex": loc}
     loc = selected_survey.get('location')
     if loc and loc.strip():
-        tokens = loc.replace("서울시", "").replace("서울특별시", "").split()
-        
-        # 구/동 단위만 추출 (구, 동, 로, 길 로 끝나는 단어)
-        key_tokens = [t for t in tokens if any(t.endswith(suffix) for suffix in ["구", "동", "로", "길"])]
-        
-        # 핵심 토큰 없으면 2글자 이상 전체 사용
-        if not key_tokens:
-            key_tokens = [t for t in tokens if len(t) >= 2]
-        
-        if key_tokens:
-            # AND 대신 각 토큰을 개별 regex로 → $and 조건
-            query["$and"] = [{"address": {"$regex": t, "$options": "i"}} for t in key_tokens]
-        
+        query['address'] = {"$regex": loc}
+    
     # 계약 유형
     c_type = selected_survey.get('contract_type')
     mapping = {"jeonse": "전세", "monthly": "월세"}
     if c_type:
-        query['rent_type'] = {"$regex": mapping.get(c_type, c_type)}
+        query['rent_type'] = mapping.get(c_type, c_type)
     
     # 💡 [수정] 예산 필터 (최소/최대 범위 쿼리)
     budget_data = selected_survey.get('budget', {})
@@ -166,14 +234,9 @@ def survey_result(index):
     # [Fallback] 결과가 너무 적으면 예산 필터를 풀고 재검색
     if len(filtered_houses) < 5:
         relaxed_query = {}
-
-        if loc and loc.strip():
-            relaxed_query["$and"] = [{"address": {"$regex": t, "$options": "i"}} for t in key_tokens]
-
-        if c_type:
-            relaxed_query['rent_type'] = {"$regex": mapping.get(c_type, c_type)}
-
-    filtered_houses = list(houses_col.find(relaxed_query).limit(100))
+        if loc and loc.strip(): relaxed_query['address'] = {"$regex": loc}
+        if c_type: relaxed_query['rent_type'] = mapping.get(c_type, c_type)
+        filtered_houses = list(houses_col.find(relaxed_query).limit(100))
 
     # 4. 가공 및 점수 매기기 (정렬용 sort_key 생성 추가)
     matched_properties = []
@@ -229,5 +292,30 @@ def survey_result(index):
     # top_3, others 슬라이싱 및 return 로직
     top_3 = matched_properties[:3]
     others = matched_properties[3:]
+    
+    print("🤖 GPT-4o-mini 분석 시작...")
+    
+    for house in top_3:
+        try:
+            # AI에게 넘겨줄 데이터 정리
+            house_info = {
+                "address": house['address'],
+                "price_display": house['price_display'],
+                "scores": house.get('category_scores', {}) # DB에 저장된 인프라 점수
+            }
+            
+            # 위에서 만든 함수 호출
+            ai_comment = generate_recommendation_reason(user_weights, house_info)
+            house['ai_comment'] = ai_comment
+            
+        except Exception as e:
+            print(f"❌ 매물 ID {house.get('_id')} AI 분석 실패: {e}")
+            house['ai_comment'] = "고객님의 라이프스타일에 최적화된 추천 매물입니다."
+
+    print("✅ 분석 완료")
+    
+    
+    
 
     return render_template('result.html', survey=selected_survey, top_3=top_3, others=others, current_index=index, survey_id=str(selected_survey['_id']))   
+
