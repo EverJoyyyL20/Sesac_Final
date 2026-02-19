@@ -7,48 +7,49 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/mypage.css') }}">
     <style>
+        /* 🔥 [통일된 상단바 스타일 추가] */
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 6%; 
+            width: 100%;
+            box-sizing: border-box;
+            background-color: #222;
+        }
+        .navbar a {
+            font-size: 1.25rem; 
+            font-weight: 700;   
+            text-decoration: none;
+            color: #fff;        
+            margin: 0 15px;     
+            transition: color 0.3s;
+        }
+        .navbar a:hover { color: #007bff; }
+        .welcome-text {
+            font-size: 1.1rem;
+            margin-right: 15px;
+            color: #fff;
+        }
+
         /* 🎨 입력창 스타일 */
         .edit-input {
-            flex: 1;
-            height: 40px;
-            padding: 0 15px;
-            border: 1px solid transparent;
-            border-radius: 8px;
-            background-color: #f2f4f6;
-            font-size: 0.95rem;
-            outline: none;
-            transition: all 0.2s ease;
+            flex: 1; height: 40px; padding: 0 15px;
+            border: 1px solid transparent; border-radius: 8px; background-color: #f2f4f6;
+            font-size: 0.95rem; outline: none; transition: all 0.2s ease;
         }
-
         .edit-input:focus {
-            background-color: #fff;
-            border-color: #3182f6;
-            box-shadow: 0 0 0 2px rgba(49, 130, 246, 0.1);
+            background-color: #fff; border-color: #3182f6; box-shadow: 0 0 0 2px rgba(49, 130, 246, 0.1);
         }
-
         /* 🔘 버튼 스타일 수정 */
         .btn-edit {
-            background-color: #3182f6 !important;
-            color: white !important;
-            border: none !important; /* 검정 테두리 제거 */
-            border-radius: 8px !important;
-            padding: 10px 25px !important;
-            font-weight: 600 !important;
-            cursor: pointer;
+            background-color: #3182f6 !important; color: white !important; border: none !important;
+            border-radius: 8px !important; padding: 10px 25px !important; font-weight: 600 !important; cursor: pointer;
         }
-
         .btn-cancel {
-            background-color: #f5f5f5 !important;
-            color: #888 !important;
-            border: none !important;
-            border-radius: 8px !important;
-            padding: 10px 25px !important;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.9rem;
-            font-weight: 600;
+            background-color: #f5f5f5 !important; color: #888 !important; border: none !important;
+            border-radius: 8px !important; padding: 10px 25px !important; text-decoration: none;
+            display: inline-flex; align-items: center; justify-content: center; font-size: 0.9rem; font-weight: 600;
         }
     </style>
 </head>
@@ -56,16 +57,17 @@
 
 <div class="navbar">
     <div class="nav-left">
-        <a href="{{ url_for('main.index') }}">Home</a>
+        <a href="{{ url_for('main.index') }}">메인페이지</a>
         <a href="{{ url_for('find.find') }}">매물찾기</a>
     </div>
     <div class="nav-links">
         {% if session.get('user_id') %}
-            <a href="{{ url_for('mypage.mypage') }}">My Page</a>
-            <a href="{{ url_for('auth.logout') }}">Logout</a>
+            <span class="welcome-text"><strong>{{ session.get('nickname') }}</strong>님</span>
+            <a href="{{ url_for('mypage.mypage') }}">마이페이지</a>
+            <a href="{{ url_for('auth.logout') }}">로그아웃</a>
         {% else %}
-            <a href="{{ url_for('auth.login') }}">Login</a>
-            <a href="{{ url_for('auth.register') }}">Register</a>
+            <a href="{{ url_for('auth.login') }}">로그인</a>
+            <a href="{{ url_for('auth.register') }}">회원가입</a>
         {% endif %}
     </div>
 </div>
