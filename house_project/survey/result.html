@@ -19,6 +19,22 @@
         }
         body { background-color: var(--bg); padding-bottom: 100px; margin: 0; }
         
+        /* 🔥 [통일된 상단바 스타일 추가] */
+        .navbar {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 20px 6%; /* 5% 여백 */
+            width: 100%; box-sizing: border-box;
+            background-color: #222; /* 검정 배경 */
+        }
+        .navbar a {
+            font-size: 1.25rem; font-weight: 700; text-decoration: none;
+            color: #fff; margin: 0 15px; transition: color 0.3s;
+        }
+        .navbar a:hover { color: #007bff; }
+        .welcome-text { font-size: 1.1rem; margin-right: 15px; color: #fff; }
+
+        /* 기존 .nav-left a 스타일 등이 충돌나지 않게 덮어씀 */
+        .nav-left a, .nav-links a { margin-left: 15px; margin-right: 15px; }
 
         /* --- [TOP 3 영역 디자인 복원 및 사이즈 확대] --- */
         .top-three-area {
@@ -52,8 +68,6 @@
             cursor: pointer;
             transition: transform 0.3s ease;
             position: relative;
-            
-            /* 🔥 사이즈 조절 핵심 */
             width: 320px; 
             display: flex;
             flex-direction: column;
@@ -151,16 +165,17 @@
 
 <div class="navbar">
     <div class="nav-left">
-        <a href="{{ url_for('main.index') }}">Home</a>
+        <a href="{{ url_for('main.index') }}">메인페이지</a>
         <a href="{{ url_for('find.find') }}">매물찾기</a>
     </div>
     <div class="nav-links">
         {% if session.get('user_id') %}
-            <a href="{{ url_for('mypage.mypage') }}">My Page</a>
-            <a href="{{ url_for('auth.logout') }}">Logout</a>
+            <span class="welcome-text"><strong>{{ session.get('nickname') }}</strong>님</span>
+            <a href="{{ url_for('mypage.mypage') }}">마이페이지</a>
+            <a href="{{ url_for('auth.logout') }}">로그아웃</a>
         {% else %}
-            <a href="{{ url_for('auth.login') }}">Login</a>
-            <a href="{{ url_for('auth.register') }}">Register</a>
+            <a href="{{ url_for('auth.login') }}">로그인</a>
+            <a href="{{ url_for('auth.register') }}">회원가입</a>
         {% endif %}
     </div>
 </div>
@@ -192,7 +207,7 @@
     <div class="podium-grid">
         {% if top_3|length >= 3 %}
             
-            {# --- [2위 카드] (좌측) --- #}
+            {# --- [2위 카드] --- #}
             <div class="top-card rank-2" onclick="location.href='/find?id={{ top_3[1]._id_str }}'">
                 <div class="rank-badge">2위</div>
                 <div class="img-wrapper">
@@ -202,7 +217,6 @@
                     <div class="match-rate">{{ top_3[1].match_score | round(1) }}점</div>
                     <span class="price">{{ top_3[1].rent_type }} {{ top_3[1].price_display }}만원</span>
                     <span class="addr">{{ top_3[1].address }}</span>
-                    
                     {% if top_3[1].ai_comment %}
                     <div class="ai-comment-box">
                         <span class="ai-badge">🤖 AI 분석</span>
@@ -212,7 +226,7 @@
                 </div>
             </div>
 
-            {# --- [1위 카드] (중앙, 가장 큼) --- #}
+            {# --- [1위 카드] --- #}
             <div class="top-card rank-1" onclick="location.href='/find?id={{ top_3[0]._id_str }}'">
                 <div class="rank-badge gold">1위</div>
                 <div class="img-wrapper">
@@ -222,7 +236,6 @@
                     <div class="match-rate main">{{ top_3[0].match_score | round(1) }}점</div>
                     <span class="price big">{{ top_3[0].rent_type }} {{ top_3[0].price_display }}만원</span>
                     <span class="addr">{{ top_3[0].address }}</span>
-
                     {% if top_3[0].ai_comment %}
                     <div class="ai-comment-box">
                         <span class="ai-badge">👑 AI 강력 추천</span>
@@ -232,7 +245,7 @@
                 </div>
             </div>
 
-            {# --- [3위 카드] (우측) --- #}
+            {# --- [3위 카드] --- #}
             <div class="top-card rank-3" onclick="location.href='/find?id={{ top_3[2]._id_str }}'">
                 <div class="rank-badge">3위</div>
                 <div class="img-wrapper">
@@ -242,7 +255,6 @@
                     <div class="match-rate">{{ top_3[2].match_score | round(1) }}점</div>
                     <span class="price">{{ top_3[2].rent_type }} {{ top_3[2].price_display }}만원</span>
                     <span class="addr">{{ top_3[2].address }}</span>
-
                     {% if top_3[2].ai_comment %}
                     <div class="ai-comment-box">
                         <span class="ai-badge">🤖 AI 분석</span>
@@ -284,9 +296,7 @@
 <script>
     function showMore() {
         const hiddenItems = document.querySelectorAll('.hidden-item');
-        hiddenItems.forEach(item => {
-            item.style.display = 'flex';
-        });
+        hiddenItems.forEach(item => { item.style.display = 'flex'; });
         document.getElementById('load-more-btn').style.display = 'none';
     }
 

@@ -239,7 +239,39 @@ def toggle_favorite():
     return jsonify({"success": False, "status": "not_found"})
 
 # -----------------------------------------------------------
-# 5. 회원 탈퇴
+# ５. 찜 목록 다중 삭제 (모달용)
+# -----------------------------------------------------------
+@mypage_bp.route('/delete_favorites', methods=['POST'])
+def delete_favorites():
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': '로그인이 필요합니다.'}), 401
+
+    user_email = session['user_id']
+    data = request.get_json()
+    fav_ids = data.get('ids', []) # JS에서 보낸 ["47837176", "47712503"] 형태의 리스트
+
+    if not fav_ids:
+        return jsonify({'success': False, 'message': '삭제할 항목이 선택되지 않았습니다.'}), 400
+
+    try:
+        # DB 구조상 favorites 배열 내부에 객체들이 있고, 각 객체는 'id' 필드를 가짐
+        # $pull 연산자와 $in을 사용하여 선택된 모든 ID를 배열에서 한 번에 제거
+        result = users_col.update_one(
+            {'email': user_email},
+            {'$pull': {'favorites': {'id': {'$in': fav_ids}}}}
+        )
+
+        if result.modified_count > 0:
+            return jsonify({'success': True})
+        else:
+            return jsonify({'success': False, 'message': '삭제할 항목을 찾지 못했거나 이미 삭제되었습니다.'})
+
+    except Exception as e:
+        print(f"다중 삭제 에러: {e}")
+        return jsonify({'success': False, 'message': '서버 오류가 발생했습니다.'}), 500
+
+# -----------------------------------------------------------
+# ６. 회원 탈퇴
 # -----------------------------------------------------------
 @mypage_bp.route('/delete_confirm')
 def delete_confirm():
