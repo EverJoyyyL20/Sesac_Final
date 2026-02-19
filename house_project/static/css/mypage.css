@@ -66,6 +66,7 @@
     padding: 35px; 
     min-height: 280px; 
     min-width: 0; /* 자식 요소의 오버플로우 방지 핵심 */
+    position: relative;
 }
 
 .box-header { margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; }
@@ -130,22 +131,76 @@
     text-overflow: ellipsis; /* 주소가 길어도 카드를 밀어내지 않고 생략 */
 }
 
-/* 네비게이션 버튼 */
+/* --- 6. 네비게이션 버튼 (레이아웃 위로 완전히 띄우기) --- */
 .nav-btn {
+    /* 1. 위치 기준을 상위 부모인 .content-box로 강제 고정 */
     position: absolute;
-    top: 50%;
+    top: 50%; 
     transform: translateY(-50%);
-    z-index: 10;
-    background: white;
-    border: 1px solid #ddd;
-    border-radius: 50%;
-    width: 36px;
-    height: 36px;
+    
+    /* 2. 어떤 레이아웃보다 위에 떠 있게 설정 */
+    z-index: 100; 
+    
+    /* 3. 디자인 제거 (배경, 동그라미, 그림자 삭제) */
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    
+    /* 4. 화살표 가독성 */
+    font-size: 35px; /* 크기를 좀 더 키워 시원하게 만듦 */
+    color: #888;    /* 화살표 색상 */
     cursor: pointer;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    padding: 0;
+    transition: all 0.2s;
 }
-.nav-btn.prev { left: -5px; }
-.nav-btn.next { right: -5px; }
+
+.nav-btn:hover {
+    color: #4facfe;
+    transform: translateY(-50%) scale(1.2);
+}
+
+/* 5. 가장자리 끝으로 밀기 (content-box 패딩 영역으로 탈출) */
+.nav-btn.prev { 
+    /* 박스 왼쪽 경계선에서 살짝 안으로 배치 */
+    left: 5px !important; 
+}
+
+.nav-btn.next { 
+    /* 박스 오른쪽 경계선에서 살짝 안으로 배치 */
+    right: 5px !important; 
+}
+
+/* --- 찜한 매물 섹션(두 번째 content-box)의 화살표만 수정 --- */
+.content-section .content-box:last-child .nav-btn {
+    background: transparent !important; /* 배경 제거 */
+    border: none !important;            /* 테두리 제거 */
+    color: #888 !important;             /* 화살표 본래 색 */
+    
+    /* 🔥 화살표 기호 모양을 따라 흰색 테두리 생성 */
+    text-shadow: 
+        -1.5px -1.5px 0 #fff,  
+         0px -1.5px 0 #fff,
+         1.5px -1.5px 0 #fff,
+        -1.5px  0px 0 #fff,
+         1.5px  0px 0 #fff,
+        -1.5px  1.5px 0 #fff,
+         0px  1.5px 0 #fff,
+         1.5px  1.5px 0 #fff;
+    
+    font-size: 35px;
+    z-index: 100;
+}
+
+/* 호버 시 효과 */
+.content-section .content-box:last-child .nav-btn:hover {
+    color: #4facfe !important;
+    transform: translateY(-50%) scale(1.1);
+    text-shadow: 
+        -1.5px -1.5px 0 #fff,  
+         1.5px -1.5px 0 #fff,
+        -1.5px  1.5px 0 #fff,
+         1.5px  1.5px 0 #fff;
+}
 
 /* 공용 요소 */
 .empty-box { text-align: center; padding: 60px 0; color: #ccc; font-size: 14px; }
