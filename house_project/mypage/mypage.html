@@ -193,8 +193,8 @@
     <div class="profile-card">
         <div class="profile-left">
             <img class="profile-img-preview" 
-                src="{{ url_for('mypage.external_profile_pic', filename=(profile_img if profile_img else 'default.png')) }}" 
-                onerror="this.src='{{ url_for('mypage.external_profile_pic', filename='default.png') }}'"
+                src="{{ url_for('static', filename='profile_pics/' + (profile_img if profile_img else 'default.png')) }}" 
+                onerror="this.src='{{ url_for('static', filename='profile_pics/default.png') }}'"
                 alt="프로필 사진">
         </div>
         <div class="profile-right">
@@ -271,10 +271,19 @@
             <div class="box-header">
                 <h3>❤️ 내가 찜한 매물</h3>
                 <div class="header-right">
-                    <span class="count-badge red">{{ favorites|length if favorites else 0 }}개</span>
                     <a href="#" class="view-all" onclick="openModal('property')">전체보기</a>
                 </div>
             </div>
+            
+            {% if total_count > 0 %}
+            <div class="wishlist-summary" style="margin: 0 20px 15px 20px; padding: 12px 15px; background-color: #fff5f5; border-radius: 10px; border: 1px solid #ffe3e3;">
+                <p style="margin: 0; font-size: 0.95rem; color: #444;">
+                    🏠 현재 찜한 매물 <strong>{{ total_count }}</strong>개 중 
+                    <span style="color: #ff5a5f; font-weight: 600;">전세 {{ jeonse_count }}개</span> / 
+                    <span style="color: #ff5a5f; font-weight: 600;">월세 {{ wolse_count }}개</span>가 있습니다.
+                </p>
+            </div>
+            {% endif %}
             
             <div class="slider-container">
                 {% if favorites %}
