@@ -165,6 +165,27 @@
     </div>
 </div>
 
+{% set total_count = (top_3|length) + (others|length) %}
+
+{% if total_count == 0 %}
+
+<section style="max-width:900px;margin:120px auto;text-align:center;">
+    <h1 style="font-size:2rem;margin-bottom:20px;">🔍 검색 결과가 없습니다</h1>
+    <p style="font-size:1.2rem;color:#666;margin-bottom:30px;">
+        설정하신 매물 검색 범위에 해당하는 매물이 없습니다.<br>
+        <b>조건을 조금 넓혀 다시 검색해보세요.</b>
+    </p>
+
+    <a href="{{ url_for('find.find') }}"
+       style="display:inline-block;padding:15px 35px;
+              background:#6c5ce7;color:white;border-radius:30px;
+              text-decoration:none;font-weight:bold;">
+        🔄 검색 조건 다시 설정하기
+    </a>
+</section>
+
+{% else %}
+
 <section class="top-three-area">
     <div class="section-title">🏆 {{ session.get('nickname', '회원') }}님을 위한 맞춤 추천 TOP 3</div>
     
@@ -275,6 +296,6 @@
     location.href = '/'; 
     };
 </script>
-
+{% endif %}
 </body>
 </html>
