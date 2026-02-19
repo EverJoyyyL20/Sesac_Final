@@ -78,7 +78,7 @@
             
             <div class="profile-left" style="flex: 0 0 150px; text-align: center;">
                 <img id="preview" class="profile-img-preview" 
-                     src="{{ url_for('static', filename='profile_pics/' + profile_img) if profile_img else url_for('static', filename='profile_pics/default.png') }}" 
+                     src="{{ url_for('mypage.external_profile_pic', filename=profile_img) }}"
                      style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover; border: 2px solid #eee;">
                 <div style="margin-top: 12px;">
                     <label for="profile_img" class="file-label" style="font-size: 0.8rem; padding: 6px 12px; cursor: pointer;">사진 변경</label>

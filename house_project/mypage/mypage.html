@@ -193,8 +193,9 @@
     <div class="profile-card">
         <div class="profile-left">
             <img class="profile-img-preview" 
-                 src="{{ url_for('static', filename='profile_pics/' + profile_img) if profile_img and profile_img != 'default.png' else url_for('static', filename='profile_pics/default.png') }}" 
-                 alt="프로필 사진">
+                src="{{ url_for('mypage.external_profile_pic', filename=(profile_img if profile_img else 'default.png')) }}" 
+                onerror="this.src='{{ url_for('mypage.external_profile_pic', filename='default.png') }}'"
+                alt="프로필 사진">
         </div>
         <div class="profile-right">
             <div class="info-row"><span class="info-label">이메일</span><span class="info-value">{{ user_email }}</span></div>
