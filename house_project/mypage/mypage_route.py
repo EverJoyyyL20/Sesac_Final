@@ -4,6 +4,7 @@ from werkzeug.utils import secure_filename
 from werkzeug.security import check_password_hash, generate_password_hash
 from database import users_col, houses_col, db  
 from bson.objectid import ObjectId
+from flask import send_from_directory
 
 # 🔥 [핵심] 이 줄이 있어야 app.py에서 import 할 수 있습니다!
 mypage_bp = Blueprint('mypage', __name__, template_folder='.')
@@ -293,3 +294,14 @@ def delete_user():
     users_col.delete_one({'email': user_email})
     session.clear()
     return "<script>alert('탈퇴가 완료되었습니다. 이용해주셔서 감사합니다.'); location.href='/';</script>"
+
+
+# -----------------------------------------------------------
+# 7. 기본 프로필 이미지
+# -----------------------------------------------------------
+# 밖의 static/profile_pics 폴더에서 파일을 읽어주는 전용 통로
+@mypage_bp.route('/external_profile_pic/<filename>')
+def external_profile_pic(filename):
+    # house_project 폴더 밖의 static/profile_pics 경로를 지정
+    external_path = os.path.join(os.getcwd(), '..', 'static', 'profile_pics')
+    return send_from_directory(external_path, filename)
