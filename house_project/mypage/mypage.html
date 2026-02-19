@@ -215,7 +215,7 @@
                 <h3>📝 최근 설문 목록</h3>
                 <div class="header-right">
                     <span class="count-badge">{{ surveys|length if surveys else 0 }}건</span>
-                    <a href="#" class="view-all" onclick="openModal('survey')">전체보기</a>
+                    <a href="#" class="view-all" onclick="openModal(event, 'survey')">전체보기</a>
                 </div>
             </div>
             
@@ -271,7 +271,7 @@
             <div class="box-header">
                 <h3>❤️ 내가 찜한 매물</h3>
                 <div class="header-right">
-                    <a href="#" class="view-all" onclick="openModal('property')">전체보기</a>
+                    <a href="#" class="view-all" onclick="openModal(event, 'property')">전체보기</a>
                 </div>
             </div>
             
@@ -358,7 +358,9 @@
 
     let isEditMode = false;
 
-    function openModal(type) {
+    function openModal(event, type) {
+        if (event) event.preventDefault(); // 주소창 뒤에 #이 붙는 것을 막아줌.
+
         const modal = document.getElementById('commonModal');
         const title = document.getElementById('modalTitle');
         const body = document.getElementById('modalBody');
