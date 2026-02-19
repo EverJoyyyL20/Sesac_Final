@@ -5,18 +5,43 @@
     <title>로그인 - 안전한 집 찾기</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+    <style>
+        /* 🔥 [통일된 상단바 스타일 추가] */
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 6%; 
+            width: 100%;
+            box-sizing: border-box;
+            background-color: #222;
+        }
+        .navbar a {
+            font-size: 1.25rem; 
+            font-weight: 700;   
+            text-decoration: none;
+            color: #fff;        
+            margin: 0 15px;     
+            transition: color 0.3s;
+        }
+        .navbar a:hover { color: #007bff; }
+        .welcome-text {
+            font-size: 1.1rem;
+            margin-right: 15px;
+            color: #fff;
+        }
+    </style>
 </head>
 <body>
 
 <div class="navbar">
     <div class="nav-left">
-        <a href="{{ url_for('main.index') }}">Home</a>
+        <a href="{{ url_for('main.index') }}">메인페이지</a>
         <a href="{{ url_for('find.find') }}">매물찾기</a>
     </div>
-    
     <div class="nav-links">
-        <a href="{{ url_for('auth.login') }}">Login</a>
-        <a href="{{ url_for('auth.register') }}">Register</a>
+        <a href="{{ url_for('auth.login') }}">로그인</a>
+        <a href="{{ url_for('auth.register') }}">회원가입</a>
     </div>
 </div>
 
