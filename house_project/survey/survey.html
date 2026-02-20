@@ -7,18 +7,55 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/survey.css') }}">
     <style>
+        /* 🔥 [수정됨] 상단바 스타일: 폰트 강제 지정 삭제 & 자간 초기화 */
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 6%; 
+            width: 100%;
+            box-sizing: border-box;
+            background-color: #222; 
+            
+            /* main.html과 동일하게 폰트 지정 코드 삭제함 */
+            /* 혹시 모를 survey.css의 간섭을 막기 위해 자간(글자 간격)을 0으로 고정 */
+            letter-spacing: 0px; 
+        }
+
+        .navbar a {
+            font-size: 1.25rem; 
+            font-weight: 700;   
+            text-decoration: none;
+            color: #fff;        
+            margin: 0 15px;     
+            transition: color 0.3s;
+            
+            /* 링크 자간도 초기화 */
+            letter-spacing: 0px;
+        }
+
+        .navbar a:hover {
+            color: #007bff; 
+        }
+
+        .welcome-text {
+            font-size: 1.1rem;
+            margin-right: 15px;
+            color: #fff; 
+            letter-spacing: 0px;
+        }
+
+        /* --- 기존 설문 페이지 스타일 (유지) --- */
         #loading-screen { display: none; text-align: center; padding: 50px 20px; }
         .q-card { display: none; }
         .q-card.active { display: block; animation: fadeIn 0.5s ease; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .selected { background-color: #4facfe !important; color: white !important; border-color: #4facfe !important; }
         .conditional-area { display: none; margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 12px; }
-        /* 범위 입력 필드 나란히 배치 */
         .range-group { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
         .range-group input { flex: 1; }
         .range-sep { font-weight: bold; color: #666; }
         
-        /* 이전 버튼용 스타일 추가 */
         .back-btn { 
             background: #eee; 
             color: #666; 
@@ -32,6 +69,24 @@
     </style>
 </head>
 <body>
+
+<div class="navbar">
+    <div class="nav-left">
+        <a href="{{ url_for('main.index') }}">메인페이지</a>
+        <a href="{{ url_for('find.find') }}">매물찾기</a>
+    </div>
+
+    <div class="nav-links">
+        {% if session.get('user_id') %}
+            <span class="welcome-text"><strong>{{ session.get('nickname') }}</strong>님</span>
+            <a href="{{ url_for('mypage.mypage') }}">마이페이지</a>
+            <a href="{{ url_for('auth.logout') }}">로그아웃</a>
+        {% else %}
+            <a href="{{ url_for('auth.login') }}">로그인</a>
+            <a href="{{ url_for('auth.register') }}">회원가입</a>
+        {% endif %}
+    </div>
+</div>
 
 <div class="survey-wrapper">
     <div class="progress-area">
@@ -136,7 +191,6 @@
         category_log: [] 
     };
 
-    // [수정] 초기 상태를 history에 기록 (뒤로가기 제어용)
     history.replaceState({idx: 0}, "Step 0");
 
     function updateUI() {
@@ -145,33 +199,24 @@
         document.getElementById('status-txt').innerText = `${percent}% 분석 중...`;
     }
 
-    // [수정] nextStep 함수에 history.pushState 추가
     function nextStep(idx) {
         document.getElementById(`step-${currentIdx}`).classList.remove('active');
         currentIdx = idx;
         document.getElementById(`step-${currentIdx}`).classList.add('active');
-        
-        // 브라우저 뒤로가기 시 이벤트를 발생시키기 위해 상태 저장
         history.pushState({idx: idx}, `Step ${idx}`);
-        
         updateUI();
         window.scrollTo(0, 0);
     }
 
-    // [수정] prevStep 함수 새로 추가
     function prevStep(idx) {
         document.getElementById(`step-${currentIdx}`).classList.remove('active');
         currentIdx = idx;
         document.getElementById(`step-${currentIdx}`).classList.add('active');
-        
-        // 이전으로 갈 때는 pushState 대신 replaceState를 써서 히스토리 중복 방지 가능
         history.replaceState({idx: idx}, `Step ${idx}`);
-        
         updateUI();
         window.scrollTo(0, 0);
     }
 
-    // [수정] 브라우저 뒤로가기 감지 로직 추가
     window.onpopstate = function(event) {
         if (event.state && typeof event.state.idx === 'number') {
             document.getElementById(`step-${currentIdx}`).classList.remove('active');
@@ -204,7 +249,6 @@
             surveyResults.budget.max_rent = 0;
         }
 
-        // 간단한 유효성 검사 (최소가 최대보다 클 경우)
         if (parseInt(surveyResults.budget.min_dep) > parseInt(surveyResults.budget.max_dep) && surveyResults.budget.max_dep != 0) {
             alert("최소 보증금이 최대 보증금보다 클 수 없습니다.");
             return;

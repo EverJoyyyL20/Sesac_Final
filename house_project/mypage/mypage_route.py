@@ -9,7 +9,8 @@ from bson.objectid import ObjectId
 mypage_bp = Blueprint('mypage', __name__, template_folder='.')
 
 # 프로필 사진 저장 경로 및 허용 확장자
-UPLOAD_FOLDER = 'static/profile_pics'
+BASE_DIR = os.path.dirname(os.path.abspath(__file__)) # 현재 파일(mypage_route.py) 위치
+UPLOAD_FOLDER = os.path.join(BASE_DIR, 'static', 'profile_pics')
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
 def allowed_file(filename):
@@ -34,21 +35,24 @@ def disable_setup_popup():
 # -----------------------------------------------------------
 @mypage_bp.route('/mypage')
 def mypage():
+    # 1. 세션 및 사용자 확인
     if 'user_id' not in session:
         return redirect(url_for('auth.login'))
 
     user_email = session['user_id']
     user = users_col.find_one({'email': user_email})
     
+    # 사용자가 DB에 없을 경우 세션 클리어 후 로그인 페이지로
     if not user:
         session.clear()
         return redirect(url_for('auth.login'))
 
-    # 1. 설문 데이터 가져오기 및 가공
+    # 2. 설문 데이터 가져오기 및 가공
     raw_surveys = list(db.survey_results.find({"user_id": user_email}).sort("created_at", -1))
     surveys = []
     
     for s in raw_surveys:
+        # 계약 형태에 따른 예산 텍스트 가공
         if s.get('contract_type') == 'monthly':
             rent_val = s.get('budget', {}).get('max_rent', '0')
             dep_val = s.get('budget', {}).get('max_dep', '0')
@@ -80,11 +84,14 @@ def mypage():
         }
         surveys.append(summary)
 
-    # 2. 찜 목록 데이터 가공 (이미지 안 나올 때 DB 재조회하는 안전 로직 포함)
+    # 3. 찜 목록 데이터 가공 및 개수 집계
     raw_favorites = user.get('favorites', [])
     processed_favorites = [] 
+    jeonse_count = 0
+    wolse_count = 0
 
     for fav in raw_favorites:
+        # 데이터 유효성 검사
         if isinstance(fav, (str, ObjectId)):
             continue
         if not isinstance(fav, dict):
@@ -95,12 +102,18 @@ def mypage():
         
         fav['_id_str'] = str(fav_id)
 
-        # 가격 표시 가공
+        # A. 가격 표시 가공 및 개수 집계
         r_type = fav.get('rent_type', '')
         p_val = fav.get('price', 0)
         d_val = fav.get('deposit', 0)
+        
+        # 전세/월세 개수 카운트 (데이터 가공 전 키워드 및 타입 확인)
+        if r_type == '전세' or '전세' in str(p_val):
+            jeonse_count += 1
+        elif r_type == '월세' or '월세' in str(p_val):
+            wolse_count += 1
 
-        # 가격이 숫자인지 체크
+        # 가격 숫자 처리 및 텍스트화
         try:
             p_val_str = str(p_val).replace(',', '')
             if p_val_str.isdigit() or isinstance(p_val, (int, float)):
@@ -111,17 +124,15 @@ def mypage():
         except:
             pass
         
-        # 이미지 처리 (DB user 컬렉션에 저장된 images 배열 사용)
+        # B. 이미지 처리 (안전장치 포함)
         img_list = fav.get('images', [])
         
-        # 🔥 [안전장치] 만약 저장된 이미지가 없다면 DB에서 다시 조회 (Fallback)
+        # [안전장치] 이미지가 없다면 DB에서 재조회
         if not img_list:
             try:
                 rh = None
-                # 숫자 ID로 재조회 (직방)
                 if str(fav_id).isdigit():
-                     rh = houses_col.find_one({'_id': int(fav_id)})
-                # 없으면 문자/ObjectId로 재조회
+                    rh = houses_col.find_one({'_id': int(fav_id)})
                 if not rh:
                     rh = houses_col.find_one({'_id': fav_id})
                 if not rh:
@@ -141,22 +152,25 @@ def mypage():
             
         if len(img_list) > 0 and img_list[0]:
             raw_url = str(img_list[0])
-            if '?' in raw_url:
-                fav['main_image'] = raw_url + '&w=800'
-            else:
-                fav['main_image'] = raw_url + '?w=800'
+            # 사이즈 조절 파라미터 추가
+            fav['main_image'] = raw_url + ('&w=800' if '?' in raw_url else '?w=800')
         else:
+            # 기본 룸 이미지
             fav['main_image'] = url_for('static', filename='img/default_room.jpg')
             
         processed_favorites.append(fav)
 
+    # 4. 최종 결과 렌더링 (한 번의 리턴으로 모든 데이터를 보냄)
     return render_template('mypage.html', 
                             user_email=user['email'], 
                             nickname=user.get('nickname', '닉네임 없음'),
                             introduction=user.get('introduction', ''),
                             profile_img=user.get('Profile_IMG', 'default.png'),
                             surveys=surveys,
-                            favorites=processed_favorites)
+                            favorites=processed_favorites,
+                            total_count=len(processed_favorites),
+                            jeonse_count=jeonse_count,
+                            wolse_count=wolse_count)
 
 # -----------------------------------------------------------
 # 3. 프로필 수정 관련
@@ -239,7 +253,39 @@ def toggle_favorite():
     return jsonify({"success": False, "status": "not_found"})
 
 # -----------------------------------------------------------
-# 5. 회원 탈퇴
+# ５. 찜 목록 다중 삭제 (모달용)
+# -----------------------------------------------------------
+@mypage_bp.route('/delete_favorites', methods=['POST'])
+def delete_favorites():
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': '로그인이 필요합니다.'}), 401
+
+    user_email = session['user_id']
+    data = request.get_json()
+    fav_ids = data.get('ids', []) # JS에서 보낸 ["47837176", "47712503"] 형태의 리스트
+
+    if not fav_ids:
+        return jsonify({'success': False, 'message': '삭제할 항목이 선택되지 않았습니다.'}), 400
+
+    try:
+        # DB 구조상 favorites 배열 내부에 객체들이 있고, 각 객체는 'id' 필드를 가짐
+        # $pull 연산자와 $in을 사용하여 선택된 모든 ID를 배열에서 한 번에 제거
+        result = users_col.update_one(
+            {'email': user_email},
+            {'$pull': {'favorites': {'id': {'$in': fav_ids}}}}
+        )
+
+        if result.modified_count > 0:
+            return jsonify({'success': True})
+        else:
+            return jsonify({'success': False, 'message': '삭제할 항목을 찾지 못했거나 이미 삭제되었습니다.'})
+
+    except Exception as e:
+        print(f"다중 삭제 에러: {e}")
+        return jsonify({'success': False, 'message': '서버 오류가 발생했습니다.'}), 500
+
+# -----------------------------------------------------------
+# ６. 회원 탈퇴
 # -----------------------------------------------------------
 @mypage_bp.route('/delete_confirm')
 def delete_confirm():
