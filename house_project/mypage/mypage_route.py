@@ -205,6 +205,7 @@ def update_profile():
     confirm_pw = request.form.get('confirm_password')
     update_data = {'nickname': new_nickname, 'introduction': new_introduction}
     
+    # 비밀번호 변경 로직
     if new_pw:
         if not current_pw or not check_password_hash(user.get('PW', ''), current_pw):
             return "<script>alert('현재 비밀번호가 일치하지 않습니다.'); history.back();</script>"
@@ -212,19 +213,20 @@ def update_profile():
             return "<script>alert('새 비밀번호 확인이 일치하지 않습니다.'); history.back();</script>"
         update_data['PW'] = generate_password_hash(new_pw)
         
+    # 닉네임 중복 체크
     if new_nickname:
         existing_user = users_col.find_one({'nickname': new_nickname, 'email': {'$ne': session['user_id']}})
         if existing_user:
             return "<script>alert('이미 사용 중인 닉네임입니다.'); history.back();</script>"
-    
-    # 서버측 로직 예시
+
+    # 🔥 [이미지 처리 로직 수정]
     is_default = request.form.get('is_default_img') == 'true'
 
     if is_default:
-        # DB의 profile_img 컬럼을 'default.png'로 업데이트
-        user.profile_img = 'default.png'
-    elif 'profile_img' in request.files:
-        # 파일 업로드 처리 로직 실행
+        # 1. 기본 이미지로 변경 선택 시
+        update_data['Profile_IMG'] = 'default.png'
+    else:
+        # 2. 새로운 파일 업로드 시
         file = request.files.get('profile_img')
         if file and file.filename != '' and allowed_file(file.filename):
             if not os.path.exists(UPLOAD_FOLDER): os.makedirs(UPLOAD_FOLDER)
@@ -232,7 +234,8 @@ def update_profile():
             filename = secure_filename(f"user_{user_prefix}_{file.filename}")
             file.save(os.path.join(UPLOAD_FOLDER, filename))
             update_data['Profile_IMG'] = filename
-    
+
+    # 최종 DB 업데이트 (모든 변경사항을 한 번에 반영)
     users_col.update_one({'email': session['user_id']}, {'$set': update_data})
     session['nickname'] = new_nickname
     
