@@ -80,14 +80,27 @@
                 <img id="preview" class="profile-img-preview" 
                      src="{{ url_for('static', filename='profile_pics/' + (profile_img if profile_img else 'default.png')) }}"
                      style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover; border: 2px solid #eee;">
-                <div style="margin-top: 12px;">
-                    <label for="profile_img" class="file-label" style="font-size: 0.8rem; padding: 6px 12px; cursor: pointer;">사진 변경</label>
+                <div style="margin-top: 20px; display: flex; justify-content: center; gap: 12px; width: 100%;">
+                    <button type="button" onclick="resetToDefault()" 
+                            style="flex: 0 0 auto; min-width: 80px; font-size: 0.85rem; padding: 8px 16px; 
+                                background-color: #fff; border: 1px solid #e0e0e0; border-radius: 8px; 
+                                cursor: pointer; color: #777; font-weight: 500; white-space: nowrap; transition: 0.2s;">
+                        기본으로
+                    </button>
+
+                    <label for="profile_img" class="file-label" 
+                        style="flex: 0 0 auto; min-width: 80px; font-size: 0.85rem; padding: 8px 16px; 
+                                background-color: #f2f4f6; border-radius: 8px; cursor: pointer; 
+                                color: #444; font-weight: 600; white-space: nowrap; text-align: center; transition: 0.2s;">
+                        사진 변경
+                    </label>
+
                     <input type="file" id="profile_img" name="profile_img" accept="image/*" style="display: none;" onchange="previewImage(this)">
                 </div>
             </div>
 
             <div class="profile-right" style="flex: 1;">
-                <h2 style="margin-bottom: 20px; font-weight: 800; font-size: 1.5rem;">내 정보 수정</h2>
+                <h2 style="margin-bottom: 15px; font-weight: 800; font-size: 1.5rem;">내 정보 수정</h2>
                 
                 <div class="info-row" style="margin-bottom: 15px; display: flex; align-items: center; border: none;">
                     <span class="info-label" style="width: 100px; font-size: 0.95rem; font-weight: 700; border: none;">닉네임</span>
@@ -126,6 +139,35 @@
         </form>
     </div>
 </div>
+
+<script>
+function resetToDefault() {
+    // 생성된 주소가 무엇인지 콘솔(F12)에서 확인해 보세요!
+    const targetUrl = "{{ url_for('mypage.reset_default_image') }}";
+    console.log("요청 주소:", targetUrl);
+
+    if (confirm("프로필 이미지를 기본 이미지로 변경하시겠습니까?")) {
+        fetch(targetUrl, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json' 
+            }
+            // credentials: 'include' 옵션은 같은 도메인일 때 보통 자동이지만, 
+            // 혹시 모르니 문제가 계속되면 추가해볼 수 있습니다.
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                alert("기본 이미지로 변경되었습니다.");
+                location.reload(); 
+            } else {
+                // 여기서 '로그인이 필요합니다'가 뜬다면 서버 세션 체크 로직 문제!
+                alert(data.message); 
+            }
+        });
+    }
+}
+</script>
 
 <script>
     function previewImage(input) {
