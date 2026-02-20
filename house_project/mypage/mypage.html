@@ -190,17 +190,18 @@
 </div>
 
 <div class="container">
-    <div class="profile-card">
-        <div class="profile-left">
+    <div class="profile-card" style="padding-top: 15px; padding-bottom: 20px;"> <div class="profile-left" style="display: flex; flex-direction: column; align-items: center; justify-content: flex-start; margin-top: -10px;"> 
             <img class="profile-img-preview" 
                 src="{{ url_for('static', filename='profile_pics/' + (profile_img if profile_img else 'default.png')) }}" 
                 onerror="this.src='{{ url_for('static', filename='profile_pics/default.png') }}'"
-                alt="프로필 사진">
+                alt="프로필 사진"
+                style="width: 120px; height: 120px; margin-bottom: 10px;"> <strong style="font-size: 1.1rem; color: #333;">{{ nickname if nickname else '닉네임 없음' }}</strong>
         </div>
+
         <div class="profile-right">
             <div class="info-row"><span class="info-label">이메일</span><span class="info-value">{{ user_email }}</span></div>
-            <div class="info-row"><span class="info-label">닉네임</span><span class="info-value">{{ nickname if nickname else '설정된 닉네임이 없습니다.' }}</span></div>
             <div class="info-row"><span class="info-label">한줄소개</span><span class="info-value">{{ introduction if introduction else '' }}</span></div>
+            
             <div class="btn-group">
                 <a href="{{ url_for('mypage.edit_profile') }}" class="btn-edit">내 정보 수정</a>
                 <a href="{{ url_for('mypage.delete_confirm') }}" class="btn-withdraw">회원 탈퇴</a>

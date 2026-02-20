@@ -9,8 +9,17 @@ from bson.objectid import ObjectId
 mypage_bp = Blueprint('mypage', __name__, template_folder='.')
 
 # 프로필 사진 저장 경로 및 허용 확장자
-BASE_DIR = os.path.dirname(os.path.abspath(__file__)) # 현재 파일(mypage_route.py) 위치
+# 현재 파일의 위치: house_project/mypage/mypage_route.py
+# 1. os.path.dirname(__file__) -> house_project/mypage
+# 2. 다시 dirname -> house_project (여기가 진짜 루트!)
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 UPLOAD_FOLDER = os.path.join(BASE_DIR, 'static', 'profile_pics')
+
+# 폴더가 없으면 생성하는 코드 추가 (안전장치)
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
 def allowed_file(filename):
@@ -222,6 +231,26 @@ def update_profile():
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return jsonify({"success": True, "message": "성공적으로 수정되었습니다."})
     return f"<script>alert('성공적으로 수정되었습니다.'); location.href='{url_for('mypage.mypage')}';</script>"
+
+# mypage_route.py
+# 기본 이미지로 변경 함수 수정
+@mypage_bp.route('/reset_default_image', methods=['POST'])
+def reset_default_image():
+    user_email = session.get('user_id') # 현재 코드에서 이메일을 'user_id' 키로 쓰고 있음.
+    if not user_email:
+        return jsonify({'success': False, 'message': '로그인이 필요합니다.'})
+
+    # 1. DB 업데이트 (필드명을 'Profile_IMG'로 통일하고 조건도 'email'로 수정)
+    # 다른 함수들과 똑같이 {'email': user_email} 조건을 써야 함.
+    result = users_col.update_one(
+        {'email': user_email}, 
+        {'$set': {'Profile_IMG': 'default.png'}} 
+    )
+    
+    # 2. 세션 정보 업데이트 (마이페이지 렌더링 시 세션 정보를 쓸 수 있으니 동기화)
+    session['profile_img'] = 'default.png' 
+    
+    return jsonify({'success': True})
 
 # -----------------------------------------------------------
 # 4. 마이페이지 찜하기 토글 (필요 시 사용)
