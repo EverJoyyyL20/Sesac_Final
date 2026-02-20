@@ -59,3 +59,10 @@ body, html {
 .footer a:hover {
     text-decoration: underline;
 }
+
+/* 닉네임 표시 스타일 */
+.welcome-text {
+            font-size: 1.1rem;
+            margin-right: 15px;
+            color: #fff;
+        }
