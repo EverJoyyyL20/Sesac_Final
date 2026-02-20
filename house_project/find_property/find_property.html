@@ -33,6 +33,50 @@
             color: #fff; /* 흰색 글씨 */
         }
 
+
+.slider-btn:hover {
+    background-color: rgba(0, 0, 0, 0.8);
+}
+
+
+/* 왼쪽 버튼 위치 */
+.prev-btn {
+    left: 10px;
+}
+/* 오른쪽 버튼 위치 */
+.next-btn {
+    right: 10px;
+}
+    .no-img-placeholder {
+        width: 100%;
+        height: 150px;
+        background-color: #eee;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        color: #888;
+        font-size: 0.9em;
+        margin-bottom: 15px;
+    }
+/* 매물 상세 모달 텍스트 간격 개선 */
+.detail-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;            /* 아이콘과 텍스트 간격 */
+    margin-bottom: 10px; /* 줄 간격 */
+    font-size: 15px;
+}
+
+.detail-row span {
+    min-width: 70px;     /* 왼쪽 라벨 정렬 */
+    color: #666;
+}
+
+.detail-row b {
+    font-weight: 600;
+}
+
         /* --- 기존 스타일 유지 --- */
         .image-slider-wrapper { position: relative; width: 100%; margin-bottom: 15px; }
         .modal-img-container {
@@ -330,6 +374,11 @@ function openDetail(id) {
             if(prop.floor.includes("반지하")) floorClass += " floor-danger";
             else if(prop.floor.includes("옥탑")) floorClass += " floor-warn";
 
+            let parkingText = "정보없음";
+            if (prop.parking) {
+                if (prop.parking.includes("가능")) parkingText = "가능";
+                else parkingText = "불가";
+            }
             let imgHtml = '';
             if (Array.isArray(prop.images) && prop.images.length > 0) {
                 imgHtml += `<div class="image-slider-wrapper">`;
@@ -357,6 +406,9 @@ function openDetail(id) {
                 <div class="detail-row"><span>📍 주소</span><b>${prop.address}</b></div>
                 <div class="detail-row"><span>💰 가격</span><b style="color:#2ecc71; font-size:1.1em;">${formatPrice(prop)}</b></div>
                 <div class="detail-row"><span>🏢 층수</span><span class="${floorClass}">${prop.floor}</span></div>
+                <div class="detail-row"><span>📐 면적</span><b>${prop.area ?? '정보없음'} ㎡</b></div>
+                <div class="detail-row"><span>🏠 건물유형</span><b>${prop.buildtype ?? '정보없음'}</b></div>
+                <div class="detail-row"><span>🚗 주차</span><b>${prop.parking ? '가능' : '불가'}</b></div>
             `;
             document.getElementById('propertyModal').style.display = 'block';
         })
