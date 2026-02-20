@@ -90,35 +90,26 @@
                     <a href="{{ url_for('mypage.mypage') }}" class="btn-cancel">취소</a>
                 </div>
             </div>
+
+            <input type="hidden" id="is_default_img" name="is_default_img" value="false">
         </form>
     </div>
 </div>
 
 <script>
 function resetToDefault() {
-    // 생성된 주소가 무엇인지 콘솔(F12)에서 확인해 보세요!
-    const targetUrl = "{{ url_for('mypage.reset_default_image') }}";
-    console.log("요청 주소:", targetUrl);
-
     if (confirm("프로필 이미지를 기본 이미지로 변경하시겠습니까?")) {
-        fetch(targetUrl, {
-            method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json' 
-            }
-            // credentials: 'include' 옵션은 같은 도메인일 때 보통 자동이지만, 
-            // 혹시 모르니 문제가 계속되면 추가해볼 수 있습니다.
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                alert("기본 이미지로 변경되었습니다.");
-                location.reload(); 
-            } else {
-                // 여기서 '로그인이 필요합니다'가 뜬다면 서버 세션 체크 로직 문제!
-                alert(data.message); 
-            }
-        });
+        // 1. 미리보기 이미지를 기본 이미지 경로로 교체
+        const defaultImgPath = "{{ url_for('static', filename='profile_pics/default.png') }}";
+        document.getElementById('preview').src = defaultImgPath;
+        
+        // 2. 숨겨진 입력창 값을 true로 변경 (서버에 알림)
+        document.getElementById('is_default_img').value = "true";
+        
+        // 3. 파일 선택창(input type="file") 비우기 (새로 업로드하려던 사진 취소)
+        document.getElementById('profile_img').value = "";
+        
+        alert("기본 이미지로 설정되었습니다. '저장하기'를 눌러야 최종 반영됩니다.");
     }
 }
 </script>

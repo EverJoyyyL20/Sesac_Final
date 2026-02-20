@@ -216,14 +216,22 @@ def update_profile():
         existing_user = users_col.find_one({'nickname': new_nickname, 'email': {'$ne': session['user_id']}})
         if existing_user:
             return "<script>alert('이미 사용 중인 닉네임입니다.'); history.back();</script>"
-            
-    file = request.files.get('profile_img')
-    if file and file.filename != '' and allowed_file(file.filename):
-        if not os.path.exists(UPLOAD_FOLDER): os.makedirs(UPLOAD_FOLDER)
-        user_prefix = session['user_id'].split('@')[0]
-        filename = secure_filename(f"user_{user_prefix}_{file.filename}")
-        file.save(os.path.join(UPLOAD_FOLDER, filename))
-        update_data['Profile_IMG'] = filename
+    
+    # 서버측 로직 예시
+    is_default = request.form.get('is_default_img') == 'true'
+
+    if is_default:
+        # DB의 profile_img 컬럼을 'default.png'로 업데이트
+        user.profile_img = 'default.png'
+    elif 'profile_img' in request.files:
+        # 파일 업로드 처리 로직 실행
+        file = request.files.get('profile_img')
+        if file and file.filename != '' and allowed_file(file.filename):
+            if not os.path.exists(UPLOAD_FOLDER): os.makedirs(UPLOAD_FOLDER)
+            user_prefix = session['user_id'].split('@')[0]
+            filename = secure_filename(f"user_{user_prefix}_{file.filename}")
+            file.save(os.path.join(UPLOAD_FOLDER, filename))
+            update_data['Profile_IMG'] = filename
     
     users_col.update_one({'email': session['user_id']}, {'$set': update_data})
     session['nickname'] = new_nickname
