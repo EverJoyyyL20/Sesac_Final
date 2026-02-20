@@ -78,25 +78,25 @@
             <div id="monthly-area" class="conditional-area">
                 <p class="sub-q">보증금 범위 (만원)</p>
                 <div class="range-group">
-                    <input type="number" id="m_dep_min" class="input-field" placeholder="최소 (예: 500)">
+                    <input type="number" id="m_dep_min" class="input-field" placeholder="최소 (예: 500)" min="0"oninput="preventNegative(this)">
                     <span class="range-sep">~</span>
-                    <input type="number" id="m_dep_max" class="input-field" placeholder="최대 (예: 5000)">
+                    <input type="number" id="m_dep_max" class="input-field" placeholder="최대 (예: 5000)" min="0"oninput="preventNegative(this)">
                 </div>
                 
                 <p class="sub-q" style="margin-top:15px;">월세 범위 (만원)</p>
                 <div class="range-group">
-                    <input type="number" id="m_rent_min" class="input-field" placeholder="최소 (예: 30)">
+                    <input type="number" id="m_rent_min" class="input-field" placeholder="최소 (예: 30)" min="0"oninput="preventNegative(this)">
                     <span class="range-sep">~</span>
-                    <input type="number" id="m_rent_max" class="input-field" placeholder="최대 (예: 60)">
+                    <input type="number" id="m_rent_max" class="input-field" placeholder="최대 (예: 60)" min="0"oninput="preventNegative(this)">
                 </div>
             </div>
 
             <div id="jeonse-area" class="conditional-area">
                 <p class="sub-q">전세금 범위 (만원)</p>
                 <div class="range-group">
-                    <input type="number" id="j_dep_min" class="input-field" placeholder="최소 (예: 15000)">
+                    <input type="number" id="j_dep_min" class="input-field" placeholder="최소 (예: 15000)" min="0" oninput="preventNegative(this)">
                     <span class="range-sep">~</span>
-                    <input type="number" id="j_dep_max" class="input-field" placeholder="최대 (예: 25000)">
+                    <input type="number" id="j_dep_max" class="input-field" placeholder="최대 (예: 25000)" min="0" oninput="preventNegative(this)">
                 </div>
             </div>
 
@@ -285,6 +285,10 @@
             location.reload();
         });
     }
+    function preventNegative(input) {
+    if (input.value < 0) input.value = 0;
+}
+
 </script>
 </body>
 </html>
