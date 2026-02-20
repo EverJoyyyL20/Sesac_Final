@@ -207,10 +207,22 @@ def update_profile():
     
     # 비밀번호 변경 로직
     if new_pw:
-        if not current_pw or not check_password_hash(user.get('PW', ''), current_pw):
-            return "<script>alert('현재 비밀번호가 일치하지 않습니다.'); history.back();</script>"
+        stored_pw_hash = user.get('PW')
+        
+        # 🔥 [소셜 로그인 유저 예외 처리]
+        if not stored_pw_hash:
+            return "<script>alert('소셜 로그인 계정은 비밀번호를 설정하거나 변경할 수 없습니다.'); history.back();</script>"
+        
+        # 기존 검증 로직 (일반 유저용)
+        try:
+            if not current_pw or not check_password_hash(stored_pw_hash, current_pw):
+                return "<script>alert('현재 비밀번호가 일치하지 않습니다.'); history.back();</script>"
+        except Exception:
+            return "<script>alert('비밀번호 형식이 올바르지 않습니다.'); history.back();</script>"
+
         if new_pw != confirm_pw:
             return "<script>alert('새 비밀번호 확인이 일치하지 않습니다.'); history.back();</script>"
+        
         update_data['PW'] = generate_password_hash(new_pw)
         
     # 닉네임 중복 체크
