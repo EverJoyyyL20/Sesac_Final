@@ -181,6 +181,10 @@ def get_properties():
     ne_lat = request.args.get('ne_lat', type=float)
     ne_lng = request.args.get('ne_lng', type=float)
 
+    center_lat = request.args.get('center_lat', type=float)
+    center_lng = request.args.get('center_lng', type=float)
+    radius_m = request.args.get('radius', default=1000, type=int)
+
     if not all([sw_lat, sw_lng, ne_lat, ne_lng]): 
         return jsonify([])
 
@@ -193,7 +197,16 @@ def get_properties():
         }
     }
 
-    # 1. 거래 형태 (월세/전세)
+    if center_lat is not None and center_lng is not None:
+        # $centerSphere는 [경도, 위도] 순서이며, 거리는 '라디안' 단위로 계산합니다.
+        # 라디안 = 미터 / (지구 반지름 약 6,378,100m)
+        radius_in_radians = radius_m / 6378100
+        query["location"] = {
+            "$geoWithin": {
+                "$centerSphere": [[center_lng, center_lat], radius_in_radians]
+            }
+        }
+
     rent_type = request.args.get('type')
     if rent_type: query["rent_type"] = rent_type
 
