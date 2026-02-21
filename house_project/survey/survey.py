@@ -24,12 +24,6 @@ try:
 except Exception as e:
     print(f"❌ GPT 초기화 실패: {e}")
 
-
-# --- [AI 추천 사유 생성 함수] --- (기존 유지)
-
-# ... (이하 나머지 코드 동일) ...
-
-
 # ------------------------------------------------------------------
 # AI 추천 사유 생성 함수
 # ------------------------------------------------------------------
@@ -150,25 +144,20 @@ TYPE_MAP = {
     frozenset(["traffic", "health"]): ("🏃 활력 출퇴근형", "바쁜 일상 속에서도 건강한 생활을 중시해요."),
     frozenset(["traffic", "living"]): ("🏙 현실 최적화형", "출퇴근과 일상 동선의 효율을 중요하게 여겨요."),
     frozenset(["traffic", "safety"]): ("🚦 안정 출퇴근형", "빠른 이동과 안전한 주거 환경을 동시에 원해요."),
-
     frozenset(["convenience", "green"]): ("🍃 쾌적 생활형", "생활은 편리하고 주변 환경은 쾌적하길 바라요."),
     frozenset(["convenience", "play"]): ("🎉 액티브 라이프형", "놀거리와 편의시설이 가까운 곳을 선호해요."),
     frozenset(["convenience", "health"]): ("💪 웰빙 생활형", "편리한 환경 속에서 건강한 삶을 추구해요."),
     frozenset(["convenience", "living"]): ("🧺 생활 밀착형", "일상에 필요한 시설이 가까운 걸 중요하게 생각해요."),
     frozenset(["convenience", "safety"]): ("🛡 안심 생활형", "편리함은 기본, 안전은 필수라고 생각해요."),
-
     frozenset(["green", "play"]): ("🌳 여유 액티브형", "자연 속에서도 즐길 거리가 있길 원해요."),
     frozenset(["green", "health"]): ("🌿 힐링 라이프형", "조용하고 쾌적한 환경에서 건강한 삶을 원해요."),
     frozenset(["green", "living"]): ("🌱 정주 힐링형", "자연 친화적인 동네에서 오래 살고 싶어요."),
     frozenset(["green", "safety"]): ("🍀 안심 힐링형", "조용하고 안전한 주거 환경을 선호해요."),
-
     frozenset(["play", "health"]): ("🔥 에너지 충전형", "활동과 건강을 모두 챙기는 라이프스타일이에요."),
     frozenset(["play", "living"]): ("🎈 즐거운 일상형", "일상 속에서도 재미와 활기를 찾고 싶어요."),
     frozenset(["play", "safety"]): ("🎮 세이프 플레이형", "즐길 건 즐기되 안전도 중요해요."),
-
     frozenset(["health", "living"]): ("🍎 웰니스 정주형", "건강하고 규칙적인 생활을 중요하게 여겨요."),
     frozenset(["health", "safety"]): ("🧘 안심 웰빙형", "몸도 마음도 편안한 환경을 선호해요."),
-
     frozenset(["living", "safety"]): ("🏡 안정 중시형", "살기 편하고 걱정 없는 동네가 최고예요."),
 }
 
@@ -197,26 +186,17 @@ def survey_result(index):
     for cat, total in total_counts.items():
         raw_weights[cat] = (log_counts.get(cat, 0) + 1) / total
 
-    # 정규화 (전체 합을 1.0으로 맞춤)
     sum_raw_weights = sum(raw_weights.values())
     user_weights = {k: v / sum_raw_weights for k, v in raw_weights.items()}
 
-     # 🔥 [추가] 유저 상위 카테고리 2개 추출
-    top2 = sorted(
-        user_weights.items(),
-        key=lambda x: x[1],
-        reverse=True
-    )[:2]
-
+    top2 = sorted(user_weights.items(), key=lambda x: x[1], reverse=True)[:2]
     top2_keys = frozenset([top2[0][0], top2[1][0]])
 
     user_type_data = TYPE_MAP.get(top2_keys, ("기본형", "라이프스타일을 분석 중입니다."))
     user_type = user_type_data[0]
     user_type_desc = user_type_data[1]
 
-
     query = {}
-    
     loc = selected_survey.get('location')
     if loc and loc.strip():
         query['address'] = {"$regex": loc}
@@ -256,11 +236,29 @@ def survey_result(index):
 
     filtered_houses = list(houses_col.find(query).limit(500))
 
+    ##### [AI 수정] 결과 개수 및 예산 완화 카운팅 로직 추가 #####
+    total_count = len(filtered_houses)
+    suggested_count = 0
+
+    if total_count == 0:
+        # 가격 필터만 20% 높여서 다시 카운트
+        relaxed_query = query.copy()
+        if target_rent_type == "전세":
+            if max_dep > 0:
+                relaxed_query['price'] = {"$gte": min_dep, "$lte": int(max_dep * 1.2)}
+        else:
+            if max_rent > 0:
+                relaxed_query['price'] = {"$gte": min_rent, "$lte": int(max_rent * 1.2)}
+        
+        suggested_count = houses_col.count_documents(relaxed_query)
+    ##### [AI 수정 끝] #####
+
+    # 결과가 너무 적을 때 기존에 있던 위치 기반 완화 검색 로직 (유지)
     if len(filtered_houses) < 5:
-        relaxed_query = {}
-        if loc and loc.strip(): relaxed_query['address'] = {"$regex": loc}
-        if c_type: relaxed_query['rent_type'] = mapping.get(c_type, c_type)
-        filtered_houses = list(houses_col.find(relaxed_query).limit(100))
+        relaxed_query_base = {}
+        if loc and loc.strip(): relaxed_query_base['address'] = {"$regex": loc}
+        if c_type: relaxed_query_base['rent_type'] = mapping.get(c_type, c_type)
+        filtered_houses = list(houses_col.find(relaxed_query_base).limit(100))
 
     matched_properties = []
     for house in filtered_houses:
@@ -331,5 +329,9 @@ def survey_result(index):
         current_index=index, 
         survey_id=str(selected_survey['_id']),
         user_type=user_type,
-        user_type_desc=user_type_desc
-        )   
+        user_type_desc=user_type_desc,
+        ##### [AI 수정] 템플릿에 데이터 추가 #####
+        total_count=total_count,
+        suggested_count=suggested_count
+        ##### [AI 수정 끝] #####
+    )
