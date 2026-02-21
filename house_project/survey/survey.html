@@ -7,45 +7,17 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/survey.css') }}">
     <style>
-        /* 🔥 [수정됨] 상단바 스타일: 폰트 강제 지정 삭제 & 자간 초기화 */
+        /* [상단바 스타일 유지] */
         .navbar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 20px 6%; 
-            width: 100%;
-            box-sizing: border-box;
-            background-color: #222; 
-            
-            /* main.html과 동일하게 폰트 지정 코드 삭제함 */
-            /* 혹시 모를 survey.css의 간섭을 막기 위해 자간(글자 간격)을 0으로 고정 */
-            letter-spacing: 0px; 
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 20px 6%; width: 100%; box-sizing: border-box;
+            background-color: #222; letter-spacing: 0px; 
         }
+        .navbar a { font-size: 1.25rem; font-weight: 700; text-decoration: none; color: #fff; margin: 0 15px; transition: color 0.3s; letter-spacing: 0px; }
+        .navbar a:hover { color: #007bff; }
+        .welcome-text { font-size: 1.1rem; margin-right: 15px; color: #fff; letter-spacing: 0px; }
 
-        .navbar a {
-            font-size: 1.25rem; 
-            font-weight: 700;   
-            text-decoration: none;
-            color: #fff;        
-            margin: 0 15px;     
-            transition: color 0.3s;
-            
-            /* 링크 자간도 초기화 */
-            letter-spacing: 0px;
-        }
-
-        .navbar a:hover {
-            color: #007bff; 
-        }
-
-        .welcome-text {
-            font-size: 1.1rem;
-            margin-right: 15px;
-            color: #fff; 
-            letter-spacing: 0px;
-        }
-
-        /* --- 기존 설문 페이지 스타일 (유지) --- */
+        /* [기존 설문 스타일 유지] */
         #loading-screen { display: none; text-align: center; padding: 50px 20px; }
         .q-card { display: none; }
         .q-card.active { display: block; animation: fadeIn 0.5s ease; }
@@ -55,17 +27,12 @@
         .range-group { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
         .range-group input { flex: 1; }
         .range-sep { font-weight: bold; color: #666; }
-        
-        .back-btn { 
-            background: #eee; 
-            color: #666; 
-            border: none; 
-            border-radius: 12px; 
-            font-weight: bold; 
-            cursor: pointer; 
-            transition: 0.3s;
-        }
+        .back-btn { background: #eee; color: #666; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; transition: 0.3s; }
         .back-btn:hover { background: #e0e0e0; }
+
+        /* 🔥 [추가] 상세 조건용 서브 질문 스타일 */
+        .detail-q-group { margin-bottom: 25px; text-align: left; }
+        .detail-q-group .sub-q { font-size: 1rem; font-weight: bold; color: #333; margin-bottom: 10px; }
     </style>
 </head>
 <body>
@@ -75,7 +42,6 @@
         <a href="{{ url_for('main.index') }}">메인페이지</a>
         <a href="{{ url_for('find.find') }}">매물찾기</a>
     </div>
-
     <div class="nav-links">
         {% if session.get('user_id') %}
             <span class="welcome-text"><strong>{{ session.get('nickname') }}</strong>님</span>
@@ -119,7 +85,6 @@
                     <span class="range-sep">~</span>
                     <input type="number" id="m_dep_max" class="input-field" placeholder="최대 (예: 5000)">
                 </div>
-                
                 <p class="sub-q" style="margin-top:15px;">월세 범위 (만원)</p>
                 <div class="range-group">
                     <input type="number" id="m_rent_min" class="input-field" placeholder="최소 (예: 30)">
@@ -143,9 +108,62 @@
             </div>
         </div>
 
+        <div class="q-card" id="step-2">
+            <h2>🏠 상세 희망 조건을 선택해주세요.</h2>
+            
+            <div class="detail-q-group">
+                <p class="sub-q">건물 유형 (중복 가능)</p>
+                <div class="options-group multi-group" data-key="building_type">
+                    <button type="button" class="opt-btn" onclick="toggleBtn(this, true)">아파트</button>
+                    <button type="button" class="opt-btn" onclick="toggleBtn(this, true)">상가주택</button>
+                    <button type="button" class="opt-btn" style="grid-column: span 2;" onclick="toggleBtn(this, true)">빌라/다세대</button>
+                </div>
+            </div>
+
+            <div class="detail-q-group">
+                <p class="sub-q">희망하는 건물 연식 (중복 가능)</p>
+                <div class="options-group multi-group" data-key="building_age">
+                    <button type="button" class="opt-btn" onclick="toggleBtn(this, true)">신축 (5년 이하)</button>
+                    <button type="button" class="opt-btn" onclick="toggleBtn(this, true)">준신축 (5~10년)</button>
+                    <button type="button" class="opt-btn" style="grid-column: span 2;" onclick="toggleBtn(this, true)">구축 (10년 이상)</button>
+                </div>
+            </div>
+
+            <div class="detail-q-group">
+                <p class="sub-q">희망하는 방 개수 (중복 가능)</p>
+                <div class="options-group multi-group" data-key="room_count">
+                    <button type="button" class="opt-btn" onclick="toggleBtn(this, true)">1개</button>
+                    <button type="button" class="opt-btn" onclick="toggleBtn(this, true)">2개</button>
+                    <button type="button" class="opt-btn" style="grid-column: span 2;" onclick="toggleBtn(this, true)">3개 이상</button>
+                </div>
+            </div>
+
+            <div class="detail-q-group">
+                <p class="sub-q">반지하 혹은 옥탑방도 괜찮으신가요?</p>
+                <div class="options-group single-group" data-key="special_room">
+                    <button type="button" class="opt-btn" onclick="toggleBtn(this, false)">네, 상관없어요</button>
+                    <button type="button" class="opt-btn" onclick="toggleBtn(this, false)">아니요, 피하고 싶어요</button>
+                </div>
+            </div>
+
+            <div class="detail-q-group">
+                <p class="sub-q">주차장이 필요하신가요?</p>
+                <div class="options-group single-group" data-key="parking">
+                    <button type="button" class="opt-btn" onclick="toggleBtn(this, false)">네, 필요해요</button>
+                    <button type="button" class="opt-btn" onclick="toggleBtn(this, false)">아니요, 상관없어요</button>
+                </div>
+            </div>
+
+            <p class="limit-info detail-empty" style="color: orange; display: none; margin-top: 10px; text-align: center;">모든 항목을 1개 이상 선택해주세요! ⚠️</p>
+
+            <div class="next-btn-container" style="display: flex; gap: 10px;">
+                <button type="button" class="back-btn" onclick="prevStep(1)" style="flex: 1;">이전</button>
+                <button type="button" class="confirm-btn" onclick="validateStep2()" style="flex: 2;">다음 질문으로</button>
+            </div>
+        </div>
+
         {% for q in questions %}
-        {% set step_num = 2 + loop.index0 %}
-        <div class="q-card" id="step-{{ step_num }}">
+        {% set step_num = 3 + loop.index0 %} <div class="q-card" id="step-{{ step_num }}">
             <h2>🌳 {{ q.title }}</h2>
             <p style="color:#888; font-size:0.85rem; margin-bottom:15px;">
                 {{ '최대 3개까지 선택 가능합니다.' if q.multiple else '하나만 선택해주세요.' }}
@@ -182,12 +200,19 @@
 
 <script>
     let currentIdx = 0;
-    const totalSteps = 2 + {{ questions|length }}; 
+    // Step 0(지역), 1(예산), 2(상세조건) 이므로 총 3개 + 동적질문개수
+    const totalSteps = 3 + {{ questions|length }}; 
 
     const surveyResults = { 
         location: "", 
         contract_type: "", 
         budget: { min_dep: 0, max_dep: 0, min_rent: 0, max_rent: 0 },
+        // 🔥 새롭게 추가되는 데이터 변수
+        building_type: [],
+        building_age: [],
+        room_count: [],
+        special_room: "",
+        parking: "",
         category_log: [] 
     };
 
@@ -253,7 +278,44 @@
             alert("최소 보증금이 최대 보증금보다 클 수 없습니다.");
             return;
         }
-        nextStep(2);
+        nextStep(2); // Step 2(상세조건)로 이동
+    }
+
+    // 🔥 [추가] 상세조건 버튼 클릭 로직
+    function toggleBtn(btn, isMulti) {
+        const group = btn.closest('.options-group');
+        if (!isMulti) {
+            group.querySelectorAll('.opt-btn').forEach(b => b.classList.remove('selected'));
+        }
+        btn.classList.toggle('selected');
+        document.querySelector('.detail-empty').style.display = 'none';
+    }
+
+    // 🔥 [추가] 상세조건 유효성 검사
+    function validateStep2() {
+        const step2 = document.getElementById('step-2');
+        const groups = step2.querySelectorAll('.options-group');
+        let isValid = true;
+
+        groups.forEach(group => {
+            if (group.querySelectorAll('.selected').length === 0) {
+                isValid = false;
+            }
+        });
+
+        if (!isValid) {
+            step2.querySelector('.detail-empty').style.display = 'block';
+            return;
+        }
+
+        // 선택한 값 저장
+        surveyResults.building_type = Array.from(step2.querySelector('[data-key="building_type"]').querySelectorAll('.selected')).map(b => b.innerText);
+        surveyResults.building_age = Array.from(step2.querySelector('[data-key="building_age"]').querySelectorAll('.selected')).map(b => b.innerText);
+        surveyResults.room_count = Array.from(step2.querySelector('[data-key="room_count"]').querySelectorAll('.selected')).map(b => b.innerText);
+        surveyResults.special_room = step2.querySelector('[data-key="special_room"] .selected').innerText;
+        surveyResults.parking = step2.querySelector('[data-key="parking"] .selected').innerText;
+
+        nextStep(3); // 다음 라이프스타일 질문으로 이동
     }
 
     function handleWeightClick(btn, max, isMultiple) {

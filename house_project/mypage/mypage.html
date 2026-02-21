@@ -87,7 +87,9 @@
             <div class="box-header">
                 <h3>📝 최근 설문 목록</h3>
                 <div class="header-right">
-                    <span class="count-badge">{{ surveys|length if surveys else 0 }}건</span>
+                    <span id="survey-page-indicator" style="font-weight: bold; color: #444; font-size: 0.95rem; margin-right: 10px;">
+                        {% if surveys %}1 / {{ surveys|length }}건{% else %}0건{% endif %}
+                    </span>
                     <a href="#" class="view-all" onclick="openModal('survey')">전체보기</a>
                 </div>
             </div>
@@ -99,9 +101,12 @@
                         {% for s in surveys %}
                         <div class="slide-item">
                             <div class="survey-item-card">
-                                <div class="survey-card-header">
+                                <div class="survey-card-header" style="display: flex; justify-content: space-between; align-items: center;">
                                     <span class="count-badge">{{ s.date }} 리포트</span>
-                                    <span style="color: #4facfe; font-size: 12px; font-weight: bold;">분석 완료</span>
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        <span style="color: #4facfe; font-size: 12px; font-weight: bold;">분석 완료</span>
+                                        <button onclick="deleteSurvey('{{ s._id }}')" style="background: #ff4d4d; color: white; border: none; border-radius: 5px; padding: 4px 8px; font-size: 11px; font-weight: bold; cursor: pointer;">삭제</button>
+                                    </div>
                                 </div>
                                 
                                 <div class="survey-card-body" style="margin-top: 15px;">
@@ -187,8 +192,9 @@
     function moveSlide(type, direction) {
         const wrapper = document.getElementById(`${type}-slider`);
         const items = wrapper.getElementsByClassName('slide-item');
+        if (items.length === 0) return;
+
         const totalItems = items.length;
-        
         const perPage = (type === 'survey') ? 1 : 2;
         const maxIndex = Math.ceil(totalItems / perPage) - 1;
 
@@ -197,8 +203,47 @@
         if (slideIndices[type] < 0) slideIndices[type] = 0;
         if (slideIndices[type] > maxIndex) slideIndices[type] = maxIndex;
 
-        const offset = slideIndices[type] * 100;
-        wrapper.style.transform = `translateX(-${offset}%)`;
+        // 슬라이더 이동 연산
+        const itemWidth = items[0].offsetWidth; 
+        const gap = parseFloat(window.getComputedStyle(wrapper).gap) || 0; 
+        const moveDistance = (itemWidth + gap) * perPage; 
+
+        wrapper.style.transform = `translateX(-${slideIndices[type] * moveDistance}px)`;
+        
+        // 🔥 [수정] 바뀐 텍스트 형식에 맞춰 "X / Y건"으로 렌더링
+        if (type === 'survey') {
+            const pageIndicator = document.getElementById('survey-page-indicator');
+            if (pageIndicator) {
+                pageIndicator.innerText = (slideIndices[type] + 1) + ' / ' + totalItems + '건';
+            }
+        }
+    }
+
+    // 설문 개별 삭제 로직
+    function deleteSurvey(surveyId) {
+        if (confirm("이 설문 내역을 영구적으로 삭제하시겠습니까?")) {
+            fetch('/delete_survey', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({ survey_id: surveyId })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    alert("성공적으로 삭제되었습니다.");
+                    location.reload(); 
+                } else {
+                    alert(data.message || "삭제에 실패했습니다.");
+                }
+            })
+            .catch(err => {
+                console.error("Error:", err);
+                alert("서버 통신 중 오류가 발생했습니다.");
+            });
+        }
     }
 
     function openModal(type) {
