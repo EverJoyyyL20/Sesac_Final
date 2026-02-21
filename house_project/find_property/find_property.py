@@ -188,6 +188,7 @@ def get_properties():
     if not all([sw_lat, sw_lng, ne_lat, ne_lng]): 
         return jsonify([])
 
+    # 기본 검색 조건: 현재 지도 화면(좌표) 안에 있는 매물
     query = {
         "location": {
             "$geoWithin": {
@@ -209,6 +210,14 @@ def get_properties():
     rent_type = request.args.get('type')
     if rent_type: query["rent_type"] = rent_type
 
+    # 🔥 [추가된 부분] 건물 용도 (원룸, 투룸, 오피스텔)
+    building_use = request.args.get('building_use')
+    # 값이 존재하고 빈 문자열이 아닐 때만 조건 추가 ('전체 용도'는 빈 문자열로 넘어옴)
+    if building_use: 
+        # DB의 'buildingUse' 필드 값이 프론트에서 보낸 값(예: '원룸')과 일치하는 것만 찾기
+        query["buildingUse"] = building_use
+
+    # 2. 보증금 범위
     min_dep = request.args.get('min_deposit', type=int)
     max_dep = request.args.get('max_deposit', type=int)
     if min_dep is not None or max_dep is not None:
@@ -216,12 +225,23 @@ def get_properties():
         if min_dep is not None: query["deposit"]["$gte"] = min_dep
         if max_dep is not None: query["deposit"]["$lte"] = max_dep
 
+    # 3. 월세 범위
     min_pri = request.args.get('min_price', type=int)
     max_pri = request.args.get('max_price', type=int)
     if min_pri is not None or max_pri is not None:
         query["price"] = {}
         if min_pri is not None: query["price"]["$gte"] = min_pri
         if max_pri is not None: query["price"]["$lte"] = max_pri
+
+    # 4. 반지하 제외 
+    exclude_under = request.args.get('exclude_under')
+    if exclude_under == 'true':
+        query["floor"] = {"$not": {"$regex": "반지하"}}
+
+    # 5. 주차 가능만 
+    parking = request.args.get('parking')
+    if parking == '주차 가능':
+        query["hasParking"] = "주차 가능"
 
     items = list(houses_col.find(query).limit(300))
     return jsonify([{**item, "_id": str(item['_id'])} for item in items])

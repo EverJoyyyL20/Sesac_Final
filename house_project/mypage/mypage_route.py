@@ -5,9 +5,9 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from database import users_col, houses_col, db  
 from bson.objectid import ObjectId
 
-# 🔥 [핵심] 이 줄이 있어야 app.py에서 import 할 수 있습니다!
 mypage_bp = Blueprint('mypage', __name__, template_folder='.')
 
+UPLOAD_FOLDER = 'static/profile_pics'
 # 프로필 사진 저장 경로 및 허용 확장자
 # 현재 파일의 위치: house_project/mypage/mypage_route.py
 # 1. os.path.dirname(__file__) -> house_project/mypage
@@ -23,13 +23,9 @@ if not os.path.exists(UPLOAD_FOLDER):
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
 def allowed_file(filename):
-    """파일 확장자 검사 함수"""
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-# -----------------------------------------------------------
-# 1. 팝업 및 세션 관리 API
-# -----------------------------------------------------------
 @mypage_bp.route('/disable_setup_popup', methods=['POST'])
 def disable_setup_popup():
     user_email = session.get('user_id')
@@ -39,29 +35,22 @@ def disable_setup_popup():
     session.pop('needs_setup', None) 
     return jsonify({"success": True})
 
-# -----------------------------------------------------------
-# 2. 마이페이지 메인
-# -----------------------------------------------------------
 @mypage_bp.route('/mypage')
 def mypage():
-    # 1. 세션 및 사용자 확인
     if 'user_id' not in session:
         return redirect(url_for('auth.login'))
 
     user_email = session['user_id']
     user = users_col.find_one({'email': user_email})
     
-    # 사용자가 DB에 없을 경우 세션 클리어 후 로그인 페이지로
     if not user:
         session.clear()
         return redirect(url_for('auth.login'))
 
-    # 2. 설문 데이터 가져오기 및 가공
     raw_surveys = list(db.survey_results.find({"user_id": user_email}).sort("created_at", -1))
     surveys = []
     
     for s in raw_surveys:
-        # 계약 형태에 따른 예산 텍스트 가공
         if s.get('contract_type') == 'monthly':
             rent_val = s.get('budget', {}).get('max_rent', '0')
             dep_val = s.get('budget', {}).get('max_dep', '0')
@@ -70,29 +59,34 @@ def mypage():
             budget_text = f"전세 {s.get('budget', {}).get('max_dep', '0')}만원"
 
         building_age_list = s.get('building_age', [])
-        age_info = building_age_list[0] if building_age_list else '연식미상'
+        age_info = ", ".join(building_age_list) if building_age_list else '연식미상'
 
         b_type_list = s.get('building_type', [])
-        b_type = b_type_list[0] if b_type_list else "유형 미상"
+        b_type = ", ".join(b_type_list) if b_type_list else "유형 미상"
 
         room_count_list = s.get('room_count', [])
-        room_info = f"방 {room_count_list[0]}개" if room_count_list else "정보 없음"
+        room_info = f"방 {', '.join(room_count_list)}" if room_count_list else "정보 없음"
         
+        main_info = f"{age_info} · {b_type} · {room_info}"
+
         option_tags = []
-        if s.get('special_room') == 'yes': option_tags.append("옥탑/반지하 포함")
-        if s.get('parking') == 'yes': option_tags.append("주차 가능")
-        if s.get('parking') == 'no': option_tags.append("주차 불가")
+        if s.get('special_room') == '네, 상관없어요': option_tags.append("옥탑/반지하 포함")
+        if s.get('parking') == '네, 필요해요': option_tags.append("주차 필수")
+
+        created_dt = s.get('created_at')
+        date_str = f"{created_dt.year}년 {created_dt.month:02d}월 {created_dt.day:02d}일" if created_dt else "날짜미상"
 
         summary = {
             '_id': str(s['_id']),
-            'date': s.get('updated_at').strftime('%y.%m.%d') if s.get('updated_at') else '날짜미상',
+            'date': date_str,
             'location': s.get('location') if s.get('location') else "전체 지역",
-            'main_info': f"{age_info} · {b_type} · {room_info}",
+            'main_info': main_info, 
             'budget': budget_text,
             'tags': option_tags
         }
         surveys.append(summary)
 
+    # 2. 찜 목록 데이터 가공
     # 3. 찜 목록 데이터 가공 및 개수 집계
     raw_favorites = user.get('favorites', [])
     processed_favorites = [] 
@@ -100,7 +94,6 @@ def mypage():
     wolse_count = 0
 
     for fav in raw_favorites:
-        # 데이터 유효성 검사
         if isinstance(fav, (str, ObjectId)):
             continue
         if not isinstance(fav, dict):
@@ -111,32 +104,30 @@ def mypage():
         
         fav['_id_str'] = str(fav_id)
 
-        # A. 가격 표시 가공 및 개수 집계
         r_type = fav.get('rent_type', '')
         p_val = fav.get('price', 0)
         d_val = fav.get('deposit', 0)
-        
+
         # 전세/월세 개수 카운트 (데이터 가공 전 키워드 및 타입 확인)
         if r_type == '전세' or '전세' in str(p_val):
             jeonse_count += 1
         elif r_type == '월세' or '월세' in str(p_val):
             wolse_count += 1
 
-        # 가격 숫자 처리 및 텍스트화
         try:
             p_val_str = str(p_val).replace(',', '')
             if p_val_str.isdigit() or isinstance(p_val, (int, float)):
-                 if r_type == '전세':
-                     fav['price'] = f"전세 {p_val}"
-                 elif r_type == '월세':
-                     fav['price'] = f"월세 {d_val}/{p_val}"
+                if r_type == '전세':
+                    fav['price'] = f"전세 {p_val}"
+                elif r_type == '월세':
+                    fav['price'] = f"월세 {d_val}/{p_val}"
         except:
             pass
         
-        # B. 이미지 처리 (안전장치 포함)
+        img_list = fav.get('images', [])
+         # B. 이미지 처리 (안전장치 포함)
         img_list = fav.get('images', [])
         
-        # [안전장치] 이미지가 없다면 DB에서 재조회
         if not img_list:
             try:
                 rh = None
@@ -149,7 +140,6 @@ def mypage():
                 
                 if rh:
                     img_list = rh.get('images', [])
-                    # 가격 정보도 최신화
                     if 'price' in rh: fav['price'] = rh['price']
                     if 'deposit' in rh: fav['deposit'] = rh['deposit']
                     if 'rent_type' in rh: fav['rent_type'] = rh['rent_type']
@@ -161,15 +151,17 @@ def mypage():
             
         if len(img_list) > 0 and img_list[0]:
             raw_url = str(img_list[0])
-            # 사이즈 조절 파라미터 추가
-            fav['main_image'] = raw_url + ('&w=800' if '?' in raw_url else '?w=800')
+            if '?' in raw_url:
+                fav['main_image'] = raw_url + '&w=800'
+            else:
+                fav['main_image'] = raw_url + '?w=800'
         else:
-            # 기본 룸 이미지
             fav['main_image'] = url_for('static', filename='img/default_room.jpg')
             
         processed_favorites.append(fav)
 
-    # 4. 최종 결과 렌더링 (한 번의 리턴으로 모든 데이터를 보냄)
+    # ... (위쪽 가공 로직들은 그대로 유지) ...
+
     return render_template('mypage.html', 
                             user_email=user['email'], 
                             nickname=user.get('nickname', '닉네임 없음'),
@@ -177,13 +169,10 @@ def mypage():
                             profile_img=user.get('Profile_IMG', 'default.png'),
                             surveys=surveys,
                             favorites=processed_favorites,
-                            total_count=len(processed_favorites),
                             jeonse_count=jeonse_count,
-                            wolse_count=wolse_count)
+                            wolse_count=wolse_count,
+                            total_count=len(surveys)) # 🔥 이 줄을 추가하여 에러를 해결합니다.
 
-# -----------------------------------------------------------
-# 3. 프로필 수정 관련
-# -----------------------------------------------------------
 @mypage_bp.route('/edit', methods=['GET'])
 def edit_profile():
     if 'user_id' not in session: return redirect(url_for('auth.login'))
@@ -205,7 +194,7 @@ def update_profile():
     confirm_pw = request.form.get('confirm_password')
     update_data = {'nickname': new_nickname, 'introduction': new_introduction}
     
-    # 비밀번호 변경 로직
+     # 비밀번호 변경 로직
     if new_pw:
         stored_pw_hash = user.get('PW')
         
@@ -219,18 +208,15 @@ def update_profile():
                 return "<script>alert('현재 비밀번호가 일치하지 않습니다.'); history.back();</script>"
         except Exception:
             return "<script>alert('비밀번호 형식이 올바르지 않습니다.'); history.back();</script>"
-
+        
         if new_pw != confirm_pw:
             return "<script>alert('새 비밀번호 확인이 일치하지 않습니다.'); history.back();</script>"
         
-        update_data['PW'] = generate_password_hash(new_pw)
-        
-    # 닉네임 중복 체크
     if new_nickname:
         existing_user = users_col.find_one({'nickname': new_nickname, 'email': {'$ne': session['user_id']}})
         if existing_user:
             return "<script>alert('이미 사용 중인 닉네임입니다.'); history.back();</script>"
-
+        
     # 🔥 [이미지 처리 로직 수정]
     is_default = request.form.get('is_default_img') == 'true'
 
@@ -246,14 +232,14 @@ def update_profile():
             filename = secure_filename(f"user_{user_prefix}_{file.filename}")
             file.save(os.path.join(UPLOAD_FOLDER, filename))
             update_data['Profile_IMG'] = filename
-
-    # 최종 DB 업데이트 (모든 변경사항을 한 번에 반영)
+    
     users_col.update_one({'email': session['user_id']}, {'$set': update_data})
     session['nickname'] = new_nickname
     
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return jsonify({"success": True, "message": "성공적으로 수정되었습니다."})
     return f"<script>alert('성공적으로 수정되었습니다.'); location.href='{url_for('mypage.mypage')}';</script>"
+
 
 # mypage_route.py
 # 기본 이미지로 변경 함수 수정
@@ -280,7 +266,6 @@ def reset_default_image():
 # -----------------------------------------------------------
 @mypage_bp.route('/toggle_favorite', methods=['POST'])
 def toggle_favorite():
-    # 마이페이지에서 찜 해제할 때 사용하는 엔드포인트
     if 'user_id' not in session:
         return jsonify({"success": False, "message": "로그인이 필요합니다."}), 401
 
@@ -294,10 +279,8 @@ def toggle_favorite():
     user = users_col.find_one({'email': user_email})
     favorites = user.get('favorites', [])
 
-    # 이미 찜했는지 확인하고 삭제 (마이페이지에서는 삭제만 주로 일어남)
     new_favorites = [f for f in favorites if str(f.get('id')) != str(p_id) and str(f.get('_id')) != str(p_id)]
     
-    # 길이가 줄었다면 삭제된 것
     if len(new_favorites) < len(favorites):
         users_col.update_one({'email': user_email}, {'$set': {'favorites': new_favorites}})
         return jsonify({"success": True, "status": "removed"})
@@ -359,3 +342,29 @@ def delete_user():
     users_col.delete_one({'email': user_email})
     session.clear()
     return "<script>alert('탈퇴가 완료되었습니다. 이용해주셔서 감사합니다.'); location.href='/';</script>"
+
+@mypage_bp.route('/delete_survey', methods=['POST'])
+def delete_survey():
+    if 'user_id' not in session:
+        return jsonify({"success": False, "message": "로그인이 필요합니다."}), 401
+    
+    data = request.get_json()
+    survey_id = data.get('survey_id')
+    
+    if not survey_id:
+        return jsonify({"success": False, "message": "잘못된 요청입니다."}), 400
+        
+    try:
+        result = db.survey_results.delete_one({
+            "_id": ObjectId(survey_id), 
+            "user_id": session['user_id']
+        })
+        
+        if result.deleted_count > 0:
+            return jsonify({"success": True})
+        else:
+            return jsonify({"success": False, "message": "설문을 찾을 수 없거나 권한이 없습니다."}), 404
+            
+    except Exception as e:
+        print(f"설문 삭제 오류: {e}")
+        return jsonify({"success": False, "message": "서버 오류가 발생했습니다."}), 500
