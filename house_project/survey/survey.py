@@ -236,22 +236,36 @@ def survey_result(index):
 
     filtered_houses = list(houses_col.find(query).limit(500))
 
-    ##### [AI 수정] 결과 개수 및 예산 완화 카운팅 로직 추가 #####
+    ##### [AI 검증 로그 추가] #####
+    print("\n" + "="*60)
+    print(f"📂 [STEP 1] DB 조회 쿼리: {query}")
+    
     total_count = len(filtered_houses)
+    print(f"📊 [STEP 2] 1차 검색 결과: {total_count}개")
+    
     suggested_count = 0
-
     if total_count == 0:
-        # 가격 필터만 20% 높여서 다시 카운트
+        # 가격 필터만 40% 높여서 다시 카운트하는 로직 확인
         relaxed_query = query.copy()
         if target_rent_type == "전세":
             if max_dep > 0:
-                relaxed_query['price'] = {"$gte": min_dep, "$lte": int(max_dep * 1.2)}
+                relaxed_query['price'] = {"$gte": min_dep, "$lte": int(max_dep * 1.4)}
         else:
+            # 월세는 보증금 20% 완화와 월세 40% 완화하여 검색 범위를 넓힘
+            if max_dep > 0:
+                relaxed_query['deposit'] = {"$gte": min_dep, "$lte": int(max_dep * 1.2)}
             if max_rent > 0:
-                relaxed_query['price'] = {"$gte": min_rent, "$lte": int(max_rent * 1.2)}
-        
+                relaxed_query['price'] = {"$gte": min_rent, "$lte": int(max_rent * 1.4)}
+
+        print(f"💸 [STEP 3] 예산 40% 완화 쿼리: {relaxed_query}")
         suggested_count = houses_col.count_documents(relaxed_query)
-    ##### [AI 수정 끝] #####
+        print(f"📊 [STEP 4] 완화 시 예상 결과: {suggested_count}개")
+    
+    # 만약 결과가 0인데 STEP 4도 0이라면, 예산 문제가 아니라 지역/방개수/건물유형 중 하나가 때문.
+    print("="*60 + "\n")
+    ##### [AI 검증 로그 끝] #####
+
+    ##### [AI 수정] 결과 개수 및 예산 완화 카운팅 로직 추가 #####
 
     # 결과가 너무 적을 때 기존에 있던 위치 기반 완화 검색 로직 (유지)
     if len(filtered_houses) < 5:
@@ -335,3 +349,20 @@ def survey_result(index):
         suggested_count=suggested_count
         ##### [AI 수정 끝] #####
     )
+
+# 다른 조건은 동일, 지역만 전체 지역으로 바꿈
+@survey_bp.route('/survey/result/<string:survey_id>/expand')
+def expand_region(survey_id):
+    if 'user_id' not in session:
+        return redirect(url_for('auth.login'))
+    
+    # 1. 전달받은 survey_id를 사용해 즉시 지역 정보만 비움
+    # index 변수를 거치지 않고 직접 DB의 해당 문서를 수정합니다.
+    db.survey_results.update_one(
+        {"_id": ObjectId(survey_id)},
+        {"$set": {"location": ""}}
+    )
+    
+    # 2. 업데이트가 완료되면 이 데이터가 해당 사용자의 가장 최신 설문이 됩니다.
+    # 따라서 결과 페이지의 0번 인덱스(최신순 정렬 결과)로 리다이렉트합니다.
+    return redirect(url_for('survey.survey_result', index=0))

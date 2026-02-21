@@ -204,6 +204,17 @@
             margin: 20px 0 15px 0 !important;
             font-size: 1.6rem !important;
         }
+
+        /* */
+        .no-result-card {
+            background: white; padding: 60px 40px; border-radius: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        }
+        .suggestion-box {
+            background: #f8f9ff; border: 1px dashed var(--primary);
+            padding: 20px; border-radius: 15px; margin: 30px 0;
+            line-height: 1.7; color: #444;
+        }
     </style>
 </head>
 <body>
@@ -225,23 +236,66 @@
     </div>
 </div>
 
-{% set total_count = (top_3|length) + (others|length) %}
-
 {% if total_count == 0 %}
 
-<section style="max-width:900px;margin:120px auto;text-align:center;">
-    <h1 style="font-size:2rem;margin-bottom:20px;">🔍 검색 결과가 없습니다</h1>
-    <p style="font-size:1.2rem;color:#666;margin-bottom:30px;">
-        설정하신 매물 검색 범위에 해당하는 매물이 없습니다.<br>
-        <b>조건을 조금 넓혀 다시 검색해보세요.</b>
-    </p>
+<section style="max-width:700px; margin:50px auto; padding:0 20px; text-align:center;">
+    <div class="no-result-card">
+        <div style="font-size: 4rem; margin-bottom: 20px;">🔍</div>
+        <h1 style="font-size:1.8rem; margin-bottom:15px; color:var(--dark);">딱 맞는 매물이 아직 없네요!</h1>
+        <p style="font-size:1.1rem; color:#636e72; line-height:1.6;">
+            설정한 필터 조건에 맞는 매물이 현재 등록되어 있지 않습니다.
+        </p>
 
-    <a href="{{ url_for('find.find') }}"
-       style="display:inline-block;padding:15px 35px;
-              background:#6c5ce7;color:white;border-radius:30px;
-              text-decoration:none;font-weight:bold;">
-        🔄 검색 조건 다시 설정하기
-    </a>
+       <div class="suggestion-box">
+            {% if suggested_count > 0 %}
+                <p>💡 <b>딱 맞는 매물을 찾기가 쉽지 않네요!</b><br>
+                설정하신 예산을 조금만 더 유연하게 조정해 보시면<br>
+                {% if survey.location %}
+                    <b>{{ survey.location }}</b> 내에서 취향에 맞는 
+                {% else %}
+                    <b>전체 지역</b>에서 
+                {% endif %}
+                <strong>약 {{ suggested_count }}개의 매물</strong>을 더 검토해 보실 수 있습니다.</p>
+
+            {% elif survey.location %}
+                <p>💡 <b>{{ survey.location }}은 현재 조건에 맞는 매물이 귀하네요.</b><br>
+                지금 설정하신 상세 필터는 그대로 유지한 채,<br>
+                <b>지역 제한을 풀고</b> 전체 지역에서 찾아보시는 건 어떨까요?</p>
+                
+                <div style="margin-top: 15px;">
+                    <a href="{{ url_for('survey.expand_region', survey_id=survey_id) }}" 
+                    style="display: inline-block; padding: 10px 20px; background: var(--primary); color: white; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 0.9rem;">
+                        📍 지역 조건 없이 다시 검색하기
+                    </a>
+                </div>
+
+            {% else %}
+                <p>💡 <b>조건이 조금 까다로운 편이에요!</b><br>
+                방 개수나 건물 유형 같은 <b>상세 필터</b>를 한두 개만 유연하게 변경해 보시면<br>
+                {{ session.get('nickname', '회원') }}님께 어울리는 매물을 바로 찾아드릴 수 있습니다.</p>
+                
+                <div style="margin-top: 15px;">
+                    <a href="{{ url_for('survey.survey_page') }}" 
+                    style="display: inline-block; padding: 10px 20px; background: #eee; color: #555; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 0.9rem;">
+                        🔄 필터 재설정하러 가기
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+
+        <div style="display: flex; gap: 15px; justify-content: center;">
+            <a href="{{ url_for('survey.survey_page') }}"
+               style="padding:15px 30px; background:var(--primary); color:white; border-radius:12px;
+                      text-decoration:none; font-weight:bold; transition: 0.3s;">
+                🔄 필터 재설정하기
+            </a>
+            <a href="{{ url_for('main.index') }}"
+               style="padding:15px 30px; background:#eee; color:#555; border-radius:12px;
+                      text-decoration:none; font-weight:bold; transition: 0.3s;">
+                🏠 메인으로
+            </a>
+        </div>
+    </div>
 </section>
 
 {% else %}
