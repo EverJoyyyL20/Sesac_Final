@@ -2,62 +2,314 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>맞춤 추천 매물</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 맞춤 추천 쇼츠 | 룸픽</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; }
+        :root {
+            --main-slide-width: 420px; 
+            --border-radius: 25px;
+            --accent-color: #4facfe;
+        }
+
+        @media (max-width: 500px) {
+            :root { --main-slide-width: 95vw; }
+        }
+
+        body, html {
+            margin: 0; padding: 0; height: 100%;
+            background: radial-gradient(circle, #4a4a4a 0%, #1a1a1a 100%);
+            display: flex; justify-content: center;
+            font-family: 'Pretendard', -apple-system, sans-serif;
+            overflow: hidden;
+            color: #fff;
+        }
+
+        /* 전체 스크롤 컨테이너 */
         .shorts-wrapper {
+            width: 100vw;
             height: 100vh;
             overflow-y: scroll;
-            scroll-snap-type: y mandatory; /* 세로 스냅 */
+            scroll-snap-type: y mandatory;
+            scrollbar-width: none; /* Firefox */
+            position: relative;
         }
+        .shorts-wrapper::-webkit-scrollbar { display: none; } /* Chrome, Safari */
+
+        /* 매물 섹션 (한 페이지 전체) */
         .prop-section {
+            width: 100%;
             height: 100vh;
             scroll-snap-align: start;
+            scroll-snap-stop: always;
             position: relative;
-            background-color: #000;
             display: flex;
-            flex-direction: column;
-            justify-content: flex-end;
-            color: white;
-            background-size: cover;
-            background-position: center;
+            align-items: center;
+            justify-content: center;
         }
+
+        .swiper { width: 100%; height: 100vh; }
+
+        .swiper-slide {
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            filter: grayscale(0.8) brightness(0.3);
+            transform: scale(0.85);
+        }
+
+        .swiper-slide-active {
+            filter: grayscale(0) brightness(1);
+            transform: scale(1);
+        }
+
+        .slide-img {
+            width: var(--main-slide-width);
+            height: 85vh;
+            object-fit: cover;
+            border-radius: var(--border-radius);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+            pointer-events: none;
+        }
+
+        /* 정보 레이어 */
         .info-overlay {
-            padding: 40px 20px;
-            background: linear-gradient(transparent, rgba(0,0,0,0.9));
+            position: absolute;
+            bottom: 5vh;
+            width: calc(var(--main-slide-width) - 40px);
+            z-index: 100;
+            padding: 24px;
+            background: rgba(25, 25, 25, 0.8);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border-radius: 28px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
+
+        .info-flex-container { 
+            display: flex; align-items: center; justify-content: space-between; 
+            margin-bottom: 15px; gap: 12px;
+        }
+
+        .info-left { flex: 1; min-width: 0; }
+        .info-right { width: 130px; height: 130px; flex-shrink: 0; }
+
         .match-badge {
-            background: #4facfe; color: #white;
-            padding: 5px 12px; border-radius: 20px; font-weight: bold;
+            display: inline-block;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            padding: 5px 12px; border-radius: 50px;
+            font-size: 0.75rem; font-weight: 800; margin-bottom: 8px;
+            color: #000;
+        }
+        .price-text { font-size: 1.7rem; font-weight: 900; margin: 0; letter-spacing: -0.5px; }
+        .addr-text { font-size: 0.85rem; color: #bbb; margin: 5px 0 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        .spec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .spec-item {
+            background: rgba(255, 255, 255, 0.08);
+            padding: 8px; border-radius: 10px; font-size: 0.7rem; text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .btn-detail {
+            width: 100%; padding: 16px; border: none; border-radius: 16px;
+            background: #fff; color: #000; font-weight: 800; font-size: 1rem; 
+            cursor: pointer; transition: transform 0.2s;
+            margin-top: 10px;
+        }
+        .btn-detail:active { transform: scale(0.97); }
+
+        #sentinel { 
+            height: 100px; width: 100%; 
+            display: flex; align-items: center; justify-content: center;
+            color: rgba(255,255,255,0.3); font-size: 0.8rem;
         }
     </style>
 </head>
 <body>
-    <div class="shorts-wrapper">
-    {% for item in recommendations %}
-    <section class="prop-section" style="background-image: url('{{ item.main_image }}');">
-        <div class="info-overlay">
-            <span class="match-badge">매칭점수 {{ item.match_score }}점</span>
-            
-            <h1 style="font-size: 2rem; margin: 15px 0 5px;">
-                {{ item.rent_type }} {{ item.price_display }}
-            </h1>
-            
-            <p style="opacity: 0.8;">📍 {{ item.address }}</p>
-            
-            {% if item.ai_comment %}
-            <p style="font-size: 0.9rem; color: #4facfe; margin-top: 10px; background: rgba(255,255,255,0.1); padding: 10px; border-radius: 5px;">
-                🤖 {{ item.ai_comment }}
-            </p>
-            {% endif %}
 
-            <button onclick="location.href='/find?id={{item._id_str}}'" 
-                    style="margin-top:20px; padding:10px 20px; border-radius:10px; border:none; background:white; font-weight:bold; cursor:pointer;">
-                지도에서 위치 확인
-            </button>
+<div class="shorts-wrapper" id="shortsWrapper">
+    {% for item in recommendations %}
+    <section class="prop-section" data-id="{{ item._id_str }}">
+        <div class="swiper mySwiper">
+            <div class="swiper-wrapper">
+                {% for img in item.images %}
+                <div class="swiper-slide">
+                    <img src="{{ img }}" class="slide-img" loading="lazy">
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="info-overlay">
+            <div class="info-flex-container">
+                <div class="info-left">
+                    <span class="match-badge">AI 매칭 {{ item.match_score }}점</span>
+                    <p class="price-text">{{ item.rent_type }} {{ item.price_display }}</p>
+                    <p class="addr-text">📍 {{ item.address }}</p>
+                    <div class="spec-grid">
+                        <div class="spec-item">📏 {{ item.size_m2 }}㎡</div>
+                        <div class="spec-item">🏢 {{ item.floor }}층</div>
+                        <div class="spec-item">🚗 {{ '주차가능' if item.hasParking == 'Y' else '주차불가' }}</div>
+                        <div class="spec-item">🛠 {{ item.year_built[:4] if item.year_built else '-' }}년</div>
+                    </div>
+                </div>
+                <div class="info-right">
+                    <canvas id="chart-{{ item._id_str }}"></canvas>
+                </div>
+            </div>
+            <button class="btn-detail" onclick="location.href='/find?id={{item._id_str}}'">매물 상세 보기</button>
         </div>
     </section>
     {% endfor %}
+    <div id="sentinel">추천 매물을 불러오는 중...</div>
 </div>
+
+<script>
+    // 차트 초기화 함수
+    function initChart(id, data) {
+        const ctx = document.getElementById(id);
+        if (!ctx) return;
+
+        // 데이터 보정: 0~1 사이 값이면 100을 곱함
+        const processedData = data.map(v => (v <= 1 && v > 0) ? Math.round(v * 100) : v);
+
+        new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: ['교통', '편의', '녹지', '놀이', '건강', '안전'],
+                datasets: [{
+                    data: processedData,
+                    backgroundColor: 'rgba(79, 172, 254, 0.4)',
+                    borderColor: '#4facfe',
+                    borderWidth: 2,
+                    pointRadius: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                scales: {
+                    r: {
+                        min: 0, max: 100,
+                        ticks: { display: false },
+                        grid: { color: 'rgba(255, 255, 255, 0.15)' }, 
+                        angleLines: { color: 'rgba(255, 255, 255, 0.15)' },
+                        pointLabels: { 
+                            display: true, 
+                            color: '#ffffff', 
+                            font: { size: 9, weight: '600' }
+                        }
+                    }
+                },
+                plugins: { legend: { display: false } },
+                animation: { duration: 800 }
+            }
+        });
+    }
+
+    // 스와이퍼 초기화
+    function initSwiper(target) {
+        return new Swiper(target, {
+            slidesPerView: 1, 
+            centeredSlides: true,
+            grabCursor: true,
+            nested: true,
+            effect: 'creative',
+            creativeEffect: {
+                prev: { shadow: true, translate: [0, 0, -400] },
+                next: { translate: ['100%', 0, 0] },
+            },
+        });
+    }
+
+    // 초기 로드 시 실행
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.mySwiper').forEach(s => initSwiper(s));
+        {% for item in recommendations %}
+            initChart('chart-{{ item._id_str }}', {{ item.chart_data | tojson }});
+        {% endfor %}
+    });
+
+    let currentIndex = {{ current_index }};
+    let isFetching = false;
+    const wrapper = document.getElementById('shortsWrapper');
+    const sentinel = document.getElementById('sentinel');
+
+    // 무한 스크롤 데이터 페칭
+    async function fetchMore() {
+        if (isFetching) return;
+        isFetching = true;
+        currentIndex += 1; 
+
+        try {
+            const response = await fetch(`/survey/short/${currentIndex}/more`);
+            const data = await response.json();
+            
+            if (data.status === 'success' && data.items.length > 0) {
+                data.items.forEach(item => {
+                    // 중복 체크
+                    if (document.querySelector(`[data-id="${item._id_str}"]`)) return;
+
+                    const section = document.createElement('section');
+                    section.className = 'prop-section';
+                    section.setAttribute('data-id', item._id_str);
+                    
+                    const imgsHtml = item.images.map(img => `
+                        <div class="swiper-slide"><img src="${img}" class="slide-img"></div>
+                    `).join('');
+
+                    const newChartId = `chart-${item._id_str}-${Date.now()}`;
+
+                    section.innerHTML = `
+                        <div class="swiper mySwiper">
+                            <div class="swiper-wrapper">${imgsHtml}</div>
+                        </div>
+                        <div class="info-overlay">
+                            <div class="info-flex-container">
+                                <div class="info-left">
+                                    <span class="match-badge">AI 매칭 ${item.match_score}점</span>
+                                    <p class="price-text">${item.rent_type} ${item.price_display}</p>
+                                    <p class="addr-text">📍 ${item.address}</p>
+                                    <div class="spec-grid">
+                                        <div class="spec-item">📏 ${item.size_m2}㎡</div>
+                                        <div class="spec-item">🏢 ${item.floor}층</div>
+                                        <div class="spec-item">🚗 ${item.hasParking === 'Y' ? '주차가능' : '주차불가'}</div>
+                                        <div class="spec-item">🛠 ${item.year_built ? item.year_built.substring(0,4) : '-'}년</div>
+                                    </div>
+                                </div>
+                                <div class="info-right">
+                                    <canvas id="${newChartId}"></canvas>
+                                </div>
+                            </div>
+                            <button class="btn-detail" onclick="location.href='/find?id=${item._id_str}'">매물 상세 보기</button>
+                        </div>
+                    `;
+                    
+                    wrapper.insertBefore(section, sentinel);
+                    initSwiper(section.querySelector('.mySwiper'));
+                    initChart(newChartId, item.chart_data);
+                });
+            } else {
+                sentinel.innerText = "모든 추천 매물을 확인했습니다.";
+                observer.unobserve(sentinel);
+            }
+        } catch (e) { 
+            console.error("데이터 로드 실패:", e); 
+        } finally { 
+            isFetching = false; 
+        }
+    }
+
+    // 감시자 설정
+    const observer = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting) fetchMore();
+    }, { root: wrapper, threshold: 0.1 });
+
+    observer.observe(sentinel);
+</script>
+
 </body>
 </html>
