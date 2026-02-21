@@ -16,55 +16,28 @@ body, html {
 
 /* --- 2. 네비게이션 바 (모든 버튼 스타일 통일) --- */
 .navbar {
-    background-color: #1a1a1a;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0 40px;
-    height: 60px;
-    position: relative;
-    z-index: 1001;
-}
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px 6%; 
+        width: 100%;
+        box-sizing: border-box;
+        background-color: #3b3b3b; /* 검정색 배경 */
+    }
 
-.nav-left, .nav-links {
-    display: flex;
-    align-items: center;
-}
+        /* [상단바 링크] */
+    .navbar a {
+        font-size: 1.1rem; 
+        font-weight: 700;   
+        text-decoration: none;
+        color: #fff;        /* 흰색 글씨 */
+        margin: 0 15px;     
+        transition: color 0.3s;
+    }
 
-/* 모든 a 태그(HOME 포함)의 스타일을 동일하게 설정 */
-.navbar a {
-    color: rgba(255, 255, 255, 0.8);
-    text-decoration: none;
-    padding: 0 20px;
-    height: 60px;
-    display: flex;
-    align-items: center;
-    transition: all 0.3s ease;
-    font-size: 14px; /* 19px에서 일반 메뉴 크기인 14px로 축소 */
-    font-weight: 500; /* 800에서 일반 굵기인 500으로 변경 */
-}
-.navbar span{
-    color: rgba(255, 255, 255, 0.8);
-    text-decoration: none;
-    padding: 0 20px;
-    height: 60px;
-    display: flex;
-    align-items: center;
-    transition: all 0.3s ease;
-    font-size: 14px; /* 19px에서 일반 메뉴 크기인 14px로 축소 */
-    font-weight: 500; /* 800에서 일반 굵기인 500으로 변경 */
-}
-/* 호버 시 효과도 모두 통일 */
-.navbar a:hover, .navbar a.active {
-    background-color: rgba(255, 255, 255, 0.1);
-    color: #fff;
-}
-
-/* 기존 .logo에 걸려있던 과한 디자인 제거 */
-.navbar .logo {
-    /* 특수 스타일 삭제: 이제 다른 메뉴들과 똑같이 보입니다 */
-    padding-left: 20px; /* 다른 버튼들과 간격 동일하게 보정 */
-}
+    .navbar a:hover {
+        color: #007bff; /* 호버 시 파란색 */
+    }
 
 /* --- 3. 푸터 --- */
 .footer {
@@ -86,3 +59,10 @@ body, html {
 .footer a:hover {
     text-decoration: underline;
 }
+
+/* 닉네임 표시 스타일 */
+.welcome-text {
+            font-size: 1.1rem;
+            margin-right: 15px;
+            color: #fff;
+        }

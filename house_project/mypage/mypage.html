@@ -7,47 +7,7 @@
     <title>마이페이지 - AI 라이프 매칭</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/mypage.css') }}">
-    <style>
-        /* 🔥 [통일된 상단바 스타일 추가] */
-        .navbar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 20px 6%; 
-            width: 100%;
-            box-sizing: border-box;
-            background-color: #222;
-        }
-        .navbar a {
-            font-size: 1.25rem; 
-            font-weight: 700;   
-            text-decoration: none;
-            color: #fff;        
-            margin: 0 15px;     
-            transition: color 0.3s;
-        }
-        .navbar a:hover { color: #007bff; }
-        .welcome-text {
-            font-size: 1.1rem;
-            margin-right: 15px;
-            color: #fff;
-        }
-
-        /* --- 기존 스타일 유지 --- */
-        .btn-result-link {
-            display: block; margin-top: 15px; padding: 12px;
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            color: white !important; text-align: center; border-radius: 10px;
-            font-weight: bold; font-size: 14px; text-decoration: none;
-            box-shadow: 0 4px 10px rgba(79, 172, 254, 0.3); transition: all 0.3s ease;
-        }
-        .btn-result-link:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(79, 172, 254, 0.4); filter: brightness(1.05); }
-        .survey-item-card {
-            border: 1px solid #eee; border-radius: 15px; padding: 15px;
-            background: #fff; transition: border-color 0.3s;
-        }
-        .survey-item-card:hover { border-color: #4facfe; }
-    </style>
+    
 </head>
 <body>
 
@@ -64,16 +24,18 @@
 </div>
 
 <div class="container">
-    <div class="profile-card">
-        <div class="profile-left">
+    <div class="profile-card" style="padding-top: 15px; padding-bottom: 20px;"> <div class="profile-left" style="display: flex; flex-direction: column; align-items: center; justify-content: flex-start; margin-top: -10px;"> 
             <img class="profile-img-preview" 
-                 src="{{ url_for('static', filename='profile_pics/' + profile_img) if profile_img and profile_img != 'default.png' else url_for('static', filename='profile_pics/default.png') }}" 
-                 alt="프로필 사진">
+                src="{{ url_for('static', filename='profile_pics/' + (profile_img if profile_img else 'default.png')) }}" 
+                onerror="this.src='{{ url_for('static', filename='profile_pics/default.png') }}'"
+                alt="프로필 사진"
+                style="width: 120px; height: 120px; margin-bottom: 10px;"> <strong style="font-size: 1.1rem; color: #333;">{{ nickname if nickname else '닉네임 없음' }}</strong>
         </div>
+
         <div class="profile-right">
             <div class="info-row"><span class="info-label">이메일</span><span class="info-value">{{ user_email }}</span></div>
-            <div class="info-row"><span class="info-label">닉네임</span><span class="info-value">{{ nickname if nickname else '설정된 닉네임이 없습니다.' }}</span></div>
             <div class="info-row"><span class="info-label">한줄소개</span><span class="info-value">{{ introduction if introduction else '' }}</span></div>
+            
             <div class="btn-group">
                 <a href="{{ url_for('mypage.edit_profile') }}" class="btn-edit">내 정보 수정</a>
                 <a href="{{ url_for('mypage.delete_confirm') }}" class="btn-withdraw">회원 탈퇴</a>
@@ -91,6 +53,8 @@
                         {% if surveys %}1 / {{ surveys|length }}건{% else %}0건{% endif %}
                     </span>
                     <a href="#" class="view-all" onclick="openModal('survey')">전체보기</a>
+                    <span class="count-badge">{{ surveys|length if surveys else 0 }}건</span>
+                    <a href="#" class="view-all" onclick="openModal(event, 'survey')">전체보기</a>
                 </div>
             </div>
             
@@ -149,10 +113,19 @@
             <div class="box-header">
                 <h3>❤️ 내가 찜한 매물</h3>
                 <div class="header-right">
-                    <span class="count-badge red">{{ favorites|length if favorites else 0 }}개</span>
-                    <a href="#" class="view-all" onclick="openModal('property')">전체보기</a>
+                    <a href="#" class="view-all" onclick="openModal(event, 'property')">전체보기</a>
                 </div>
             </div>
+            
+            {% if total_count > 0 %}
+            <div class="wishlist-summary" style="margin: 0 20px 15px 20px; padding: 12px 15px; background-color: #fff5f5; border-radius: 10px; border: 1px solid #ffe3e3;">
+                <p style="margin: 0; font-size: 0.95rem; color: #444;">
+                    🏠 현재 찜한 매물 <strong>{{ total_count }}</strong>개 중 
+                    <span style="color: #ff5a5f; font-weight: 600;">전세 {{ jeonse_count }}개</span> / 
+                    <span style="color: #ff5a5f; font-weight: 600;">월세 {{ wolse_count }}개</span>가 있습니다.
+                </p>
+            </div>
+            {% endif %}
             
             <div class="slider-container">
                 {% if favorites %}
@@ -180,6 +153,25 @@
             </div>
         </div>
 
+    </div>
+</div>
+
+<div id="commonModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="modalTitle" style="margin:0; font-size:18px;">❤️ 찜한 매물</h2>
+            <div class="header-right-group" style="display:flex; align-items:center; gap:15px;">
+                <div id="modalBtnGroup">
+                    <button class="btn-edit-mode" onclick="toggleEditMode()">수정</button>
+                </div>
+                <span class="close-btn" onclick="closeModal()">&times;</span>
+            </div>
+        </div>
+        <div id="selectAllArea">
+            <input type="checkbox" id="selectAll" onclick="toggleAllCheckboxes(this)">
+            <label for="selectAll" style="cursor:pointer;">전체 선택</label>
+        </div>
+        <div id="modalBody"></div>
     </div>
 </div>
 
@@ -246,8 +238,139 @@
         }
     }
 
-    function openModal(type) {
-        alert(type === 'survey' ? '전체 설문 목록 창을 엽니다.' : '전체 찜 목록 창을 엽니다.');
+    let isEditMode = false;
+
+    function openModal(event, type) {
+        if (event) event.preventDefault(); // 주소창 뒤에 #이 붙는 것을 막아줌.
+
+        const modal = document.getElementById('commonModal');
+        const title = document.getElementById('modalTitle');
+        const body = document.getElementById('modalBody');
+        const btnGroup = document.getElementById('modalBtnGroup');
+        const selectArea = document.getElementById('selectAllArea'); // 전체선택 영역
+
+        isEditMode = false;
+        modal.classList.remove('is-editing');
+
+        // 중요: 모달을 열 때 전체 선택 영역은 무조건 먼저 숨깁니다.
+        if (selectArea) selectArea.style.display = "none";
+
+        modal.style.display = "block";
+        body.innerHTML = "";
+
+        if (type === 'property') {
+            title.innerText = "❤️ 찜한 매물";
+            btnGroup.innerHTML = `<button class="btn-edit-mode" onclick="toggleEditMode()">수정</button>`;
+
+            let html = '';
+            {% if favorites %}
+                {% for fav in favorites %}
+                html += `
+                    <div class="modal-item-list">
+                        <input type="checkbox" class="edit-checkbox fav-check" data-id="{{ fav._id_str or fav.id }}">
+                        <div style="flex-grow:1; text-align:left;">
+                            <strong style="color:#ff4757;">{{ fav.price }}</strong><br>
+                            <span style="color:#666; font-size:12px;">{{ fav.address }}</span>
+                        </div>
+                        <button class="view-btn" onclick="location.href='/find?id={{ fav._id_str or fav.id }}'">보기</button>
+                    </div>`;
+                {% endfor %}
+            {% else %}
+                html = '<p style="padding:40px; color:#ccc; text-align:center;">찜한 매물이 없습니다.</p>';
+            {% endif %}
+            body.innerHTML = html;
+
+        } else if (type === 'survey') {
+            title.innerText = "📝 최근 설문 리포트";
+            btnGroup.innerHTML = "";
+            // 설문 리포트에서는 전체 선택 레이아웃이 아예 필요 없으므로 숨김 유지
+            if (selectArea) selectArea.style.display = "none";
+
+            let html = '<div style="display: grid; grid-template-columns: 1fr; gap: 15px; margin-top:10px;">';
+            {% if surveys %}
+                {% for s in surveys %}
+                html += `
+                    <div class="survey-item-card" style="text-align:left;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                            <span class="count-badge" style="background:#f0f2f5; padding:2px 8px; border-radius:5px; font-size:11px;">{{ s.date }}</span>
+                            <span style="color:#4facfe; font-size:12px; font-weight:bold;">분석완료</span>
+                        </div>
+                        <h4 style="margin:5px 0; font-size:16px;">📍 {{ s.location }}</h4>
+                        <p style="font-size:13px; color:#555; margin:5px 0;">{{ s.main_info }}</p>
+                        <a href="/survey/result/{{ loop.index0 }}" class="btn-result-link" style="display:block; text-decoration:none; margin-top:10px;">리포트 결과 보기</a>
+                    </div>`;
+                {% endfor %}
+            {% else %}
+                html = '<p style="padding:40px; color:#ccc; text-align:center;">진행한 설문이 없습니다.</p>';
+            {% endif %}
+            html += '</div>';
+            body.innerHTML = html;
+        }
+    }
+
+    function toggleEditMode() {
+        isEditMode = !isEditMode;
+        const modal = document.getElementById('commonModal');
+        const btnGroup = document.getElementById('modalBtnGroup');
+        const selectArea = document.getElementById('selectAllArea'); // 전체선택 영역
+        const viewButtons = document.querySelectorAll('.view-btn');
+
+        if (isEditMode) {
+            modal.classList.add('is-editing');
+            // 수정 모드일 때 전체 선택 영역 표시
+            if (selectArea) selectArea.style.display = "flex";
+
+            btnGroup.innerHTML = `
+                <button class="btn-delete-simple" onclick="deleteSelected()">삭제</button>
+                <button class="btn-cancel-simple" onclick="toggleEditMode()">취소</button>
+            `;
+            viewButtons.forEach(b => b.style.display = 'none');
+        } else {
+            modal.classList.remove('is-editing');
+            // 수정 모드 해제 시 전체 선택 영역 숨김
+            if (selectArea) selectArea.style.display = "none";
+
+            btnGroup.innerHTML = `<button class="btn-edit-mode" onclick="toggleEditMode()">수정</button>`;
+            viewButtons.forEach(b => b.style.display = 'inline-block');
+
+            // 체크박스 초기화
+            const selectAllCb = document.getElementById('selectAll');
+            if (selectAllCb) selectAllCb.checked = false;
+            toggleAllCheckboxes({checked: false});
+        }
+    }
+
+    function toggleAllCheckboxes(source) {
+        document.querySelectorAll('.fav-check').forEach(cb => cb.checked = source.checked);
+    }
+
+    function closeModal() { document.getElementById('commonModal').style.display = "none"; }
+
+    function deleteSelected() {
+        const selected = document.querySelectorAll('.fav-check:checked');
+        const ids = Array.from(selected).map(cb => cb.getAttribute('data-id'));
+
+        if (ids.length === 0) {
+            alert('삭제할 매물을 선택해주세요.');
+            return;
+        }
+
+        if (confirm('선택한 매물을 찜 목록에서 삭제하시겠습니까?')) {
+            // 실제 서버에 삭제 요청을 보내는 부분
+            fetch('/delete_favorites', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids: ids })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload(); // 성공 시 페이지 새로고침하여 반영
+                } else {
+                    alert('삭제 중 오류가 발생했습니다.');
+                }
+            });
+        }
     }
 </script>
 

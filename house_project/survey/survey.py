@@ -24,7 +24,16 @@ try:
 except Exception as e:
     print(f"❌ GPT 초기화 실패: {e}")
 
+
 # --- [AI 추천 사유 생성 함수] --- (기존 유지)
+
+# ... (이하 나머지 코드 동일) ...
+
+
+# ------------------------------------------------------------------
+# AI 추천 사유 생성 함수
+# ------------------------------------------------------------------
+
 def generate_recommendation_reason(user_weights, house_info):
     sorted_weights = sorted(user_weights.items(), key=lambda x: x[1], reverse=True)
     top_interests = [f"{category_map.get(k, k)}" for k, v in sorted_weights[:2]]

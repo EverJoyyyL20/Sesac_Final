@@ -6,52 +6,6 @@
     <title>정보 수정 - 안전한 집 찾기</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/mypage.css') }}">
-    <style>
-        /* 🔥 [통일된 상단바 스타일 추가] */
-        .navbar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 20px 6%; 
-            width: 100%;
-            box-sizing: border-box;
-            background-color: #222;
-        }
-        .navbar a {
-            font-size: 1.25rem; 
-            font-weight: 700;   
-            text-decoration: none;
-            color: #fff;        
-            margin: 0 15px;     
-            transition: color 0.3s;
-        }
-        .navbar a:hover { color: #007bff; }
-        .welcome-text {
-            font-size: 1.1rem;
-            margin-right: 15px;
-            color: #fff;
-        }
-
-        /* 🎨 입력창 스타일 */
-        .edit-input {
-            flex: 1; height: 40px; padding: 0 15px;
-            border: 1px solid transparent; border-radius: 8px; background-color: #f2f4f6;
-            font-size: 0.95rem; outline: none; transition: all 0.2s ease;
-        }
-        .edit-input:focus {
-            background-color: #fff; border-color: #3182f6; box-shadow: 0 0 0 2px rgba(49, 130, 246, 0.1);
-        }
-        /* 🔘 버튼 스타일 수정 */
-        .btn-edit {
-            background-color: #3182f6 !important; color: white !important; border: none !important;
-            border-radius: 8px !important; padding: 10px 25px !important; font-weight: 600 !important; cursor: pointer;
-        }
-        .btn-cancel {
-            background-color: #f5f5f5 !important; color: #888 !important; border: none !important;
-            border-radius: 8px !important; padding: 10px 25px !important; text-decoration: none;
-            display: inline-flex; align-items: center; justify-content: center; font-size: 0.9rem; font-weight: 600;
-        }
-    </style>
 </head>
 <body>
 
@@ -78,16 +32,29 @@
             
             <div class="profile-left" style="flex: 0 0 150px; text-align: center;">
                 <img id="preview" class="profile-img-preview" 
-                     src="{{ url_for('static', filename='profile_pics/' + profile_img) if profile_img else url_for('static', filename='profile_pics/default.png') }}" 
+                     src="{{ url_for('static', filename='profile_pics/' + (profile_img if profile_img else 'default.png')) }}"
                      style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover; border: 2px solid #eee;">
-                <div style="margin-top: 12px;">
-                    <label for="profile_img" class="file-label" style="font-size: 0.8rem; padding: 6px 12px; cursor: pointer;">사진 변경</label>
+                <div style="margin-top: 20px; display: flex; justify-content: center; gap: 12px; width: 100%;">
+                    <button type="button" onclick="resetToDefault()" 
+                            style="flex: 0 0 auto; min-width: 80px; font-size: 0.85rem; padding: 8px 16px; 
+                                background-color: #fff; border: 1px solid #e0e0e0; border-radius: 8px; 
+                                cursor: pointer; color: #777; font-weight: 500; white-space: nowrap; transition: 0.2s;">
+                        기본으로
+                    </button>
+
+                    <label for="profile_img" class="file-label" 
+                        style="flex: 0 0 auto; min-width: 80px; font-size: 0.85rem; padding: 8px 16px; 
+                                background-color: #f2f4f6; border-radius: 8px; cursor: pointer; 
+                                color: #444; font-weight: 600; white-space: nowrap; text-align: center; transition: 0.2s;">
+                        사진 변경
+                    </label>
+
                     <input type="file" id="profile_img" name="profile_img" accept="image/*" style="display: none;" onchange="previewImage(this)">
                 </div>
             </div>
 
             <div class="profile-right" style="flex: 1;">
-                <h2 style="margin-bottom: 20px; font-weight: 800; font-size: 1.5rem;">내 정보 수정</h2>
+                <h2 style="margin-bottom: 15px; font-weight: 800; font-size: 1.5rem;">내 정보 수정</h2>
                 
                 <div class="info-row" style="margin-bottom: 15px; display: flex; align-items: center; border: none;">
                     <span class="info-label" style="width: 100px; font-size: 0.95rem; font-weight: 700; border: none;">닉네임</span>
@@ -123,9 +90,29 @@
                     <a href="{{ url_for('mypage.mypage') }}" class="btn-cancel">취소</a>
                 </div>
             </div>
+
+            <input type="hidden" id="is_default_img" name="is_default_img" value="false">
         </form>
     </div>
 </div>
+
+<script>
+function resetToDefault() {
+    if (confirm("프로필 이미지를 기본 이미지로 변경하시겠습니까?")) {
+        // 1. 미리보기 이미지를 기본 이미지 경로로 교체
+        const defaultImgPath = "{{ url_for('static', filename='profile_pics/default.png') }}";
+        document.getElementById('preview').src = defaultImgPath;
+        
+        // 2. 숨겨진 입력창 값을 true로 변경 (서버에 알림)
+        document.getElementById('is_default_img').value = "true";
+        
+        // 3. 파일 선택창(input type="file") 비우기 (새로 업로드하려던 사진 취소)
+        document.getElementById('profile_img').value = "";
+        
+        alert("기본 이미지로 설정되었습니다. '저장하기'를 눌러야 최종 반영됩니다.");
+    }
+}
+</script>
 
 <script>
     function previewImage(input) {
