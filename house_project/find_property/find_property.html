@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/find_property.css') }}">
     <script type="text/javascript" src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId={{ client_id }}"></script>
-
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 </head>
 <body>
@@ -99,10 +99,30 @@
 <div id="propertyModal" class="modal">
     <div class="modal-content">
         <h2 style="margin:0 0 20px 0; font-size: 20px;">🏠 매물 상세 정보</h2>
-        <div id="modal-body"></div>
-        <div style="margin-top:25px; display:flex; gap:12px;">
-            <button id="favoriteBtn" class="fav-btn" onclick="handleFavorite()" style="flex:1; padding:14px; background:#fff; border:1px solid #ddd; border-radius:12px; cursor:pointer; font-weight:bold;">❤️ 찜하기</button>
-            <button id="closeModalBtn" onclick="closeModal()" style="flex:1; padding:14px; background:#eee; border:none; border-radius:12px; cursor:pointer;">닫기</button>
+        
+        <div class="detail-slider-container" id="detailSlider">
+            <div class="detail-slider-wrapper" id="sliderWrapper">
+                <div class="detail-page" id="infoPage">
+                    <div id="modal-body-content"></div>
+                </div>
+                <div class="detail-page" id="chartPage">
+                    <h3 style="text-align:center; font-size: 16px; margin-bottom: 15px;">📊 매물 입지 분석</h3>
+                    <div style="height: 250px; width: 100%;">
+                        <canvas id="radarChart"></canvas>
+                    </div>
+                    <p style="text-align:center; color:#999; font-size:12px; margin-top:10px;">← 옆으로 밀어서 정보 보기</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="slider-dots">
+            <span class="dot active" onclick="goToPage(0)"></span>
+            <span class="dot" onclick="goToPage(1)"></span>
+        </div>
+
+        <div class="modal-footer-btns">
+            <button id="favoriteBtn" class="fav-btn" onclick="handleFavorite()">❤️ 찜하기</button>
+            <button id="closeModalBtn" class="close-btn" onclick="closeModal()">닫기</button>
         </div>
     </div>
 </div>
@@ -267,24 +287,26 @@
         });
     }
 
+let myRadarChart = null;
+
 function openDetail(id) {
     fetch(`/api/property/${id}`)
         .then(res => res.json())
         .then(prop => {
             window.currentSelectedProp = prop;
             
+            // 모달 열 때 첫 페이지로 초기화
+            goToPage(0);
+
             const favBtn = document.getElementById('favoriteBtn');
             favBtn.innerText = prop.is_favorite ? '💔 찜 취소' : '❤️ 찜하기';
             
+            // 층수 정보 스타일링
             let floorClass = "floor-tag";
             if(prop.floor.includes("반지하")) floorClass += " floor-danger";
             else if(prop.floor.includes("옥탑")) floorClass += " floor-warn";
 
-            let parkingText = "정보없음";
-            if (prop.parking) {
-                if (prop.parking.includes("가능")) parkingText = "가능";
-                else parkingText = "불가";
-            }
+            // 이미지 영역 생성
             let imgHtml = '';
             if (Array.isArray(prop.images) && prop.images.length > 0) {
                 imgHtml += `<div class="image-slider-wrapper">`;
@@ -307,7 +329,8 @@ function openDetail(id) {
                 imgHtml = `<div class="no-img-placeholder">이미지가 없는 매물입니다.</div>`;
             }
 
-            document.getElementById('modal-body').innerHTML = `
+            // 첫 번째 페이지 컨텐츠 삽입
+            document.getElementById('modal-body-content').innerHTML = `
                 ${imgHtml}
                 <div class="detail-row"><span>📍 주소</span><b>${prop.address}</b></div>
                 <div class="detail-row"><span>💰 가격</span><b style="color:#2ecc71; font-size:1.1em;">${formatPrice(prop)}</b></div>
@@ -316,9 +339,67 @@ function openDetail(id) {
                 <div class="detail-row"><span>🏠 건물유형</span><b>${prop.buildtype ?? '정보없음'}</b></div>
                 <div class="detail-row"><span>🚗 주차</span><b>${prop.parking ? '가능' : '불가'}</b></div>
             `;
+
+            // 차트 그리기
+            if (prop.score) drawRadarChart(prop.score);
+
             document.getElementById('propertyModal').style.display = 'block';
-        })
-        .catch(err => { /* 에러 처리 */ });
+        });
+}
+
+// 페이지 이동 함수 (슬라이더 전용)
+function goToPage(index) {
+    const wrapper = document.getElementById('sliderWrapper');
+    const dots = document.querySelectorAll('.dot');
+    wrapper.style.transform = `translateX(-${index * 50}%)`;
+    dots.forEach((dot, i) => dot.classList.toggle('active', i === index));
+}
+
+// 차트 그리기 함수
+function drawRadarChart(score) {
+    const ctx = document.getElementById('radarChart').getContext('2d');
+    if (myRadarChart) myRadarChart.destroy();
+
+    // 데이터가 제대로 안 들어올 것에 대비해 안전하게 parseFloat 처리
+    // score가 null이거나 undefined여도 에러 안 나게 처리
+    const s = score || {};
+
+    const scoreData = [
+        (parseFloat(s.traffic) || 0) * 100,
+        (parseFloat(s.convenience) || 0) * 100,
+        (parseFloat(s.green) || 0) * 100,
+        (parseFloat(s.play) || 0) * 100,
+        (parseFloat(s.health) || 0) * 100,
+        (parseFloat(s.living) || 0) * 100,
+        (parseFloat(s.safety) || 0) * 100
+    ];
+
+    console.log("변환된 차트 데이터 배열:", scoreData); // 여기서 0만 나오는지 꼭 확인하세요!
+
+    myRadarChart = new Chart(ctx, {
+        type: 'radar',
+        data: {
+            labels: ['교통', '편의', '자연', '놀이', '건강', '생활', '안전'],
+            datasets: [{
+                data: scoreData,
+                backgroundColor: 'rgba(79, 172, 254, 0.3)',
+                borderColor: '#4facfe',
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                r: {
+                    min: 0,
+                    max: 100,
+                    ticks: { display: false, stepSize: 20 }
+                }
+            },
+            plugins: { legend: { display: false } }
+        }
+    });
 }
 
     function handleFavorite() {
