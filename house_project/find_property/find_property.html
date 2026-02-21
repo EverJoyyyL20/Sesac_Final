@@ -10,6 +10,30 @@
     <script type="text/javascript" src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId={{ client_id }}&submodules=geocoder"></script>
     <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        /* 🔥 [추가] 방 개수 선택 버튼 스타일 (둥그런 네모) */
+        .room-btn {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 12px; /* 둥그런 네모 */
+            background: #fff;
+            color: #666;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s ease;
+            text-align: center;
+            font-weight: 500;
+        }
+        .room-btn:hover { background: #f8f9fa; }
+        .room-btn.active {
+            background: #f0f7ff;
+            border-color: #4facfe;
+            color: #4facfe;
+            font-weight: bold;
+        }
+    </style>
 </head>
 <body>
 
@@ -58,18 +82,12 @@
 
         <div id="filter-content">
             <div class="f-section">
-                <label>거래/건물 용도</label>
+                <label>거래유형</label>
                 <div class="f-row">
-                    <select id="filter-type" onchange="handleTypeChange()">
+                    <select id="filter-type" onchange="handleTypeChange()" style="width: 100%;">
                         <option value="">전체 거래</option>
                         <option value="월세">월세</option>
                         <option value="전세">전세</option>
-                    </select>
-                    <select id="filter-use" onchange="updateMarkers()">
-                        <option value="">전체 용도</option>
-                        <option value="원룸">원룸</option>
-                        <option value="투룸">투룸</option>
-                        <option value="오피스텔">오피스텔</option>
                     </select>
                 </div>
             </div>
@@ -89,6 +107,15 @@
                     <input type="number" id="min-price" placeholder="최소" min="0" oninput="validateNonNegative(this); updateMarkers()">
                     <span>~</span>
                     <input type="number" id="max-price" placeholder="최대" min="0" oninput="validateNonNegative(this); updateMarkers()">
+                </div>
+            </div>
+
+            <div class="f-section">
+                <label>방 개수</label>
+                <div class="f-row" style="flex-direction: column; gap: 8px;">
+                    <button type="button" class="room-btn" data-val="원룸" onclick="toggleRoom(this)">원룸</button>
+                    <button type="button" class="room-btn" data-val="투룸" onclick="toggleRoom(this)">투룸</button>
+                    <button type="button" class="room-btn" data-val="쓰리룸+" onclick="toggleRoom(this)">쓰리룸+</button>
                 </div>
             </div>
 
@@ -161,7 +188,6 @@
             if(currentOpenIw){currentOpenIw.close(); currentOpenIw=null;} 
         });
 
-        // 초기 필터 설정 (URL 파라미터 기반)
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.has('type')) {
             document.getElementById('filter-type').value = urlParams.get('type');
@@ -175,7 +201,7 @@
         else updateMarkers();
     };
 
-    let searchCircle = null; // 원 객체를 담을 전역 변수 추가
+    let searchCircle = null;
 
     function execDaumPostcode() {
         new daum.Postcode({
@@ -188,16 +214,14 @@
                     const result = response.v2.addresses[0];
                     const lat = parseFloat(result.y);
                     const lng = parseFloat(result.x);
-                    const radius = parseInt(document.getElementById('search-radius').value); // 설정된 반경값
+                    const radius = parseInt(document.getElementById('search-radius').value);
 
                     searchCenter = { lat, lng };
                     const centerPos = new naver.maps.LatLng(lat, lng);
 
-                    // 1. 기존 마커 및 원 제거
                     if (centerMarker) centerMarker.setMap(null);
                     if (searchCircle) searchCircle.setMap(null);
 
-                    // 2. 중심점 마커 생성
                     centerMarker = new naver.maps.Marker({
                         position: centerPos,
                         map: map,
@@ -207,11 +231,10 @@
                         }
                     });
 
-                    // 3. 반경 원 그리기
                     searchCircle = new naver.maps.Circle({
                         map: map,
                         center: centerPos,
-                        radius: radius, // 미터(m) 단위
+                        radius: radius,
                         fillColor: '#4facfe',
                         fillOpacity: 0.2,
                         strokeColor: '#4facfe',
@@ -222,7 +245,6 @@
                     document.getElementById('reset-search').style.display = 'block';
                     map.setCenter(centerPos);
                     
-                    // 반경에 따른 적절한 줌 레벨 설정
                     const zoomLevel = radius <= 500 ? 16 : (radius <= 1000 ? 15 : 14);
                     map.setZoom(zoomLevel);
                     
@@ -232,7 +254,6 @@
         }).open();
     }
 
-    // 반경 Select 박스 변경 시 원 크기도 함께 업데이트
     document.getElementById('search-radius').onchange = function() {
         if (searchCenter && searchCircle) {
             const newRadius = parseInt(this.value);
@@ -244,10 +265,16 @@
     function resetSearchCenter() {
         searchCenter = null;
         if (centerMarker) centerMarker.setMap(null);
-        if (searchCircle) searchCircle.setMap(null); // 원 제거
+        if (searchCircle) searchCircle.setMap(null);
         document.getElementById('search-address').value = "";
         document.getElementById('reset-search').style.display = 'none';
         updateMarkers();
+    }
+
+    // 🔥 [추가] 방 개수 버튼 클릭 시 활성화/비활성화 처리
+    function toggleRoom(btn) {
+        btn.classList.toggle('active');
+        updateMarkers(); // 선택 즉시 마커 업데이트
     }
 
     function updateMarkers() {
@@ -255,9 +282,12 @@
         const bounds = map.getBounds();
         const requestId = ++lastRequestId;
 
+        // 🔥 [수정] 방 개수 다중 선택 데이터 수집
+        const selectedRooms = Array.from(document.querySelectorAll('.room-btn.active')).map(b => b.dataset.val).join(',');
+
         const filters = {
             type: document.getElementById('filter-type').value,
-            bUse: document.getElementById('filter-use').value,
+            rooms: selectedRooms, // 수집된 데이터 추가
             minDep: document.getElementById('min-deposit').value,
             maxDep: document.getElementById('max-deposit').value,
             minPri: document.getElementById('min-price').value,
@@ -272,7 +302,8 @@
         let apiUrl = zoom < 14 ? '/api/stats/gu' : `/api/properties?sw_lat=${bounds.getSW().lat()}&sw_lng=${bounds.getSW().lng()}&ne_lat=${bounds.getNE().lat()}&ne_lng=${bounds.getNE().lng()}`;
 
         if (zoom >= 14) {
-            apiUrl += `&type=${filters.type}&building_use=${filters.bUse}&min_deposit=${filters.minDep}&max_deposit=${filters.maxDep}`;
+            // 🔥 [수정] building_use 파라미터 대신 rooms 파라미터 전송
+            apiUrl += `&type=${filters.type}&rooms=${filters.rooms}&min_deposit=${filters.minDep}&max_deposit=${filters.maxDep}`;
             apiUrl += `&min_price=${filters.minPri}&max_price=${filters.maxPri}&min_size=${filters.minSize}&max_size=${filters.maxSize}`;
             apiUrl += `&parking=${filters.parking}&exclude_under=${filters.excludeUnder}`;
             if (searchCenter) {
@@ -283,7 +314,6 @@
         fetch(apiUrl).then(res => res.json()).then(data => {
             if (requestId !== lastRequestId) return;
             
-            // 1. 기존 마커 무조건 싹 지우기
             markers.forEach(m => m.setMap(null));
             markers = [];
 
@@ -291,14 +321,12 @@
                 renderGu(data); 
                 document.getElementById('status-text').innerText = "서울 지역별 매물 현황";
             } else { 
-                // 2. [핵심] 서버에서 받은 데이터 중 '현재 화면 안에 있는 것'만 골라내기
                 const currentBounds = map.getBounds();
                 const visibleData = data.filter(item => {
                     const position = new naver.maps.LatLng(item.location.coordinates[1], item.location.coordinates[0]);
-                    return currentBounds.hasLatLng(position); // 화면 좌표 안에 있는지 체크
+                    return currentBounds.hasLatLng(position);
                 });
 
-                // 3. 화면 안에 있는 것만 마커로 그리기
                 renderProperties(visibleData); 
                 
                 document.getElementById('status-text').innerText = visibleData.length > 0 ? 
@@ -307,7 +335,6 @@
         });
     }
 
-    // --- 마커 렌더링 함수 ---
     function renderGu(stats) {
         stats.forEach(gu => {
             const marker = new naver.maps.Marker({
@@ -354,11 +381,10 @@
         });
     }
 
-    // --- 모달 및 상세 정보 로직 ---
     function openDetail(id) {
         fetch(`/api/property/${id}`).then(res => res.json()).then(prop => {
             window.currentSelectedProp = prop;
-            goToPage(0); // 모달 오픈 시 첫 페이지
+            goToPage(0);
 
             const favBtn = document.getElementById('favoriteBtn');
             favBtn.innerText = prop.is_favorite ? '💔 찜 취소' : '❤️ 찜하기';
