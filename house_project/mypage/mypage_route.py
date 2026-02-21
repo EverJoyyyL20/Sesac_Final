@@ -232,15 +232,6 @@ def update_profile():
             filename = secure_filename(f"user_{user_prefix}_{file.filename}")
             file.save(os.path.join(UPLOAD_FOLDER, filename))
             update_data['Profile_IMG'] = filename
-
-    # 최종 DB 업데이트 (모든 변경사항을 한 번에 반영)   
-    file = request.files.get('profile_img')
-    if file and file.filename != '' and allowed_file(file.filename):
-        if not os.path.exists(UPLOAD_FOLDER): os.makedirs(UPLOAD_FOLDER)
-        user_prefix = session['user_id'].split('@')[0]
-        filename = secure_filename(f"user_{user_prefix}_{file.filename}")
-        file.save(os.path.join(UPLOAD_FOLDER, filename))
-        update_data['Profile_IMG'] = filename
     
     users_col.update_one({'email': session['user_id']}, {'$set': update_data})
     session['nickname'] = new_nickname
