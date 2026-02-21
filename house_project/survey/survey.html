@@ -4,40 +4,52 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>맞춤 매물 분석 설문</title>
+    <script type="text/javascript" src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId={{ client_id }}&submodules=geocoder"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/survey.css') }}">
     <style>
-
-        /* [상단바 스타일 유지] */
+        /* [기본 스타일 및 네비게이션] */
         .navbar {
             display: flex; justify-content: space-between; align-items: center;
             padding: 20px 6%; width: 100%; box-sizing: border-box;
-            background-color: #222; letter-spacing: 0px; 
+            background-color: #222;
         }
-        .navbar a { font-size: 1.25rem; font-weight: 700; text-decoration: none; color: #fff; margin: 0 15px; transition: color 0.3s; letter-spacing: 0px; }
+        .navbar a { font-size: 1.25rem; font-weight: 700; text-decoration: none; color: #fff; margin: 0 15px; transition: color 0.3s; }
         .navbar a:hover { color: #007bff; }
-        .welcome-text { font-size: 1.1rem; margin-right: 15px; color: #fff; letter-spacing: 0px; }
+        .welcome-text { font-size: 1.1rem; margin-right: 15px; color: #fff; }
 
-        /* [기존 설문 스타일 유지] */
-
-
-        /* --- 기존 설문 페이지 스타일 (유지) --- */
-
+        /* [설문 카드 애니메이션] */
         #loading-screen { display: none; text-align: center; padding: 50px 20px; }
         .q-card { display: none; }
         .q-card.active { display: block; animation: fadeIn 0.5s ease; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
         .selected { background-color: #4facfe !important; color: white !important; border-color: #4facfe !important; }
         .conditional-area { display: none; margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 12px; }
         .range-group { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
         .range-group input { flex: 1; }
         .range-sep { font-weight: bold; color: #666; }
-        .back-btn { background: #eee; color: #666; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        
+        .back-btn { background: #eee; color: #666; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; transition: 0.3s; padding: 10px; }
         .back-btn:hover { background: #e0e0e0; }
 
-        /* 🔥 [추가] 상세 조건용 서브 질문 스타일 */
-        .detail-q-group { margin-bottom: 25px; text-align: left; }
-        .detail-q-group .sub-q { font-size: 1rem; font-weight: bold; color: #333; margin-bottom: 10px; }
+        /* [지도 관련 스타일] */
+        #map-selection-area { display: none; margin-top: 20px; width: 100%; }
+        #map-container { width: 100%; height: 350px; border-radius: 15px; border: 1px solid #ddd; margin: 15px 0; position: relative; overflow: hidden; }
+        #map { width: 100%; height: 100%; }
+        .map-center-pin { 
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -100%); 
+            z-index: 10; pointer-events: none; font-size: 30px; 
+        }
+        .address-display { background: #f0f7ff; padding: 12px; border-radius: 8px; font-weight: bold; color: #007bff; margin-bottom: 10px; border: 1px dashed #007bff; min-height: 20px; text-align: center; }
+        .search-box { display: flex; gap: 8px; margin-bottom: 10px; width: 100%; }
+        .search-box input { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 8px; }
+
+        .skip-btn {
+            background: none; border: none; color: #aaa; text-decoration: underline;
+            font-size: 0.9rem; cursor: pointer; margin-top: 10px; transition: color 0.3s;
+        }
+        .skip-btn:hover { color: #888; }
     </style>
 </head>
 <body>
@@ -67,18 +79,35 @@
 
     <form id="survey-form">
         <div class="q-card active" id="step-0">
-            <h2>📍 선호하시는 지역이 있나요?</h2>
-            <div class="input-group">
-                <input type="text" id="pref_location" class="input-field" placeholder="예: 서울시 강남구 역삼동">
+            <h2>🏠 학교나 직장 근처의 매물을 찾으시나요?</h2>
+            <p class="hint-text">원하는 동네 근처를 지정할 수 있습니다!</p>
+            
+            <div class="options-group" id="location-ask-group">
+                <button type="button" class="opt-btn" onclick="showMapSection(true)">네, 지역을 정하고 싶어요</button>
+                <button type="button" class="opt-btn" onclick="skipStep0()">아니요, 상관없어요</button>
             </div>
-            <div class="next-btn-container">
-                <button type="button" class="confirm-btn" onclick="nextStep(1)">다음 단계로</button>
+
+            <div id="map-selection-area">
+                <div class="search-box">
+                    <input type="text" id="map-search-input" placeholder="정확한 주소를 입력하세요!" onkeypress="handleSearchKey(event)">
+                    <button type="button" class="confirm-btn" onclick="searchAddress()" style="width: 80px;">검색</button>
+                </div>
+                <div id="map-container">
+                    <div id="map"></div>
+                    <div class="map-center-pin">📍</div>
+                </div>
+                <div id="current-addr" class="address-display">지도를 움직여 원하는 곳에 핀을 맞춰주세요.</div>
+                <input type="hidden" id="pref_location">
+                <div class="next-btn-container" style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+                    <button type="button" class="confirm-btn" onclick="confirmLocation()">이 위치 근처로 찾기</button>
+                    <button type="button" class="skip-btn" onclick="location.reload()">취소하고 돌아가기</button>
+                </div>
             </div>
         </div>
 
         <div class="q-card" id="step-1">
             <h2>💰 희망하는 예산 범위를 알려주세요.</h2>
-            <p class="hint-text">선택 사항입니다 · 입력하지 않아도 추천을 받을 수 있어요</p>
+            <p class="hint-text">입력하지 않아도 추천을 받을 수 있어요</p>
             <div class="options-group">
                 <button type="button" class="opt-btn" onclick="selectContract('monthly', this)">월세</button>
                 <button type="button" class="opt-btn" onclick="selectContract('jeonse', this)">전세</button>
@@ -87,24 +116,24 @@
             <div id="monthly-area" class="conditional-area">
                 <p class="sub-q">보증금 범위 (만원)</p>
                 <div class="range-group">
-                    <input type="number" id="m_dep_min" class="input-field" placeholder="최소 (예: 500)" min="0"oninput="preventNegative(this)">
+                    <input type="number" id="m_dep_min" class="input-field" placeholder="최소" min="0" oninput="preventNegative(this)">
                     <span class="range-sep">~</span>
-                    <input type="number" id="m_dep_max" class="input-field" placeholder="최대 (예: 5000)" min="0"oninput="preventNegative(this)">
+                    <input type="number" id="m_dep_max" class="input-field" placeholder="최대" min="0" oninput="preventNegative(this)">
                 </div>
                 <p class="sub-q" style="margin-top:15px;">월세 범위 (만원)</p>
                 <div class="range-group">
-                    <input type="number" id="m_rent_min" class="input-field" placeholder="최소 (예: 30)" min="0"oninput="preventNegative(this)">
+                    <input type="number" id="m_rent_min" class="input-field" placeholder="최소" min="0" oninput="preventNegative(this)">
                     <span class="range-sep">~</span>
-                    <input type="number" id="m_rent_max" class="input-field" placeholder="최대 (예: 60)" min="0"oninput="preventNegative(this)">
+                    <input type="number" id="m_rent_max" class="input-field" placeholder="최대" min="0" oninput="preventNegative(this)">
                 </div>
             </div>
 
             <div id="jeonse-area" class="conditional-area">
                 <p class="sub-q">전세금 범위 (만원)</p>
                 <div class="range-group">
-                    <input type="number" id="j_dep_min" class="input-field" placeholder="최소 (예: 15000)" min="0" oninput="preventNegative(this)">
+                    <input type="number" id="j_dep_min" class="input-field" placeholder="최소" min="0" oninput="preventNegative(this)">
                     <span class="range-sep">~</span>
-                    <input type="number" id="j_dep_max" class="input-field" placeholder="최대 (예: 25000)" min="0" oninput="preventNegative(this)">
+                    <input type="number" id="j_dep_max" class="input-field" placeholder="최대" min="0" oninput="preventNegative(this)">
                 </div>
             </div>
 
@@ -114,62 +143,11 @@
             </div>
         </div>
 
-        <div class="q-card" id="step-2">
-            <h2>🏠 상세 희망 조건을 선택해주세요.</h2>
-            
-            <div class="detail-q-group">
-                <p class="sub-q">건물 유형 (중복 가능)</p>
-                <div class="options-group multi-group" data-key="building_type">
-                    <button type="button" class="opt-btn" onclick="toggleBtn(this, true)">아파트</button>
-                    <button type="button" class="opt-btn" onclick="toggleBtn(this, true)">상가주택</button>
-                    <button type="button" class="opt-btn" style="grid-column: span 2;" onclick="toggleBtn(this, true)">빌라/다세대</button>
-                </div>
-            </div>
-
-            <div class="detail-q-group">
-                <p class="sub-q">희망하는 건물 연식 (중복 가능)</p>
-                <div class="options-group multi-group" data-key="building_age">
-                    <button type="button" class="opt-btn" onclick="toggleBtn(this, true)">신축 (5년 이하)</button>
-                    <button type="button" class="opt-btn" onclick="toggleBtn(this, true)">준신축 (5~10년)</button>
-                    <button type="button" class="opt-btn" style="grid-column: span 2;" onclick="toggleBtn(this, true)">구축 (10년 이상)</button>
-                </div>
-            </div>
-
-            <div class="detail-q-group">
-                <p class="sub-q">희망하는 방 개수 (중복 가능)</p>
-                <div class="options-group multi-group" data-key="room_count">
-                    <button type="button" class="opt-btn" onclick="toggleBtn(this, true)">1개</button>
-                    <button type="button" class="opt-btn" onclick="toggleBtn(this, true)">2개</button>
-                    <button type="button" class="opt-btn" style="grid-column: span 2;" onclick="toggleBtn(this, true)">3개 이상</button>
-                </div>
-            </div>
-
-            <div class="detail-q-group">
-                <p class="sub-q">반지하 혹은 옥탑방도 괜찮으신가요?</p>
-                <div class="options-group single-group" data-key="special_room">
-                    <button type="button" class="opt-btn" onclick="toggleBtn(this, false)">네, 상관없어요</button>
-                    <button type="button" class="opt-btn" onclick="toggleBtn(this, false)">아니요, 피하고 싶어요</button>
-                </div>
-            </div>
-
-            <div class="detail-q-group">
-                <p class="sub-q">주차장이 필요하신가요?</p>
-                <div class="options-group single-group" data-key="parking">
-                    <button type="button" class="opt-btn" onclick="toggleBtn(this, false)">네, 필요해요</button>
-                    <button type="button" class="opt-btn" onclick="toggleBtn(this, false)">아니요, 상관없어요</button>
-                </div>
-            </div>
-
-            <p class="limit-info detail-empty" style="color: orange; display: none; margin-top: 10px; text-align: center;">모든 항목을 1개 이상 선택해주세요! ⚠️</p>
-
-            <div class="next-btn-container" style="display: flex; gap: 10px;">
-                <button type="button" class="back-btn" onclick="prevStep(1)" style="flex: 1;">이전</button>
-                <button type="button" class="confirm-btn" onclick="validateStep2()" style="flex: 2;">다음 질문으로</button>
-            </div>
-        </div>
+        <div class="q-card" id="step-2" style="display: none;"></div>
 
         {% for q in questions %}
-        {% set step_num = 3 + loop.index0 %} <div class="q-card" id="step-{{ step_num }}">
+        {% set step_num = 3 + loop.index0 %}
+        <div class="q-card" id="step-{{ step_num }}">
             <h2>🌳 {{ q.title }}</h2>
             <p style="color:#888; font-size:0.85rem; margin-bottom:15px;">
                 {{ '최대 3개까지 선택 가능합니다.' if q.multiple else '하나만 선택해주세요.' }}
@@ -186,7 +164,7 @@
             <p class="limit-info weight-empty" style="color: orange; display: none; margin-top: 10px; text-align: center;">항목을 선택해주세요! ⚠️</p>
             
             <div class="next-btn-container" style="display: flex; gap: 10px;">
-                <button type="button" class="back-btn" onclick="prevStep({{ step_num - 1 }})" style="flex: 1;">이전</button>
+                <button type="button" class="back-btn" onclick="prevStep({{ 1 if loop.first else step_num - 1 }})" style="flex: 1;">이전</button>
                 {% if loop.last %}
                 <button type="button" class="confirm-btn" onclick="submitFinalSurvey()" style="flex: 2;">분석 완료</button>
                 {% else %}
@@ -205,15 +183,16 @@
 </div>
 
 <script>
+    let map;
     let currentIdx = 0;
-    // Step 0(지역), 1(예산), 2(상세조건) 이므로 총 3개 + 동적질문개수
+    // Step 2를 건너뛰지만 진행바 계산을 위해 totalSteps는 유지
     const totalSteps = 3 + {{ questions|length }}; 
 
     const surveyResults = { 
         location: "", 
+        target_coords: { lat: 0, lng: 0 },
         contract_type: "", 
         budget: { min_dep: 0, max_dep: 0, min_rent: 0, max_rent: 0 },
-        // 🔥 새롭게 추가되는 데이터 변수
         building_type: [],
         building_age: [],
         room_count: [],
@@ -224,9 +203,66 @@
 
     history.replaceState({idx: 0}, "Step 0");
 
+    function showMapSection(wantMap) {
+        if (wantMap) {
+            document.getElementById('map-selection-area').style.display = 'block';
+            document.getElementById('location-ask-group').style.display = 'none';
+            setTimeout(() => {
+                if (!map) initMap();
+                else naver.maps.Event.trigger(map, 'resize');
+            }, 200);
+        }
+    }
+
+    function initMap() {
+        const mapElement = document.getElementById('map');
+        if (!mapElement) return;
+        map = new naver.maps.Map(mapElement, {
+            center: new naver.maps.LatLng(37.5665, 126.9780),
+            zoom: 16
+        });
+        naver.maps.Event.addListener(map, 'idle', function() {
+            updateAddress(map.getCenter());
+        });
+    }
+
+    function updateAddress(latlng) {
+        if (!naver.maps.Service.reverseGeocode) return;
+        naver.maps.Service.reverseGeocode({
+            coords: latlng,
+            orders: [naver.maps.Service.OrderType.ADDR, naver.maps.Service.OrderType.ROAD_ADDR].join(',')
+        }, function(status, response) {
+            if (status === naver.maps.Service.Status.OK && response.v2.results.length > 0) {
+                const res = response.v2.results[0];
+                const addr = res.region.area1.name + " " + res.region.area2.name + " " + res.region.area3.name + (res.land && res.land.number1 ? " " + res.land.number1 : "");
+                document.getElementById('current-addr').innerText = "📍 현재 위치: " + addr;
+                document.getElementById('pref_location').value = addr;
+                surveyResults.location = addr;
+                surveyResults.target_coords = { lat: latlng.lat(), lng: latlng.lng() };
+            }
+        });
+    }
+
+    function searchAddress() {
+        const query = document.getElementById('map-search-input').value;
+        if (!query) return alert("검색어를 입력하세요.");
+        naver.maps.Service.geocode({ query: query }, function(status, response) {
+            if (status !== naver.maps.Service.Status.OK || response.v2.addresses.length === 0) return alert("결과가 없습니다.");
+            const item = response.v2.addresses[0];
+            const newPoint = new naver.maps.LatLng(item.y, item.x);
+            map.setCenter(newPoint);
+            updateAddress(newPoint);
+        });
+    }
+
+    function handleSearchKey(e) { if (e.key === 'Enter') searchAddress(); }
+    function confirmLocation() { if(!document.getElementById('pref_location').value) return alert("위치를 선택해주세요."); nextStep(1); }
+    function skipStep0() { surveyResults.location = "상관없음"; nextStep(1); }
+
     function updateUI() {
         const percent = Math.round((currentIdx / totalSteps) * 100);
-        document.getElementById('gauge-fill').style.width = percent + '%';
+        const fill = document.getElementById('gauge-fill');
+        if(fill) fill.style.width = percent + '%';
         document.getElementById('status-txt').innerText = `${percent}% 분석 중...`;
     }
 
@@ -243,19 +279,9 @@
         document.getElementById(`step-${currentIdx}`).classList.remove('active');
         currentIdx = idx;
         document.getElementById(`step-${currentIdx}`).classList.add('active');
-        history.replaceState({idx: idx}, `Step ${idx}`);
         updateUI();
         window.scrollTo(0, 0);
     }
-
-    window.onpopstate = function(event) {
-        if (event.state && typeof event.state.idx === 'number') {
-            document.getElementById(`step-${currentIdx}`).classList.remove('active');
-            currentIdx = event.state.idx;
-            document.getElementById(`step-${currentIdx}`).classList.add('active');
-            updateUI();
-        }
-    };
 
     function selectContract(type, btn) {
         surveyResults.contract_type = type;
@@ -267,7 +293,6 @@
 
     function validateStep1() {
         if (!surveyResults.contract_type) { alert("계약 형태를 선택해주세요!"); return; }
-        
         if (surveyResults.contract_type === 'monthly') {
             surveyResults.budget.min_dep = document.getElementById('m_dep_min').value || 0;
             surveyResults.budget.max_dep = document.getElementById('m_dep_max').value || 0;
@@ -276,52 +301,9 @@
         } else {
             surveyResults.budget.min_dep = document.getElementById('j_dep_min').value || 0;
             surveyResults.budget.max_dep = document.getElementById('j_dep_max').value || 0;
-            surveyResults.budget.min_rent = 0;
-            surveyResults.budget.max_rent = 0;
         }
-
-        if (parseInt(surveyResults.budget.min_dep) > parseInt(surveyResults.budget.max_dep) && surveyResults.budget.max_dep != 0) {
-            alert("최소 보증금이 최대 보증금보다 클 수 없습니다.");
-            return;
-        }
-        nextStep(2); // Step 2(상세조건)로 이동
-    }
-
-    // 🔥 [추가] 상세조건 버튼 클릭 로직
-    function toggleBtn(btn, isMulti) {
-        const group = btn.closest('.options-group');
-        if (!isMulti) {
-            group.querySelectorAll('.opt-btn').forEach(b => b.classList.remove('selected'));
-        }
-        btn.classList.toggle('selected');
-        document.querySelector('.detail-empty').style.display = 'none';
-    }
-
-    // 🔥 [추가] 상세조건 유효성 검사
-    function validateStep2() {
-        const step2 = document.getElementById('step-2');
-        const groups = step2.querySelectorAll('.options-group');
-        let isValid = true;
-
-        groups.forEach(group => {
-            if (group.querySelectorAll('.selected').length === 0) {
-                isValid = false;
-            }
-        });
-
-        if (!isValid) {
-            step2.querySelector('.detail-empty').style.display = 'block';
-            return;
-        }
-
-        // 선택한 값 저장
-        surveyResults.building_type = Array.from(step2.querySelector('[data-key="building_type"]').querySelectorAll('.selected')).map(b => b.innerText);
-        surveyResults.building_age = Array.from(step2.querySelector('[data-key="building_age"]').querySelectorAll('.selected')).map(b => b.innerText);
-        surveyResults.room_count = Array.from(step2.querySelector('[data-key="room_count"]').querySelectorAll('.selected')).map(b => b.innerText);
-        surveyResults.special_room = step2.querySelector('[data-key="special_room"] .selected').innerText;
-        surveyResults.parking = step2.querySelector('[data-key="parking"] .selected').innerText;
-
-        nextStep(3); // 다음 라이프스타일 질문으로 이동
+        // 중요: 상세 조건(Step 2)을 생략하고 바로 Step 3로 이동
+        nextStep(3); 
     }
 
     function handleWeightClick(btn, max, isMultiple) {
@@ -331,10 +313,7 @@
             btn.classList.add('selected');
         } else {
             const selectedCount = card.querySelectorAll('.weight-opt.selected').length;
-            if (!btn.classList.contains('selected') && selectedCount >= max) {
-                alert(`최대 ${max}개까지 선택 가능합니다.`);
-                return;
-            }
+            if (!btn.classList.contains('selected') && selectedCount >= max) return alert(`최대 ${max}개 선택 가능합니다.`);
             btn.classList.toggle('selected');
         }
         card.querySelector('.weight-empty').style.display = 'none';
@@ -355,20 +334,13 @@
             currentCard.querySelector('.weight-empty').style.display = 'block';
             return;
         }
-
         document.getElementById('survey-form').style.display = 'none';
         document.getElementById('loading-screen').style.display = 'block';
-        document.getElementById('gauge-fill').style.width = '100%';
-        document.getElementById('status-txt').innerText = '분석 완료! 저장 중...';
-
-        surveyResults.location = document.getElementById('pref_location').value;
         surveyResults.category_log = [];
-        
         document.querySelectorAll('.weight-opt.selected').forEach(b => {
             const cats = JSON.parse(b.getAttribute('data-categories'));
             cats.forEach(c => surveyResults.category_log.push(c));
         });
-
         fetch('/survey/save', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
@@ -376,24 +348,12 @@
         })
         .then(res => res.json())
         .then(data => {
-            if (data.status === "success") {
-                setTimeout(() => {
-                    location.href = `/survey/result/${data.target_index}`;
-                }, 1500);
-            } else {
-                alert(data.message || "오류가 발생했습니다.");
-                location.reload();
-            }
-        })
-        .catch(err => {
-            alert("서버와 통신에 실패했습니다.");
-            location.reload();
+            if (data.status === "success") setTimeout(() => { location.href = `/survey/result/${data.target_index}`; }, 1500);
+            else { alert(data.message); location.reload(); }
         });
     }
-    function preventNegative(input) {
-    if (input.value < 0) input.value = 0;
-}
 
+    function preventNegative(input) { if (input.value < 0) input.value = 0; }
 </script>
 </body>
 </html>

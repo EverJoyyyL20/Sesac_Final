@@ -1,0 +1,110 @@
+        :root {
+            --main-slide-width: 420px; 
+            --border-radius: 25px;
+        }
+
+        @media (max-width: 500px) {
+            :root { --main-slide-width: 90vw; }
+        }
+
+        body, html {
+            margin: 0; padding: 0; height: 100%;
+            /* 배경을 단순 검정에서 짙은 회색 방사형 그라데이션으로 변경 */
+            background: radial-gradient(circle, #323232 0%, #000000 100%);
+            display: flex; justify-content: center;
+            font-family: 'Pretendard', sans-serif;
+            overflow: hidden;
+        }
+
+        .shorts-wrapper {
+            width: 100vw;
+            height: 100vh;
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+            scrollbar-width: none;
+            position: relative;
+        }
+        .shorts-wrapper::-webkit-scrollbar { display: none; }
+
+        .prop-section {
+            width: 100%;
+            height: 100vh;
+            scroll-snap-align: start;
+            scroll-snap-stop: always; /* 스크롤 시 하나씩 딱딱 걸리게 설정 */
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .swiper { width: 100%; height: 100vh; }
+
+        .swiper-slide {
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.4s ease;
+            filter: grayscale(1) brightness(0.25);
+            transform: scale(0.9);
+        }
+
+        .swiper-slide-active {
+            filter: grayscale(0) brightness(1);
+            transform: scale(1);
+        }
+
+        .slide-img {
+            width: var(--main-slide-width);
+            height: 80vh;
+            object-fit: cover;
+            border-radius: var(--border-radius);
+            box-shadow: 0 10px 50px rgba(0,0,0,0.8);
+        }
+
+        .info-overlay {
+            position: absolute;
+            bottom: 40px;
+            width: calc(var(--main-slide-width) - 40px);
+            z-index: 100;
+            padding: 20px;
+            /* 정보창 배경도 배경색과 어우러지는 짙은 회색으로 변경 */
+            background: rgba(35, 35, 35, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: white;
+        }
+
+        .info-flex-container { 
+            display: flex; align-items: center; justify-content: space-between; 
+            margin-bottom: 12px; gap: 10px;
+        }
+
+        .info-left { flex: 1; min-width: 0; }
+        
+        /* 라벨 표시를 위해 너비를 조금 더 확보 */
+        .info-right { width: 125px; height: 125px; flex-shrink: 0; }
+
+        .match-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #4facfe, #00f2fe);
+            padding: 4px 10px; border-radius: 50px;
+            font-size: 0.7rem; font-weight: 700; margin-bottom: 6px;
+        }
+        .price-text { font-size: 1.6rem; font-weight: 800; margin: 0; }
+        .addr-text { font-size: 0.8rem; color: #ccc; margin: 4px 0 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        .spec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+        .spec-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 6px; border-radius: 8px; font-size: 0.65rem; text-align: center;
+        }
+
+        .btn-detail {
+            width: 100%; padding: 14px; border: none; border-radius: 12px;
+            background: #fff; color: #000; font-weight: 800; font-size: 0.9rem; cursor: pointer;
+        }
+
+        #sentinel { 
+            height: 10px; width: 100%; 
+            margin-top: -50vh; /* 핵심: 감지선을 화면 중간까지 끌어올려 미리 로딩하게 함 */
+        }
