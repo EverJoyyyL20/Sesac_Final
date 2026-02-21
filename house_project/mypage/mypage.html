@@ -7,7 +7,11 @@
     <title>마이페이지 - AI 라이프 매칭</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/mypage.css') }}">
-    
+    <style>
+        .nav-btn {
+            z-index: 10;
+        }
+    </style>
 </head>
 <body>
 
@@ -24,12 +28,14 @@
 </div>
 
 <div class="container">
-    <div class="profile-card" style="padding-top: 15px; padding-bottom: 20px;"> <div class="profile-left" style="display: flex; flex-direction: column; align-items: center; justify-content: flex-start; margin-top: -10px;"> 
+    <div class="profile-card" style="padding-top: 15px; padding-bottom: 20px;"> 
+        <div class="profile-left" style="display: flex; flex-direction: column; align-items: center; justify-content: flex-start; margin-top: -10px;"> 
             <img class="profile-img-preview" 
                 src="{{ url_for('static', filename='profile_pics/' + (profile_img if profile_img else 'default.png')) }}" 
                 onerror="this.src='{{ url_for('static', filename='profile_pics/default.png') }}'"
                 alt="프로필 사진"
-                style="width: 120px; height: 120px; margin-bottom: 10px;"> <strong style="font-size: 1.1rem; color: #333;">{{ nickname if nickname else '닉네임 없음' }}</strong>
+                style="width: 120px; height: 120px; margin-bottom: 10px;"> 
+            <strong style="font-size: 1.1rem; color: #333;">{{ nickname if nickname else '닉네임 없음' }}</strong>
         </div>
 
         <div class="profile-right">
@@ -52,15 +58,13 @@
                     <span id="survey-page-indicator" style="font-weight: bold; color: #444; font-size: 0.95rem; margin-right: 10px;">
                         {% if surveys %}1 / {{ surveys|length }}건{% else %}0건{% endif %}
                     </span>
-                    <a href="#" class="view-all" onclick="openModal('survey')">전체보기</a>
-                    <span class="count-badge">{{ surveys|length if surveys else 0 }}건</span>
                     <a href="#" class="view-all" onclick="openModal(event, 'survey')">전체보기</a>
                 </div>
             </div>
             
             <div class="slider-container">
                 {% if surveys %}
-                    <button class="nav-btn prev" onclick="moveSlide('survey', -1)">&#10094;</button>
+                    <button class="nav-btn prev" id="survey-prev" onclick="moveSlide('survey', -1)" style="display: none;">&#10094;</button>
                     <div class="slider-wrapper" id="survey-slider">
                         {% for s in surveys %}
                         <div class="slide-item">
@@ -99,7 +103,7 @@
                         </div>
                         {% endfor %}
                     </div>
-                    <button class="nav-btn next" onclick="moveSlide('survey', 1)">&#10095;</button>
+                    <button class="nav-btn next" id="survey-next" onclick="moveSlide('survey', 1)" style="display: none;">&#10095;</button>
                 {% else %}
                     <div class="empty-box">
                         <p>진행한 설문이 없습니다.</p>
@@ -129,7 +133,7 @@
             
             <div class="slider-container">
                 {% if favorites %}
-                    <button class="nav-btn prev" onclick="moveSlide('property', -1)">&#10094;</button>
+                    <button class="nav-btn prev" id="property-prev" onclick="moveSlide('property', -1)" style="display: none;">&#10094;</button>
                     <div class="slider-wrapper" id="property-slider">
                         {% for fav in favorites %}
                         <div class="slide-item">
@@ -143,7 +147,7 @@
                         </div>
                         {% endfor %}
                     </div>
-                    <button class="nav-btn next" onclick="moveSlide('property', 1)">&#10095;</button>
+                    <button class="nav-btn next" id="property-next" onclick="moveSlide('property', 1)" style="display: none;">&#10095;</button>
                 {% else %}
                     <div class="empty-box">
                         <p>찜한 매물이 없습니다.</p>
@@ -181,8 +185,28 @@
         property: 0
     };
 
+    // 🔥 [핵심 추가 로직] 페이지가 로드될 때 매물 개수에 따라 화살표를 자동으로 세팅합니다.
+    document.addEventListener("DOMContentLoaded", function() {
+        ['survey', 'property'].forEach(type => {
+            const wrapper = document.getElementById(`${type}-slider`);
+            if (wrapper) {
+                const totalItems = wrapper.getElementsByClassName('slide-item').length;
+                const perPage = (type === 'survey') ? 1 : 2; // 설문은 1장씩, 찜매물은 2장씩
+                const maxIndex = Math.ceil(totalItems / perPage) - 1;
+
+                const prevBtn = document.getElementById(`${type}-prev`);
+                const nextBtn = document.getElementById(`${type}-next`);
+
+                if (prevBtn) prevBtn.style.display = 'none'; // 첫 페이지이므로 왼쪽 화살표는 숨김
+                if (nextBtn) nextBtn.style.display = maxIndex > 0 ? 'block' : 'none'; // 다음 페이지가 있으면 오른쪽 화살표 노출
+            }
+        });
+    });
+
     function moveSlide(type, direction) {
         const wrapper = document.getElementById(`${type}-slider`);
+        if (!wrapper) return;
+        
         const items = wrapper.getElementsByClassName('slide-item');
         if (items.length === 0) return;
 
@@ -192,6 +216,7 @@
 
         slideIndices[type] += direction;
 
+        // 범위 초과 방지
         if (slideIndices[type] < 0) slideIndices[type] = 0;
         if (slideIndices[type] > maxIndex) slideIndices[type] = maxIndex;
 
@@ -202,12 +227,23 @@
 
         wrapper.style.transform = `translateX(-${slideIndices[type] * moveDistance}px)`;
         
-        // 🔥 [수정] 바뀐 텍스트 형식에 맞춰 "X / Y건"으로 렌더링
+        // 텍스트 형식 렌더링
         if (type === 'survey') {
             const pageIndicator = document.getElementById('survey-page-indicator');
             if (pageIndicator) {
                 pageIndicator.innerText = (slideIndices[type] + 1) + ' / ' + totalItems + '건';
             }
+        }
+
+        // 🔥 [화살표 동기화] 이동할 때마다 왼쪽/오른쪽 화살표 숨김/표시를 계산합니다.
+        const prevBtn = document.getElementById(`${type}-prev`);
+        const nextBtn = document.getElementById(`${type}-next`);
+        
+        if (prevBtn) {
+            prevBtn.style.display = slideIndices[type] > 0 ? 'block' : 'none';
+        }
+        if (nextBtn) {
+            nextBtn.style.display = slideIndices[type] < maxIndex ? 'block' : 'none';
         }
     }
 
@@ -241,18 +277,17 @@
     let isEditMode = false;
 
     function openModal(event, type) {
-        if (event) event.preventDefault(); // 주소창 뒤에 #이 붙는 것을 막아줌.
+        if (event) event.preventDefault();
 
         const modal = document.getElementById('commonModal');
         const title = document.getElementById('modalTitle');
         const body = document.getElementById('modalBody');
         const btnGroup = document.getElementById('modalBtnGroup');
-        const selectArea = document.getElementById('selectAllArea'); // 전체선택 영역
+        const selectArea = document.getElementById('selectAllArea'); 
 
         isEditMode = false;
         modal.classList.remove('is-editing');
 
-        // 중요: 모달을 열 때 전체 선택 영역은 무조건 먼저 숨깁니다.
         if (selectArea) selectArea.style.display = "none";
 
         modal.style.display = "block";
@@ -283,7 +318,6 @@
         } else if (type === 'survey') {
             title.innerText = "📝 최근 설문 리포트";
             btnGroup.innerHTML = "";
-            // 설문 리포트에서는 전체 선택 레이아웃이 아예 필요 없으므로 숨김 유지
             if (selectArea) selectArea.style.display = "none";
 
             let html = '<div style="display: grid; grid-template-columns: 1fr; gap: 15px; margin-top:10px;">';
@@ -312,12 +346,11 @@
         isEditMode = !isEditMode;
         const modal = document.getElementById('commonModal');
         const btnGroup = document.getElementById('modalBtnGroup');
-        const selectArea = document.getElementById('selectAllArea'); // 전체선택 영역
+        const selectArea = document.getElementById('selectAllArea'); 
         const viewButtons = document.querySelectorAll('.view-btn');
 
         if (isEditMode) {
             modal.classList.add('is-editing');
-            // 수정 모드일 때 전체 선택 영역 표시
             if (selectArea) selectArea.style.display = "flex";
 
             btnGroup.innerHTML = `
@@ -327,13 +360,11 @@
             viewButtons.forEach(b => b.style.display = 'none');
         } else {
             modal.classList.remove('is-editing');
-            // 수정 모드 해제 시 전체 선택 영역 숨김
             if (selectArea) selectArea.style.display = "none";
 
             btnGroup.innerHTML = `<button class="btn-edit-mode" onclick="toggleEditMode()">수정</button>`;
             viewButtons.forEach(b => b.style.display = 'inline-block');
 
-            // 체크박스 초기화
             const selectAllCb = document.getElementById('selectAll');
             if (selectAllCb) selectAllCb.checked = false;
             toggleAllCheckboxes({checked: false});
@@ -356,7 +387,6 @@
         }
 
         if (confirm('선택한 매물을 찜 목록에서 삭제하시겠습니까?')) {
-            // 실제 서버에 삭제 요청을 보내는 부분
             fetch('/delete_favorites', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -365,7 +395,7 @@
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    location.reload(); // 성공 시 페이지 새로고침하여 반영
+                    location.reload(); 
                 } else {
                     alert('삭제 중 오류가 발생했습니다.');
                 }
