@@ -6,9 +6,10 @@
     <title>서울 부동산 매물 탐색</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/find_property.css') }}">
-    <script type="text/javascript" src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId={{ client_id }}"></script>
+    
+    <script type="text/javascript" src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId={{ client_id }}&submodules=geocoder"></script>
+    <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 </head>
 <body>
 
@@ -33,27 +34,43 @@
     <div class="status-header"><span id="status-text">매물을 불러오는 중...</span></div>
 
     <div class="search-box">
-    <button id="toggle-btn" onclick="toggleFilter()"><</button>
-    
-    <div class="search-header">
-        <strong>🔍 매물 상세 필터</strong>
+        <button id="toggle-btn" onclick="toggleFilter()"><</button>
+        
+        <div class="search-header">
+            <strong>🔍 매물 상세 필터</strong>
         </div>
-    
-    <div id="filter-content">
+        
         <div class="f-section">
-            <label>거래/건물 용도</label>
-            <div class="f-row">
-                <select id="filter-type" onchange="handleTypeChange()">
-                    <option value="">전체 거래</option>
-                    <option value="월세">월세</option>
-                    <option value="전세">전세</option>
-                </select>
-                <select id="filter-use" onchange="updateMarkers()">
-                    <option value="">전체 용도</option>
-                    <option value="원룸">원룸</option>
-                    <option value="투룸">투룸</option>
-                    <option value="오피스텔">오피스텔</option>
-                </select>
+            <label>📍 주소로 검색 (반경 설정)</label>
+            <div class="f-row" style="flex-direction: column; gap: 5px;">
+                <input type="text" id="search-address" placeholder="주소를 선택하려면 클릭하세요" readonly onclick="execDaumPostcode()" style="width: 100%; cursor: pointer; background-color: #f9f9f9;">
+                <div class="f-row">
+                    <select id="search-radius" onchange="updateMarkers()">
+                        <option value="500">500m 이내</option>
+                        <option value="1000" selected>1km 이내</option>
+                        <option value="2000">2km 이내</option>
+                    </select>
+                    <button onclick="execDaumPostcode()" class="iw-btn" style="width: 60px;">검색</button>
+                </div>
+                <button id="reset-search" onclick="resetSearchCenter()" style="display:none; font-size: 11px; margin-top:5px; background:none; border:none; color:#666; text-decoration:underline; cursor:pointer;">📍 반경 검색 해제</button>
+            </div>
+        </div>
+
+        <div id="filter-content">
+            <div class="f-section">
+                <label>거래/건물 용도</label>
+                <div class="f-row">
+                    <select id="filter-type" onchange="handleTypeChange()">
+                        <option value="">전체 거래</option>
+                        <option value="월세">월세</option>
+                        <option value="전세">전세</option>
+                    </select>
+                    <select id="filter-use" onchange="updateMarkers()">
+                        <option value="">전체 용도</option>
+                        <option value="원룸">원룸</option>
+                        <option value="투룸">투룸</option>
+                        <option value="오피스텔">오피스텔</option>
+                    </select>
                 </div>
             </div>
 
@@ -129,6 +146,8 @@
 
 <script>
     let map, markers = [], lastRequestId = 0, currentOpenIw = null;
+    let searchCenter = null, centerMarker = null;
+    let myRadarChart = null;
 
     window.onload = function() {
         map = new naver.maps.Map('map', { 
@@ -142,62 +161,93 @@
             if(currentOpenIw){currentOpenIw.close(); currentOpenIw=null;} 
         });
 
+        // 초기 필터 설정 (URL 파라미터 기반)
         const urlParams = new URLSearchParams(window.location.search);
-        
         if (urlParams.has('type')) {
-            const typeSelect = document.getElementById('filter-type');
-            if (typeSelect) {
-                typeSelect.value = urlParams.get('type');
-                if (typeof handleTypeChange === "function") handleTypeChange();
-            }
+            document.getElementById('filter-type').value = urlParams.get('type');
+            handleTypeChange();
         }
-
-        if (urlParams.has('max_deposit')) {
-            const maxDepInput = document.getElementById('max-deposit');
-            if (maxDepInput) maxDepInput.value = urlParams.get('max_deposit');
-        }
-
-        if (urlParams.has('max_price')) {
-            const maxPriceInput = document.getElementById('max-price');
-            if (maxPriceInput) maxPriceInput.value = urlParams.get('max_price');
-        }
+        if (urlParams.has('max_deposit')) document.getElementById('max-deposit').value = urlParams.get('max_deposit');
+        if (urlParams.has('max_price')) document.getElementById('max-price').value = urlParams.get('max_price');
 
         const targetId = urlParams.get('id');
-        if (targetId) {
-            moveToSpecificProperty(targetId);
-        } else {
-            if (typeof updateMarkers === "function") updateMarkers();
+        if (targetId) moveToSpecificProperty(targetId);
+        else updateMarkers();
+    };
+
+    let searchCircle = null; // 원 객체를 담을 전역 변수 추가
+
+    function execDaumPostcode() {
+        new daum.Postcode({
+            oncomplete: function(data) {
+                const addr = data.address;
+                document.getElementById("search-address").value = addr;
+                
+                naver.maps.Service.geocode({ query: addr }, function(status, response) {
+                    if (status !== naver.maps.Service.Status.OK) return alert('좌표 변환 실패');
+                    const result = response.v2.addresses[0];
+                    const lat = parseFloat(result.y);
+                    const lng = parseFloat(result.x);
+                    const radius = parseInt(document.getElementById('search-radius').value); // 설정된 반경값
+
+                    searchCenter = { lat, lng };
+                    const centerPos = new naver.maps.LatLng(lat, lng);
+
+                    // 1. 기존 마커 및 원 제거
+                    if (centerMarker) centerMarker.setMap(null);
+                    if (searchCircle) searchCircle.setMap(null);
+
+                    // 2. 중심점 마커 생성
+                    centerMarker = new naver.maps.Marker({
+                        position: centerPos,
+                        map: map,
+                        icon: {
+                            content: '<div style="width:16px; height:16px; background:red; border:2px solid white; border-radius:50%; box-shadow:0 0 8px rgba(0,0,0,0.5);"></div>',
+                            anchor: new naver.maps.Point(8, 8)
+                        }
+                    });
+
+                    // 3. 반경 원 그리기
+                    searchCircle = new naver.maps.Circle({
+                        map: map,
+                        center: centerPos,
+                        radius: radius, // 미터(m) 단위
+                        fillColor: '#4facfe',
+                        fillOpacity: 0.2,
+                        strokeColor: '#4facfe',
+                        strokeOpacity: 0.5,
+                        strokeWeight: 2
+                    });
+
+                    document.getElementById('reset-search').style.display = 'block';
+                    map.setCenter(centerPos);
+                    
+                    // 반경에 따른 적절한 줌 레벨 설정
+                    const zoomLevel = radius <= 500 ? 16 : (radius <= 1000 ? 15 : 14);
+                    map.setZoom(zoomLevel);
+                    
+                    updateMarkers();
+                });
+            }
+        }).open();
+    }
+
+    // 반경 Select 박스 변경 시 원 크기도 함께 업데이트
+    document.getElementById('search-radius').onchange = function() {
+        if (searchCenter && searchCircle) {
+            const newRadius = parseInt(this.value);
+            searchCircle.setRadius(newRadius);
+            updateMarkers();
         }
     };
 
-    function scrollSlider(direction) {
-        const container = document.getElementById('modalImgContainer');
-        if (!container) return;
-        const scrollAmount = 290; 
-        container.scrollBy({ left: direction * scrollAmount, behavior: 'smooth' });
-    }
-    function validateNonNegative(input) {
-        if (input.value < 0) { input.value = 0; }
-    }
-
-    function handleTypeChange() {
-        const type = document.getElementById('filter-type').value;
-        const monthlySection = document.getElementById('monthly-price-section');
-        if (type === "전세") {
-            monthlySection.style.display = "none";
-            document.getElementById('min-price').value = ""; 
-            document.getElementById('max-price').value = "";
-        } else {
-            monthlySection.style.display = "block";
-        }
-        updateMarkers(); 
-    }
-
-    function toggleFilter() {
-        const searchBox = document.querySelector('.search-box');
-        const btn = document.getElementById('toggle-btn');
-        searchBox.classList.toggle('closed');
-        if (searchBox.classList.contains('closed')) { btn.innerText = ">"; } else { btn.innerText = "<"; }
+    function resetSearchCenter() {
+        searchCenter = null;
+        if (centerMarker) centerMarker.setMap(null);
+        if (searchCircle) searchCircle.setMap(null); // 원 제거
+        document.getElementById('search-address').value = "";
+        document.getElementById('reset-search').style.display = 'none';
+        updateMarkers();
     }
 
     function updateMarkers() {
@@ -205,42 +255,59 @@
         const bounds = map.getBounds();
         const requestId = ++lastRequestId;
 
-        const type = document.getElementById('filter-type').value;
-        const bUse = document.getElementById('filter-use').value;
-        const minDep = document.getElementById('min-deposit').value;
-        const maxDep = document.getElementById('max-deposit').value;
-        const minPri = document.getElementById('min-price').value;
-        const maxPri = document.getElementById('max-price').value;
-        const minSize = document.getElementById('min-size').value;
-        const maxSize = document.getElementById('max-size').value;
-        const parking = document.getElementById('filter-parking').checked ? "주차 가능" : "";
-        const excludeUnder = document.getElementById('exclude-under').checked ? "true" : "false";
+        const filters = {
+            type: document.getElementById('filter-type').value,
+            bUse: document.getElementById('filter-use').value,
+            minDep: document.getElementById('min-deposit').value,
+            maxDep: document.getElementById('max-deposit').value,
+            minPri: document.getElementById('min-price').value,
+            maxPri: document.getElementById('max-price').value,
+            minSize: document.getElementById('min-size').value,
+            maxSize: document.getElementById('max-size').value,
+            parking: document.getElementById('filter-parking').checked ? "주차 가능" : "",
+            excludeUnder: document.getElementById('exclude-under').checked ? "true" : "false",
+            radius: document.getElementById('search-radius').value
+        };
 
         let apiUrl = zoom < 14 ? '/api/stats/gu' : `/api/properties?sw_lat=${bounds.getSW().lat()}&sw_lng=${bounds.getSW().lng()}&ne_lat=${bounds.getNE().lat()}&ne_lng=${bounds.getNE().lng()}`;
 
         if (zoom >= 14) {
-            apiUrl += `&type=${type}&building_use=${bUse}&min_deposit=${minDep}&max_deposit=${maxDep}`;
-            apiUrl += `&min_price=${minPri}&max_price=${maxPri}&min_size=${minSize}&max_size=${maxSize}`;
-            apiUrl += `&parking=${parking}&exclude_under=${excludeUnder}`;
+            apiUrl += `&type=${filters.type}&building_use=${filters.bUse}&min_deposit=${filters.minDep}&max_deposit=${filters.maxDep}`;
+            apiUrl += `&min_price=${filters.minPri}&max_price=${filters.maxPri}&min_size=${filters.minSize}&max_size=${filters.maxSize}`;
+            apiUrl += `&parking=${filters.parking}&exclude_under=${filters.excludeUnder}`;
+            if (searchCenter) {
+                apiUrl += `&center_lat=${searchCenter.lat}&center_lng=${searchCenter.lng}&radius=${filters.radius}`;
+            }
         }
 
         fetch(apiUrl).then(res => res.json()).then(data => {
             if (requestId !== lastRequestId) return;
+            
+            // 1. 기존 마커 무조건 싹 지우기
             markers.forEach(m => m.setMap(null));
             markers = [];
 
             if (zoom < 14) { 
                 renderGu(data); 
                 document.getElementById('status-text').innerText = "서울 지역별 매물 현황";
-            } 
-            else { 
-                renderProperties(data); 
-                const count = data.length;
-                document.getElementById('status-text').innerText = count > 0 ? `📍 주변 매물 ${count}건` : "😥 조건에 맞는 매물이 없어요";
+            } else { 
+                // 2. [핵심] 서버에서 받은 데이터 중 '현재 화면 안에 있는 것'만 골라내기
+                const currentBounds = map.getBounds();
+                const visibleData = data.filter(item => {
+                    const position = new naver.maps.LatLng(item.location.coordinates[1], item.location.coordinates[0]);
+                    return currentBounds.hasLatLng(position); // 화면 좌표 안에 있는지 체크
+                });
+
+                // 3. 화면 안에 있는 것만 마커로 그리기
+                renderProperties(visibleData); 
+                
+                document.getElementById('status-text').innerText = visibleData.length > 0 ? 
+                    `📍 현재 화면 매물 ${visibleData.length}건 (반경 내)` : "😥 화면 내 조건에 맞는 매물이 없어요";
             }
         });
     }
 
+    // --- 마커 렌더링 함수 ---
     function renderGu(stats) {
         stats.forEach(gu => {
             const marker = new naver.maps.Marker({
@@ -287,49 +354,33 @@
         });
     }
 
-let myRadarChart = null;
-
-function openDetail(id) {
-    fetch(`/api/property/${id}`)
-        .then(res => res.json())
-        .then(prop => {
+    // --- 모달 및 상세 정보 로직 ---
+    function openDetail(id) {
+        fetch(`/api/property/${id}`).then(res => res.json()).then(prop => {
             window.currentSelectedProp = prop;
-            
-            // 모달 열 때 첫 페이지로 초기화
-            goToPage(0);
+            goToPage(0); // 모달 오픈 시 첫 페이지
 
             const favBtn = document.getElementById('favoriteBtn');
             favBtn.innerText = prop.is_favorite ? '💔 찜 취소' : '❤️ 찜하기';
             
-            // 층수 정보 스타일링
-            let floorClass = "floor-tag";
-            if(prop.floor.includes("반지하")) floorClass += " floor-danger";
-            else if(prop.floor.includes("옥탑")) floorClass += " floor-warn";
+            let floorClass = prop.floor.includes("반지하") ? "floor-tag floor-danger" : (prop.floor.includes("옥탑") ? "floor-tag floor-warn" : "floor-tag");
 
-            // 이미지 영역 생성
             let imgHtml = '';
-            if (Array.isArray(prop.images) && prop.images.length > 0) {
+            if (prop.images && prop.images.length > 0) {
                 imgHtml += `<div class="image-slider-wrapper">`;
-                if (prop.images.length > 1) {
-                    imgHtml += `<button class="slider-btn prev-btn" onclick="scrollSlider(-1)">&#10094;</button>`;
-                }
+                if (prop.images.length > 1) imgHtml += `<button class="slider-btn prev-btn" onclick="scrollSlider(-1)">&#10094;</button>`;
                 imgHtml += `<div class="modal-img-container" id="modalImgContainer">`;
                 prop.images.forEach(url => {
-                    if (url && url.trim() !== "") {
-                        let finalUrl = url.includes('?') ? url + '&w=800' : url + '?w=800';
-                        imgHtml += `<img src="${finalUrl}" class="prop-img" referrerpolicy="no-referrer" onerror="this.src='https://via.placeholder.com/280x200?text=No+Image'">`;
-                    }
+                    let finalUrl = url.includes('?') ? url + '&w=800' : url + '?w=800';
+                    imgHtml += `<img src="${finalUrl}" class="prop-img" referrerpolicy="no-referrer" onerror="this.src='https://via.placeholder.com/280x200?text=No+Image'">`;
                 });
                 imgHtml += `</div>`; 
-                if (prop.images.length > 1) {
-                    imgHtml += `<button class="slider-btn next-btn" onclick="scrollSlider(1)">&#10095;</button>`;
-                }
-                imgHtml += `</div>`; 
+                if (prop.images.length > 1) imgHtml += `<button class="slider-btn next-btn" onclick="scrollSlider(1)">&#10095;</button>`;
+                imgHtml += `</div>`;
             } else {
                 imgHtml = `<div class="no-img-placeholder">이미지가 없는 매물입니다.</div>`;
             }
 
-            // 첫 번째 페이지 컨텐츠 삽입
             document.getElementById('modal-body-content').innerHTML = `
                 ${imgHtml}
                 <div class="detail-row"><span>📍 주소</span><b>${prop.address}</b></div>
@@ -339,68 +390,32 @@ function openDetail(id) {
                 <div class="detail-row"><span>🏠 건물유형</span><b>${prop.buildtype ?? '정보없음'}</b></div>
                 <div class="detail-row"><span>🚗 주차</span><b>${prop.parking ? '가능' : '불가'}</b></div>
             `;
-
-            // 차트 그리기
             if (prop.score) drawRadarChart(prop.score);
-
             document.getElementById('propertyModal').style.display = 'block';
         });
-}
+    }
 
-// 페이지 이동 함수 (슬라이더 전용)
-function goToPage(index) {
-    const wrapper = document.getElementById('sliderWrapper');
-    const dots = document.querySelectorAll('.dot');
-    wrapper.style.transform = `translateX(-${index * 50}%)`;
-    dots.forEach((dot, i) => dot.classList.toggle('active', i === index));
-}
+    function goToPage(index) {
+        const wrapper = document.getElementById('sliderWrapper');
+        const dots = document.querySelectorAll('.dot');
+        wrapper.style.transform = `translateX(-${index * 50}%)`;
+        dots.forEach((dot, i) => dot.classList.toggle('active', i === index));
+    }
 
-// 차트 그리기 함수
-function drawRadarChart(score) {
-    const ctx = document.getElementById('radarChart').getContext('2d');
-    if (myRadarChart) myRadarChart.destroy();
-
-    // 데이터가 제대로 안 들어올 것에 대비해 안전하게 parseFloat 처리
-    // score가 null이거나 undefined여도 에러 안 나게 처리
-    const s = score || {};
-
-    const scoreData = [
-        (parseFloat(s.traffic) || 0) * 100,
-        (parseFloat(s.convenience) || 0) * 100,
-        (parseFloat(s.green) || 0) * 100,
-        (parseFloat(s.play) || 0) * 100,
-        (parseFloat(s.health) || 0) * 100,
-        (parseFloat(s.living) || 0) * 100,
-        (parseFloat(s.safety) || 0) * 100
-    ];
-
-    console.log("변환된 차트 데이터 배열:", scoreData); // 여기서 0만 나오는지 꼭 확인하세요!
-
-    myRadarChart = new Chart(ctx, {
-        type: 'radar',
-        data: {
-            labels: ['교통', '편의', '자연', '놀이', '건강', '생활', '안전'],
-            datasets: [{
-                data: scoreData,
-                backgroundColor: 'rgba(79, 172, 254, 0.3)',
-                borderColor: '#4facfe',
-                borderWidth: 2
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                r: {
-                    min: 0,
-                    max: 100,
-                    ticks: { display: false, stepSize: 20 }
-                }
+    function drawRadarChart(score) {
+        const ctx = document.getElementById('radarChart').getContext('2d');
+        if (myRadarChart) myRadarChart.destroy();
+        const s = score || {};
+        const scoreData = [(s.traffic||0)*100, (s.convenience||0)*100, (s.green||0)*100, (s.play||0)*100, (s.health||0)*100, (s.living||0)*100, (s.safety||0)*100];
+        myRadarChart = new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: ['교통', '편의', '자연', '놀이', '건강', '생활', '안전'],
+                datasets: [{ data: scoreData, backgroundColor: 'rgba(79, 172, 254, 0.3)', borderColor: '#4facfe', borderWidth: 2 }]
             },
-            plugins: { legend: { display: false } }
-        }
-    });
-}
+            options: { responsive: true, maintainAspectRatio: false, scales: { r: { min: 0, max: 100, ticks: { display: false } } }, plugins: { legend: { display: false } } }
+        });
+    }
 
     function handleFavorite() {
         const prop = window.currentSelectedProp;
@@ -408,11 +423,9 @@ function drawRadarChart(score) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ property_id: prop._id, address: prop.address, price_info: formatPrice(prop) })
-        })
-        .then(res => res.json()).then(data => {
-            if (data.status === 'success') {
-                document.getElementById('favoriteBtn').innerText = data.action === 'added' ? '💔 찜 취소' : '❤️ 찜하기';
-            } else { alert(data.message); }
+        }).then(res => res.json()).then(data => {
+            if (data.status === 'success') document.getElementById('favoriteBtn').innerText = data.action === 'added' ? '💔 찜 취소' : '❤️ 찜하기';
+            else alert(data.message);
         });
     }
 
@@ -422,6 +435,22 @@ function drawRadarChart(score) {
     }
 
     function closeModal() { document.getElementById('propertyModal').style.display = 'none'; }
+    function validateNonNegative(input) { if (input.value < 0) input.value = 0; }
+    function handleTypeChange() {
+        const type = document.getElementById('filter-type').value;
+        document.getElementById('monthly-price-section').style.display = (type === "전세") ? "none" : "block";
+        updateMarkers();
+    }
+    function toggleFilter() {
+        const searchBox = document.querySelector('.search-box');
+        const btn = document.getElementById('toggle-btn');
+        searchBox.classList.toggle('closed');
+        btn.innerText = searchBox.classList.contains('closed') ? ">" : "<";
+    }
+    function scrollSlider(direction) {
+        const container = document.getElementById('modalImgContainer');
+        if (container) container.scrollBy({ left: direction * 290, behavior: 'smooth' });
+    }
     function moveToSpecificProperty(id) {
         fetch(`/api/property/${id}`).then(res => res.json()).then(prop => {
             if (prop && prop.location) {
