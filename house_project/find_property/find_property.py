@@ -34,13 +34,9 @@ def get_gu_stats():
     result = [{"_id": k, "lat": v['lat'], "lng": v['lng']} for k, v in GU_COORDS.items()]
     return jsonify(result)
 
-# -------------------------------------------------------------------------
-# 🔥 [수정] 상세 정보 조회 로직 (500 에러 해결)
-# -------------------------------------------------------------------------
 @find_bp.route('/api/property/<prop_id>')
 def get_property_by_id(prop_id):
     try:
-        # ID 타입 대응 (문자열/숫자 모두 검색)
         search_query = [{'_id': prop_id}]
         try: search_query.append({'_id': int(prop_id)})
         except ValueError: pass
@@ -49,14 +45,11 @@ def get_property_by_id(prop_id):
         
         if item:
             is_fav = False
-            # 세션 확인 및 찜 여부 체크
             if 'user_id' in session:
-                # db.users 대신 이미 정의된 users_col 사용
                 user = users_col.find_one({"email": session['user_id']})
                 if user:
                     favorites = user.get('favorites', [])
                     for f in favorites:
-                        # 딕셔너리와 문자열 데이터 모두 대응하는 안전한 비교
                         if isinstance(f, dict):
                             if str(f.get('id')) == str(item['_id']):
                                 is_fav = True
@@ -65,7 +58,6 @@ def get_property_by_id(prop_id):
                             is_fav = True
                             break
 
-            # 층수 정보 가공
             raw_floor = item.get('floor', '정보없음')
             floor_display = raw_floor
             if '/' in raw_floor:
@@ -77,7 +69,6 @@ def get_property_by_id(prop_id):
                     current_f = mapping.get(current_f, f"{current_f}층")
                     floor_display = f"전체 {total_f} 중 {current_f}"
 
-            # 최종 데이터 구성
             processed = {
                 "_id": str(item['_id']),
                 "price": item.get('price'),
@@ -88,7 +79,7 @@ def get_property_by_id(prop_id):
                 "location": item.get('location'),
                 "parking":item.get("hasparking"),
                 "buildtype":item.get("buildingUse"),
-                "area": item.get('size_m2'),                     # 면적
+                "area": item.get('size_m2'),
                 "images": item.get('images') if isinstance(item.get('images'), list) else [],
                 "is_favorite": is_fav,
                 "score": dict(item.get('category_scores', {}))
@@ -96,7 +87,7 @@ def get_property_by_id(prop_id):
             return jsonify(processed)
         return jsonify({"error": "매물을 찾을 수 없습니다."}), 404
     except Exception as e:
-        print(f"❌ 매물 상세조회 에러: {e}") # 디버깅을 위해 터미널에 에러 출력
+        print(f"❌ 매물 상세조회 에러: {e}")
         return jsonify({"error": str(e)}), 500
 
 @find_bp.route('/api/favorite', methods=['POST'])
@@ -155,7 +146,7 @@ def add_favorite():
                     "price": price_info,
                     "rent_type": real_house.get('rent_type'),
                     "deposit": real_house.get('deposit'),
-                    "images": real_house.get('images', []), # DB 이미지 배열 저장
+                    "images": real_house.get('images', []), 
                     "created_at": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 }
                 
@@ -188,7 +179,6 @@ def get_properties():
     if not all([sw_lat, sw_lng, ne_lat, ne_lng]): 
         return jsonify([])
 
-    # 기본 검색 조건: 현재 지도 화면(좌표) 안에 있는 매물
     query = {
         "location": {
             "$geoWithin": {
@@ -198,8 +188,6 @@ def get_properties():
     }
 
     if center_lat is not None and center_lng is not None:
-        # $centerSphere는 [경도, 위도] 순서이며, 거리는 '라디안' 단위로 계산합니다.
-        # 라디안 = 미터 / (지구 반지름 약 6,378,100m)
         radius_in_radians = radius_m / 6378100
         query["location"] = {
             "$geoWithin": {
@@ -210,35 +198,55 @@ def get_properties():
     rent_type = request.args.get('type')
     if rent_type: query["rent_type"] = rent_type
 
-    # 🔥 [추가된 부분] 건물 용도 (원룸, 투룸, 오피스텔)
-    building_use = request.args.get('building_use')
-    # 값이 존재하고 빈 문자열이 아닐 때만 조건 추가 ('전체 용도'는 빈 문자열로 넘어옴)
-    if building_use: 
-        # DB의 'buildingUse' 필드 값이 프론트에서 보낸 값(예: '원룸')과 일치하는 것만 찾기
-        query["buildingUse"] = building_use
+    # 다중 방 개수 필터 로직
+    rooms_param = request.args.get('rooms')
+    if rooms_param:
+        room_list = rooms_param.split(',')
+        search_rooms = []
+        for r in room_list:
+            if r == '쓰리룸+':
+                search_rooms.extend(['쓰리룸', '포룸', '아파트', '빌라'])
+            else:
+                search_rooms.append(r)
+        if search_rooms:
+            query["buildingUse"] = {"$in": search_rooms}
 
-    # 2. 보증금 범위
+    # 🔥 [수정된 부분] 전세/월세에 따른 가격/보증금 필터 동적 할당
     min_dep = request.args.get('min_deposit', type=int)
     max_dep = request.args.get('max_deposit', type=int)
-    if min_dep is not None or max_dep is not None:
-        query["deposit"] = {}
-        if min_dep is not None: query["deposit"]["$gte"] = min_dep
-        if max_dep is not None: query["deposit"]["$lte"] = max_dep
-
-    # 3. 월세 범위
     min_pri = request.args.get('min_price', type=int)
     max_pri = request.args.get('max_price', type=int)
-    if min_pri is not None or max_pri is not None:
-        query["price"] = {}
-        if min_pri is not None: query["price"]["$gte"] = min_pri
-        if max_pri is not None: query["price"]["$lte"] = max_pri
 
-    # 4. 반지하 제외 
+    if rent_type == '전세':
+        # 전세일 경우: UI의 '보증금' 입력값을 DB의 'price'(전세금) 필드로 조회
+        if min_dep is not None or max_dep is not None:
+            query["price"] = {}
+            if min_dep is not None: query["price"]["$gte"] = min_dep
+            if max_dep is not None: query["price"]["$lte"] = max_dep
+    else:
+        # 월세(또는 전체)일 경우: 보증금은 deposit, 월세는 price 로 각각 조회
+        if min_dep is not None or max_dep is not None:
+            query["deposit"] = {}
+            if min_dep is not None: query["deposit"]["$gte"] = min_dep
+            if max_dep is not None: query["deposit"]["$lte"] = max_dep
+
+        if min_pri is not None or max_pri is not None:
+            query["price"] = {}
+            if min_pri is not None: query["price"]["$gte"] = min_pri
+            if max_pri is not None: query["price"]["$lte"] = max_pri
+
+    # 🔥 [추가된 부분] 면적 필터 로직 (기존에 누락되어 있어 추가했습니다)
+    min_size = request.args.get('min_size', type=float)
+    max_size = request.args.get('max_size', type=float)
+    if min_size is not None or max_size is not None:
+        query["size_m2"] = {}
+        if min_size is not None: query["size_m2"]["$gte"] = min_size
+        if max_size is not None: query["size_m2"]["$lte"] = max_size
+
     exclude_under = request.args.get('exclude_under')
     if exclude_under == 'true':
         query["floor"] = {"$not": {"$regex": "반지하"}}
 
-    # 5. 주차 가능만 
     parking = request.args.get('parking')
     if parking == '주차 가능':
         query["hasParking"] = "주차 가능"
