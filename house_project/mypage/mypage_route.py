@@ -143,7 +143,7 @@ def mypage():
                     if 'price' in rh: fav['price'] = rh['price']
                     if 'deposit' in rh: fav['deposit'] = rh['deposit']
                     if 'rent_type' in rh: fav['rent_type'] = rh['rent_type']
-            except:
+            except: 
                 pass
 
         if not isinstance(img_list, list):
@@ -171,7 +171,7 @@ def mypage():
                             favorites=processed_favorites,
                             jeonse_count=jeonse_count,
                             wolse_count=wolse_count,
-                            total_count=len(surveys)) # 🔥 이 줄을 추가하여 에러를 해결합니다.
+                            total_count=len(processed_favorites)) # 🔥 이 줄을 추가하여 에러를 해결합니다.
 
 @mypage_bp.route('/edit', methods=['GET'])
 def edit_profile():
