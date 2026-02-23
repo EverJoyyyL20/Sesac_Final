@@ -6,6 +6,46 @@
     <title>정보 수정 - 안전한 집 찾기</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/mypage.css') }}">
+    
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+
+    <style>
+        /* 🔥 크롭 모달 및 동그라미 자르기 전용 스타일 */
+        #cropModal {
+            display: none; position: fixed; z-index: 10005; left: 0; top: 0;
+            width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(4px);
+            justify-content: center; align-items: center;
+        }
+        .crop-modal-content {
+            background: #fff; padding: 25px; border-radius: 20px;
+            width: 90%; max-width: 500px; 
+            text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+        .crop-container {
+            width: 100%; height: 500px; max-height: 60vh; min-height: 300px;
+            margin-bottom: 20px; background: #eee; border-radius: 10px; overflow: hidden;
+        }
+        .crop-container img {
+            max-width: 100%; display: block;
+        }
+        /* 자르는 영역을 동그랗게 보이게 하는 CSS 매직 */
+        .cropper-view-box,
+        .cropper-face {
+            border-radius: 50%;
+        }
+        .crop-btns {
+            display: flex; gap: 10px; justify-content: center;
+        }
+        .btn-crop-save {
+            padding: 12px 30px; background: #4facfe; color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; flex: 1; transition: 0.2s;
+        }
+        .btn-crop-save:hover { background: #00c6ff; }
+        .btn-crop-cancel {
+            padding: 12px 30px; background: #eee; color: #555; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; flex: 1; transition: 0.2s;
+        }
+        .btn-crop-cancel:hover { background: #ddd; }
+    </style>
 </head>
 <body>
 
@@ -49,7 +89,7 @@
                         사진 변경
                     </label>
 
-                    <input type="file" id="profile_img" name="profile_img" accept="image/*" style="display: none;" onchange="previewImage(this)">
+                    <input type="file" id="profile_img" name="profile_img" accept="image/*" style="display: none;" onchange="openCropModal(this)">
                 </div>
             </div>
 
@@ -96,33 +136,100 @@
     </div>
 </div>
 
+<div id="cropModal">
+    <div class="crop-modal-content">
+        <h3 style="margin: 0 0 15px 0; font-size: 1.2rem; color: #333;">프로필 사진 맞추기</h3>
+        <p style="font-size: 0.85rem; color: #666; margin-bottom: 15px;">안쪽을 잡으면 동그라미가, 바깥쪽을 잡으면 이미지가 움직입니다.</p>
+        <div class="crop-container">
+            <img id="imageToCrop" src="">
+        </div>
+        <div class="crop-btns">
+            <button type="button" class="btn-crop-cancel" onclick="closeCropModal()">취소</button>
+            <button type="button" class="btn-crop-save" onclick="applyCrop()">적용하기</button>
+        </div>
+    </div>
+</div>
+
 <script>
-function resetToDefault() {
-    if (confirm("프로필 이미지를 기본 이미지로 변경하시겠습니까?")) {
-        // 1. 미리보기 이미지를 기본 이미지 경로로 교체
-        const defaultImgPath = "{{ url_for('static', filename='profile_pics/default.png') }}";
-        document.getElementById('preview').src = defaultImgPath;
-        
-        // 2. 숨겨진 입력창 값을 true로 변경 (서버에 알림)
-        document.getElementById('is_default_img').value = "true";
-        
-        // 3. 파일 선택창(input type="file") 비우기 (새로 업로드하려던 사진 취소)
-        document.getElementById('profile_img').value = "";
-        
-        alert("기본 이미지로 설정되었습니다. '저장하기'를 눌러야 최종 반영됩니다.");
+    function resetToDefault() {
+        if (confirm("프로필 이미지를 기본 이미지로 변경하시겠습니까?")) {
+            const defaultImgPath = "{{ url_for('static', filename='profile_pics/default.png') }}";
+            document.getElementById('preview').src = defaultImgPath;
+            document.getElementById('is_default_img').value = "true";
+            document.getElementById('profile_img').value = "";
+            alert("기본 이미지로 설정되었습니다. '저장하기'를 눌러야 최종 반영됩니다.");
+        }
     }
-}
 </script>
 
 <script>
-    function previewImage(input) {
+    let cropper;
+
+    // 파일 선택 시 크롭 모달 띄우기
+    function openCropModal(input) {
         if (input.files && input.files[0]) {
             const reader = new FileReader();
             reader.onload = function(e) {
-                document.getElementById('preview').src = e.target.result;
+                const image = document.getElementById('imageToCrop');
+                image.src = e.target.result;
+                document.getElementById('cropModal').style.display = 'flex';
+
+                if (cropper) { cropper.destroy(); }
+                
+                cropper = new Cropper(image, {
+                    aspectRatio: 1,
+                    viewMode: 1,
+                    // 🔥 [수정 핵심] 'move'로 설정하여 캔버스(배경 이미지) 이동 활성화
+                    // cropBoxMovable: true 속성과 결합되어, 안을 누르면 박스가 이동, 밖을 누르면 이미지가 이동함!
+                    dragMode: 'move', 
+                    autoCropArea: 0.8, 
+                    restore: false,
+                    guides: false,
+                    center: false,
+                    highlight: false,
+                    cropBoxMovable: true,   // 동그라미(크롭 박스) 안쪽 클릭 시 박스 이동
+                    cropBoxResizable: true, // 동그라미(크롭 박스) 사이즈 조절
+                    toggleDragModeOnDblclick: false,
+                });
             }
             reader.readAsDataURL(input.files[0]);
         }
+    }
+
+    // 모달 닫기 및 초기화
+    function closeCropModal() {
+        document.getElementById('cropModal').style.display = 'none';
+        if (cropper) { cropper.destroy(); }
+        document.getElementById('profile_img').value = ""; 
+    }
+
+    // 크롭 적용 버튼 클릭 시
+    function applyCrop() {
+        if (!cropper) return;
+
+        // 자른 영역 캔버스 가져오기 (가로세로 300px 고정 화질)
+        const canvas = cropper.getCroppedCanvas({
+            width: 300,
+            height: 300,
+        });
+
+        // 미리보기 화면에 자른 사진 적용
+        document.getElementById('preview').src = canvas.toDataURL();
+        document.getElementById('is_default_img').value = "false"; 
+
+        // 자른 사진을 실제 File 객체로 변환하여 기존 <input type="file">에 강제 세팅
+        canvas.toBlob(function(blob) {
+            const originalFile = document.getElementById('profile_img').files[0];
+            const extension = originalFile ? originalFile.name.split('.').pop() : 'png';
+            const newFile = new File([blob], "profile_cropped." + extension, {type: "image/png"});
+
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(newFile);
+            document.getElementById('profile_img').files = dataTransfer.files;
+        }, 'image/png');
+
+        // 모달 닫기
+        document.getElementById('cropModal').style.display = 'none';
     }
 </script>
 
