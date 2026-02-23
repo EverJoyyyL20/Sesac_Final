@@ -194,6 +194,9 @@ def update_profile():
             file.save(os.path.join(UPLOAD_FOLDER, filename))
             update_data['Profile_IMG'] = filename
     
+    # 프로필 설정 완료 플래그 추가
+    update_data['is_setup_done'] = True
+
     users_col.update_one({'email': session['user_id']}, {'$set': update_data})
     session['nickname'] = new_nickname
     session['needs_setup'] = False     # 팝업 중단 선언
