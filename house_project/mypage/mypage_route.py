@@ -339,6 +339,7 @@ def delete_user():
     if not user.get('is_social'):
         if not password or not check_password_hash(user.get('PW', ''), password):
             return "<script>alert('비밀번호가 일치하지 않습니다.'); history.back();</script>"
+    db.survey_results.delete_many({'user_id': user_email})
     users_col.delete_one({'email': user_email})
     session.clear()
     return "<script>alert('탈퇴가 완료되었습니다. 이용해주셔서 감사합니다.'); location.href='/';</script>"
