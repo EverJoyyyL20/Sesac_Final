@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>정보 수정 - 안전한 집 찾기</title>
+    <title>정보 수정 - 메인페이지</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/mypage.css') }}">
     
@@ -11,123 +13,237 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 
     <style>
-        /* 🔥 크롭 모달 및 동그라미 자르기 전용 스타일 */
+        /* --- [웹 최적화] 레이아웃 시스템 --- */
+        body { background-color: #f4f7fa; overflow-x: hidden; }
+        
+        .container { 
+            max-width: 1050px; 
+            margin: 50px auto; 
+            padding: 0 30px;
+        }
+
+        .profile-card { 
+            display: grid !important;
+            grid-template-columns: 340px 1fr; /* 2열 레이아웃 */
+            gap: 50px;
+            padding: 50px !important; 
+            align-items: start;
+            background: #fff;
+            border-radius: 32px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.05);
+        }
+
+        /* --- [왼쪽 열] 프로필 사진 영역 --- */
+        .profile-side {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: #fafbfc;
+            padding: 50px 20px;
+            border-radius: 28px;
+            border: 1px solid #f0f2f5;
+            position: sticky;
+            top: 110px;
+        }
+
+        .img-wrapper {
+            position: relative;
+            width: 180px;
+            height: 180px;
+            margin-bottom: 25px;
+        }
+
+        #preview {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 6px solid #fff;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.12);
+        }
+
+        .btn-camera {
+            position: absolute;
+            bottom: 5px;
+            right: 5px;
+            width: 48px;
+            height: 48px;
+            background: #111;
+            border: 4px solid #fff;
+            border-radius: 50%;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            line-height: 0;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+            z-index: 10;
+        }
+        .btn-camera i {
+            font-size: 1.15rem;
+            transform: translateY(0px); 
+        }
+        .btn-camera:hover { transform: scale(1.1) rotate(-5deg); background: #000; }
+
+        .btn-reset-link {
+            background: none; border: none; color: #a0aab5;
+            font-size: 0.85rem; font-weight: 700; cursor: pointer;
+            text-decoration: underline; text-underline-offset: 5px;
+            transition: 0.2s;
+        }
+        .btn-reset-link:hover { color: #ff4d4f; }
+
+        /* --- [오른쪽 열] 정보 입력 영역 --- */
+        .form-side { display: flex; flex-direction: column; gap: 30px; }
+
+        .form-section-title {
+            font-size: 1.5rem; font-weight: 900; color: #111;
+            margin-bottom: 10px; display: flex; align-items: center; gap: 12px;
+        }
+        .form-section-title::after {
+            content: ""; flex: 1; height: 1px; background: #eee;
+        }
+
+        .input-row {
+            display: grid;
+            grid-template-columns: 140px 1fr;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .input-row label { font-size: 0.95rem; font-weight: 800; color: #333; }
+
+        .styled-input {
+            padding: 16px 22px;
+            background: #f8f9fb;
+            border: 1.5px solid #f0f2f5;
+            border-radius: 16px;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: 0.3s;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .styled-input:focus { 
+            outline: none; border-color: #4facfe; background: #fff;
+            box-shadow: 0 0 0 5px rgba(79, 172, 254, 0.1); 
+        }
+        .styled-input:read-only { background: #f1f3f5; color: #aaa; cursor: not-allowed; }
+
+        /* --- 비밀번호 카드 --- */
+        .pw-card {
+            background: #fff; padding: 35px; border-radius: 28px;
+            border: 1px solid #f0f2f5; display: flex; flex-direction: column; gap: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.02);
+        }
+
+        /* --- 하단 액션 --- */
+        .action-bar {
+            display: flex; gap: 15px; margin-top: 20px;
+            justify-content: flex-end;
+        }
+
+        .btn-main {
+            padding: 18px 50px; background: #111; color: #fff; border: none;
+            border-radius: 16px; font-size: 1.05rem; font-weight: 800; cursor: pointer;
+            transition: 0.3s; box-shadow: 0 10px 25px rgba(0,0,0,0.12);
+        }
+        .btn-main:hover { background: #333; transform: translateY(-3px); }
+
+        .btn-sub {
+            padding: 18px 35px; background: #f1f3f5; color: #555; text-decoration: none;
+            border-radius: 16px; font-weight: 700; transition: 0.2s;
+            display: inline-flex; align-items: center; justify-content: center;
+        }
+        .btn-sub:hover { background: #e9ecef; }
+
+        /* 모달 디자인 보강 */
         #cropModal {
-            display: none; position: fixed; z-index: 10005; left: 0; top: 0;
-            width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(4px);
+            display: none; position: fixed; z-index: 10005; inset: 0;
+            background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(10px);
             justify-content: center; align-items: center;
         }
         .crop-modal-content {
-            background: #fff; padding: 25px; border-radius: 20px;
-            width: 90%; max-width: 500px; 
-            text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            background: #fff; padding: 45px; border-radius: 36px;
+            width: 750px; text-align: center;
         }
-        .crop-container {
-            width: 100%; height: 500px; max-height: 60vh; min-height: 300px;
-            margin-bottom: 20px; background: #eee; border-radius: 10px; overflow: hidden;
-        }
-        .crop-container img {
-            max-width: 100%; display: block;
-        }
-        /* 자르는 영역을 동그랗게 보이게 하는 CSS 매직 */
-        .cropper-view-box,
-        .cropper-face {
-            border-radius: 50%;
-        }
-        .crop-btns {
-            display: flex; gap: 10px; justify-content: center;
-        }
-        .btn-crop-save {
-            padding: 12px 30px; background: #4facfe; color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; flex: 1; transition: 0.2s;
-        }
-        .btn-crop-save:hover { background: #00c6ff; }
-        .btn-crop-cancel {
-            padding: 12px 30px; background: #eee; color: #555; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; flex: 1; transition: 0.2s;
-        }
-        .btn-crop-cancel:hover { background: #ddd; }
+        .crop-container { width: 100%; height: 480px; background: #f0f0f0; border-radius: 20px; overflow: hidden; margin-bottom: 30px; }
     </style>
 </head>
 <body>
 
-<div class="navbar">
+<nav class="navbar">
     <div class="nav-left">
-        <a href="{{ url_for('main.index') }}">메인페이지</a>
+        <a href="{{ url_for('main.index') }}" class="nav-logo">메인페이지</a>
         <a href="{{ url_for('find.find') }}">매물찾기</a>
     </div>
     <div class="nav-links">
-        {% if session.get('user_id') %}
-            <span class="welcome-text"><strong>{{ session.get('nickname') }}</strong>님</span>
-            <a href="{{ url_for('mypage.mypage') }}">마이페이지</a>
-            <a href="{{ url_for('auth.logout') }}">로그아웃</a>
-        {% else %}
-            <a href="{{ url_for('auth.login') }}">로그인</a>
-            <a href="{{ url_for('auth.register') }}">회원가입</a>
-        {% endif %}
+        <span class="welcome-text"><strong>{{ session.get('nickname') }}</strong>님</span>
+        <a href="{{ url_for('mypage.mypage') }}">마이페이지</a>
+        <a href="{{ url_for('auth.logout') }}">로그아웃</a>
     </div>
-</div>
+</nav>
 
-<div class="container" style="margin-top: 20px; margin-bottom: 20px;">
-    <div class="profile-card" style="padding: 30px 50px; min-height: auto;">
-        <form action="{{ url_for('mypage.update_profile') }}" method="post" enctype="multipart/form-data" style="display: flex; width: 100%; gap: 60px; align-items: flex-start;">
+<div class="container">
+    <div class="profile-card">
+        <form action="{{ url_for('mypage.update_profile') }}" method="post" enctype="multipart/form-data" style="display: contents;">
             
-            <div class="profile-left" style="flex: 0 0 150px; text-align: center;">
-                <img id="preview" class="profile-img-preview" 
-                     src="{{ url_for('static', filename='profile_pics/' + (profile_img if profile_img else 'default.png')) }}"
-                     style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover; border: 2px solid #eee;">
-                <div style="margin-top: 20px; display: flex; justify-content: center; gap: 12px; width: 100%;">
-                    <button type="button" onclick="resetToDefault()" 
-                            style="flex: 0 0 auto; min-width: 80px; font-size: 0.85rem; padding: 8px 16px; 
-                                background-color: #fff; border: 1px solid #e0e0e0; border-radius: 8px; 
-                                cursor: pointer; color: #777; font-weight: 500; white-space: nowrap; transition: 0.2s;">
-                        기본으로
-                    </button>
-
-                    <label for="profile_img" class="file-label" 
-                        style="flex: 0 0 auto; min-width: 80px; font-size: 0.85rem; padding: 8px 16px; 
-                                background-color: #f2f4f6; border-radius: 8px; cursor: pointer; 
-                                color: #444; font-weight: 600; white-space: nowrap; text-align: center; transition: 0.2s;">
-                        사진 변경
+            <div class="profile-side">
+                <div class="img-wrapper">
+                    <img id="preview" src="{{ url_for('static', filename='profile_pics/' + (profile_img if profile_img else 'default.png')) }}" 
+                         onerror="this.src='/static/profile_pics/default.png'">
+                    
+                    <label for="profile_img" class="btn-camera">
+                        <i class="fa-solid fa-camera"></i>
                     </label>
-
                     <input type="file" id="profile_img" name="profile_img" accept="image/*" style="display: none;" onchange="openCropModal(this)">
+                </div>
+                <button type="button" class="btn-reset-link" onclick="resetToDefault()">기본 이미지로 초기화</button>
+                <div style="margin-top: 30px; text-align: center; color: #a0aab5; font-size: 0.85rem;">
+                    <p><i class="fa-solid fa-circle-info" style="margin-right:5px;"></i> JPG·PNG 지원 (300x300 권장)</p>
                 </div>
             </div>
 
-            <div class="profile-right" style="flex: 1;">
-                <h2 style="margin-bottom: 15px; font-weight: 800; font-size: 1.5rem;">내 정보 수정</h2>
+            <div class="form-side">
+                <h2 class="form-section-title">기본 정보</h2>
                 
-                <div class="info-row" style="margin-bottom: 15px; display: flex; align-items: center; border: none;">
-                    <span class="info-label" style="width: 100px; font-size: 0.95rem; font-weight: 700; border: none;">닉네임</span>
-                    <input type="text" name="nickname" value="{{ nickname }}" class="edit-input" required>
-                </div>
-                
-                <div class="info-row" style="margin-bottom: 25px; display: flex; align-items: center; border: none;">
-                    <span class="info-label" style="width: 100px; font-size: 0.95rem; font-weight: 700; border: none;">한 줄 소개</span>
-                    <input type="text" name="introduction" value="{{ introduction }}" class="edit-input">
+                <div class="input-row">
+                    <label>이메일 계정</label>
+                    <input type="text" value="{{ session.get('user_id') }}" class="styled-input" readonly>
                 </div>
 
-                <div class="pw-change-section" style="padding: 20px; background-color: #fafafa; border-radius: 10px; border: 1px solid #f0f0f0;">
-                    <h3 style="font-size: 0.9rem; margin-bottom: 15px; color: #555;">🔒 비밀번호 변경</h3>
-                    
-                    <div class="info-row" style="margin-bottom: 10px; display: flex; align-items: center; border: none;">
-                        <span class="info-label" style="width: 120px; font-size: 0.85rem; border: none;">현재 비밀번호</span>
-                        <input type="password" name="current_password" class="edit-input" placeholder="확인 필요">
-                    </div>
+                <div class="input-row">
+                    <label for="nickname">닉네임</label>
+                    <input type="text" id="nickname" name="nickname" value="{{ nickname }}" class="styled-input" placeholder="활동할 이름을 입력하세요" required>
+                </div>
 
-                    <div class="info-row" style="margin-bottom: 10px; display: flex; align-items: center; border: none;">
-                        <span class="info-label" style="width: 120px; font-size: 0.85rem; border: none;">새 비밀번호</span>
-                        <input type="password" name="new_password" class="edit-input">
+                <div class="input-row">
+                    <label for="introduction">소개글</label>
+                    <input type="text" id="introduction" name="introduction" value="{{ introduction }}" class="styled-input" placeholder="나를 한 줄로 표현해보세요">
+                </div>
+
+                <h2 class="form-section-title" style="margin-top: 20px;">보안 설정</h2>
+                <div class="pw-card">
+                    <div class="input-row">
+                        <label>현재 비밀번호</label>
+                        <input type="password" name="current_password" class="styled-input" placeholder="비밀번호 변경 시에만 입력">
                     </div>
-                    
-                    <div class="info-row" style="display: flex; align-items: center; border: none; padding-bottom: 0;">
-                        <span class="info-label" style="width: 120px; font-size: 0.85rem; border: none;">비밀번호 확인</span>
-                        <input type="password" name="confirm_password" class="edit-input">
+                    <div class="input-row">
+                        <label>새 비밀번호</label>
+                        <input type="password" name="new_password" class="styled-input" placeholder="8자 이상의 영문/숫자 조합">
+                    </div>
+                    <div class="input-row">
+                        <label>비밀번호 확인</label>
+                        <input type="password" name="confirm_password" class="styled-input" placeholder="새 비밀번호 다시 입력">
                     </div>
                 </div>
 
-                <div class="btn-group" style="margin-top: 25px; display: flex; justify-content: space-between; align-items: center;">
-                    <button type="submit" class="btn-edit">저장하기</button>
-                    <a href="{{ url_for('mypage.mypage') }}" class="btn-cancel">취소</a>
+                <div class="action-bar">
+                    <a href="{{ url_for('mypage.mypage') }}" class="btn-sub">변경 취소</a>
+                    <button type="submit" class="btn-main">설정 저장하기</button>
                 </div>
             </div>
 
@@ -138,34 +254,28 @@
 
 <div id="cropModal">
     <div class="crop-modal-content">
-        <h3 style="margin: 0 0 15px 0; font-size: 1.2rem; color: #333;">프로필 사진 맞추기</h3>
-        <p style="font-size: 0.85rem; color: #666; margin-bottom: 15px;">안쪽을 잡으면 동그라미가, 바깥쪽을 잡으면 이미지가 움직입니다.</p>
+        <h2 style="font-weight:900; margin-bottom:15px; font-size: 1.6rem;">프로필 영역 맞추기</h2>
+        <p style="color:#888; margin-bottom:35px; font-size: 1rem;">원형 프로필에 맞게 이미지 위치를 조절해주세요.</p>
         <div class="crop-container">
             <img id="imageToCrop" src="">
         </div>
-        <div class="crop-btns">
-            <button type="button" class="btn-crop-cancel" onclick="closeCropModal()">취소</button>
-            <button type="button" class="btn-crop-save" onclick="applyCrop()">적용하기</button>
+        <div style="display:flex; gap:15px; justify-content: center;">
+            <button type="button" class="btn-sub" onclick="closeCropModal()" style="width: 180px;">다음에 하기</button>
+            <button type="button" class="btn-main" onclick="applyCrop()" style="width: 300px;">이 영역으로 결정</button>
         </div>
     </div>
 </div>
 
 <script>
     function resetToDefault() {
-        if (confirm("프로필 이미지를 기본 이미지로 변경하시겠습니까?")) {
-            const defaultImgPath = "{{ url_for('static', filename='profile_pics/default.png') }}";
-            document.getElementById('preview').src = defaultImgPath;
+        if (confirm("프로필 이미지를 기본 이미지로 초기화하시겠습니까?")) {
+            document.getElementById('preview').src = "/static/profile_pics/default.png";
             document.getElementById('is_default_img').value = "true";
             document.getElementById('profile_img').value = "";
-            alert("기본 이미지로 설정되었습니다. '저장하기'를 눌러야 최종 반영됩니다.");
         }
     }
-</script>
 
-<script>
     let cropper;
-
-    // 파일 선택 시 크롭 모달 띄우기
     function openCropModal(input) {
         if (input.files && input.files[0]) {
             const reader = new FileReader();
@@ -173,62 +283,36 @@
                 const image = document.getElementById('imageToCrop');
                 image.src = e.target.result;
                 document.getElementById('cropModal').style.display = 'flex';
-
-                if (cropper) { cropper.destroy(); }
-                
+                if (cropper) cropper.destroy();
                 cropper = new Cropper(image, {
-                    aspectRatio: 1,
-                    viewMode: 1,
-                    // 🔥 [수정 핵심] 'move'로 설정하여 캔버스(배경 이미지) 이동 활성화
-                    // cropBoxMovable: true 속성과 결합되어, 안을 누르면 박스가 이동, 밖을 누르면 이미지가 이동함!
-                    dragMode: 'move', 
-                    autoCropArea: 0.8, 
-                    restore: false,
-                    guides: false,
-                    center: false,
-                    highlight: false,
-                    cropBoxMovable: true,   // 동그라미(크롭 박스) 안쪽 클릭 시 박스 이동
-                    cropBoxResizable: true, // 동그라미(크롭 박스) 사이즈 조절
-                    toggleDragModeOnDblclick: false,
+                    aspectRatio: 1, viewMode: 1, dragMode: 'move', autoCropArea: 0.8,
+                    restore: false, guides: false, center: false, highlight: false,
+                    cropBoxMovable: true, cropBoxResizable: true, toggleDragModeOnDblclick: false,
                 });
             }
             reader.readAsDataURL(input.files[0]);
         }
     }
 
-    // 모달 닫기 및 초기화
     function closeCropModal() {
         document.getElementById('cropModal').style.display = 'none';
-        if (cropper) { cropper.destroy(); }
+        if (cropper) cropper.destroy();
         document.getElementById('profile_img').value = ""; 
     }
 
-    // 크롭 적용 버튼 클릭 시
     function applyCrop() {
         if (!cropper) return;
-
-        // 자른 영역 캔버스 가져오기 (가로세로 300px 고정 화질)
-        const canvas = cropper.getCroppedCanvas({
-            width: 300,
-            height: 300,
-        });
-
-        // 미리보기 화면에 자른 사진 적용
+        const canvas = cropper.getCroppedCanvas({ width: 500, height: 500 });
         document.getElementById('preview').src = canvas.toDataURL();
         document.getElementById('is_default_img').value = "false"; 
 
-        // 자른 사진을 실제 File 객체로 변환하여 기존 <input type="file">에 강제 세팅
         canvas.toBlob(function(blob) {
-            const originalFile = document.getElementById('profile_img').files[0];
-            const extension = originalFile ? originalFile.name.split('.').pop() : 'png';
-            const newFile = new File([blob], "profile_cropped." + extension, {type: "image/png"});
-
+            const newFile = new File([blob], "profile_cropped.png", {type: "image/png"});
             const dataTransfer = new DataTransfer();
             dataTransfer.items.add(newFile);
             document.getElementById('profile_img').files = dataTransfer.files;
         }, 'image/png');
 
-        // 모달 닫기
         document.getElementById('cropModal').style.display = 'none';
     }
 </script>
