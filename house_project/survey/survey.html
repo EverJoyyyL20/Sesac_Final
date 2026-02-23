@@ -8,15 +8,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/survey.css') }}">
     <style>
-        /* [기본 스타일 및 네비게이션] */
-        .navbar {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 20px 6%; width: 100%; box-sizing: border-box;
-            background-color: #222;
-        }
-        .navbar a { font-size: 1.25rem; font-weight: 700; text-decoration: none; color: #fff; margin: 0 15px; transition: color 0.3s; }
-        .navbar a:hover { color: #007bff; }
-        .welcome-text { font-size: 1.1rem; margin-right: 15px; color: #fff; }
+        /* 🔥 [수정] common.css의 디자인을 방해하던 .navbar 관련 스타일 삭제 */
 
         /* [설문 카드 애니메이션] */
         #loading-screen { display: none; text-align: center; padding: 50px 20px; }
@@ -51,7 +43,7 @@
         }
         .skip-btn:hover { color: #888; }
         
-        /* 🔥 상세 조건용 그룹 여백 */
+        /* 상세 조건용 그룹 여백 */
         .detail-q-group { margin-bottom: 25px; text-align: left; }
     </style>
 </head>
@@ -347,11 +339,9 @@
             surveyResults.budget.min_dep = document.getElementById('j_dep_min').value || 0;
             surveyResults.budget.max_dep = document.getElementById('j_dep_max').value || 0;
         }
-        // 🔥 상세 조건(Step 2)으로 정상 이동하도록 복구
         nextStep(2); 
     }
 
-    // 🔥 상세조건 버튼 클릭 로직
     function toggleBtn(btn, isMulti) {
         const group = btn.closest('.options-group');
         if (!isMulti) {
@@ -361,7 +351,6 @@
         document.querySelector('.detail-empty').style.display = 'none';
     }
 
-    // 🔥 상세조건 유효성 검사 및 데이터 저장
     function validateStep2() {
         const step2 = document.getElementById('step-2');
         const groups = step2.querySelectorAll('.options-group');
@@ -378,7 +367,6 @@
             return;
         }
 
-        // 선택한 값 저장 (건물 유형은 제외)
         surveyResults.building_age = Array.from(step2.querySelector('[data-key="building_age"]').querySelectorAll('.selected')).map(b => b.innerText);
         surveyResults.room_count = Array.from(step2.querySelector('[data-key="room_count"]').querySelectorAll('.selected')).map(b => b.innerText);
         surveyResults.special_room = step2.querySelector('[data-key="special_room"] .selected').innerText;

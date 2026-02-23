@@ -5,422 +5,141 @@
 /* ===============================
    1. 기본 레이아웃
    =============================== */
-.container {
-    max-width: 960px;
-    margin: 60px auto;
-    padding: 0 30px;
-    box-sizing: border-box;
+.container { max-width: 1000px; margin: 60px auto; padding: 0 30px; box-sizing: border-box; }
+
+.profile-card, .content-box {
+    background: #fff; border-radius: 32px;
+    box-shadow: 0 15px 45px rgba(0,0,0,0.04);
+    border: 1px solid rgba(0,0,0,0.02); margin-bottom: 40px; padding: 45px !important;
+    box-sizing: border-box; /* 패딩으로 인한 크기 증가 방지 */
 }
 
-.profile-card,
+/* 🔥 [수정 핵심] 카드가 안의 내용물(슬라이더) 크기 때문에 옆으로 뚫고 나가지 않도록 억제 */
 .content-box {
-    background: #fff;
-    border-radius: 16px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.04);
-    margin-bottom: 40px;
+    min-width: 0; 
+    position: relative;
 }
 
 /* ===============================
    2. 프로필 영역
    =============================== */
-.profile-card {
-    padding: 50px 60px;
-    display: flex;
-    gap: 60px;
-    align-items: center;
-}
-
+.profile-card { display: flex; gap: 60px; align-items: flex-start; }
 .profile-left { flex: 0 0 150px; text-align: center; }
-
-.profile-img-preview {
-    width: 150px;
-    height: 150px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 4px solid #4facfe;
-}
+.profile-img-preview { width: 140px !important; height: 140px !important; border-radius: 50%; object-fit: cover; border: 4px solid #fff; box-shadow: 0 10px 25px rgba(0,0,0,0.08); }
 
 .profile-right { flex: 1; min-width: 0; }
-
-.info-row {
-    margin-bottom: 25px;
-    border-bottom: 1px solid #f2f2f2;
-    padding-bottom: 12px;
-}
-
-.info-label {
-    font-weight: bold;
-    color: #bbb;
-    font-size: 13px;
-    display: block;
-    margin-bottom: 8px;
-}
-
-.info-value {
-    font-size: 18px;
-    color: #333;
-    font-weight: 500;
-}
+.info-row { margin-bottom: 25px; border-bottom: 1px solid #f8f9fa; padding-bottom: 15px; }
+.info-label { font-weight: 700; color: #a0aab5; font-size: 0.9rem; display: block; margin-bottom: 8px; }
+.info-value { font-size: 1.2rem; color: #111; font-weight: 800; }
 
 /* ===============================
    3. 버튼 시스템
    =============================== */
-.btn-group {
-    display: flex;
-    gap: 15px;
-    margin-top: 40px;
-    align-items: center;
-}
-
-.btn-edit {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background: #3182f6;
-    color: #fff;
-    border-radius: 10px;
-    padding: 12px 30px;
-    font-weight: 600;
-    font-size: 14px;
-    border: none;
-    cursor: pointer;
-    transition: 0.25s ease;
-}
-
-.btn-edit:hover {
-    background: #1f6fe0;
-    transform: translateY(-2px);
-}
-
-.btn-cancel {
-    background: #f5f5f5;
-    color: #888;
-    border-radius: 8px;
-    padding: 10px 25px;
-    font-size: 0.9rem;
-    font-weight: 600;
-    border: none;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.btn-withdraw {
-    background: #ffeded;
-    color: #ee7474;
-    border: 1px solid #ee7474;
-    border-radius: 10px;
-    padding: 10px 20px;
-    font-size: 13px;
-    font-weight: 600;
-    text-decoration: none;
-    margin-left: auto;
-}
+.btn-group { display: flex; gap: 15px; margin-top: 40px; align-items: center; }
+.btn-edit { background: #111; color: #fff; border-radius: 16px; padding: 14px 35px; font-weight: 800; font-size: 15px; border: none; cursor: pointer; transition: 0.3s; box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
+.btn-edit:hover { background: #333; transform: translateY(-3px); }
+.btn-cancel { background: #f4f6f8; color: #555; border-radius: 16px; padding: 14px 30px; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
+.btn-withdraw { background: #fff5f5; color: #e03131; border: none; border-radius: 14px; padding: 12px 25px; font-size: 14px; font-weight: 700; margin-left: auto; text-decoration: none; }
 
 /* 결과 링크 버튼 */
 .btn-result-link {
     display: block;
-    margin-top: 15px;
-    padding: 12px;
-    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-    color: #fff;
+    margin-top: 20px;
+    padding: 16px;
+    background: #111 !important;
+    color: #fff !important;
     text-align: center;
-    border-radius: 10px;
-    font-weight: bold;
+    border-radius: 16px !important;
+    font-weight: 800 !important;
     font-size: 14px;
-    text-decoration: none;
-    box-shadow: 0 4px 10px rgba(79, 172, 254, 0.3);
+    text-decoration: none !important; 
+    box-shadow: 0 8px 20px rgba(0,0,0,0.1) !important;
     transition: 0.3s ease;
+    box-sizing: border-box !important; 
+    line-height: 1.2;
 }
 
 .btn-result-link:hover {
+    background: #333 !important;
     transform: translateY(-2px);
-    box-shadow: 0 6px 15px rgba(79, 172, 254, 0.4);
-    filter: brightness(1.05);
+    text-decoration: none !important;
 }
 
 /* ===============================
-   4. 콘텐츠 섹션
+   4. 콘텐츠 섹션 (그리드 설정)
    =============================== */
-.content-section {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 30px;
-}
-
-.content-box {
-    padding: 35px;
-    min-height: 280px;
-    min-width: 0;
-    position: relative;
-}
-
-.box-header {
-    margin-bottom: 25px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
+.content-section { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; width: 100%; }
+.box-header { margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; }
+.box-header h3 { font-weight: 900; color: #111; font-size: 1.3rem; margin: 0; }
 
 /* ===============================
    5. 슬라이더
    =============================== */
 .slider-container { position: relative; overflow: hidden; width: 100%; }
-
-.slider-wrapper {
-    display: flex;
-    gap: 15px;
-    transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
-}
-
-.slide-item {
-    flex: 0 0 calc(50% - 8px);
-    max-width: calc(50% - 8px);
-    box-sizing: border-box;
-}
-
-#survey-slider .slide-item {
-    flex: 0 0 100%;
-    max-width: 100%;
-}
+.slider-wrapper { display: flex; gap: 15px; transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1); }
+.slide-item { flex: 0 0 calc(50% - 8px); max-width: calc(50% - 8px); box-sizing: border-box; }
+#survey-slider .slide-item { flex: 0 0 100%; max-width: 100%; }
 
 /* ===============================
    6. 카드 스타일
    =============================== */
-.survey-item-card {
-    border: 1px solid #eee;
-    border-radius: 15px;
-    padding: 15px;
-    background: #fff;
-    transition: border-color 0.3s;
+.survey-item-card, .property-card-mini {
+    background: #fff; border: 1.5px solid #f1f3f5; border-radius: 24px;
+    padding: 20px; box-shadow: 0 6px 20px rgba(0,0,0,0.02); transition: 0.3s;
 }
+.survey-item-card:hover, .property-card-mini:hover { border-color: #4facfe; box-shadow: 0 12px 35px rgba(79, 172, 254, 0.15); transform: translateY(-5px); }
 
-.survey-item-card:hover { border-color: #4facfe; }
-
-.property-card-mini {
-    background: #fff;
-    border: 1px solid #f0f0f0;
-    border-radius: 15px;
-    overflow: hidden;
-    height: 210px;
-    cursor: pointer;
-    transition: 0.3s;
-    display: flex;
-    flex-direction: column;
-}
-
-.prop-img-sm {
-    width: 100%;
-    height: 120px;
-    object-fit: cover;
-}
-
-.prop-info-sm { padding: 15px; min-width: 0; }
-
-.prop-info-sm .p-price {
-    font-weight: bold;
-    color: #ff4d4f;
-    font-size: 16px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.prop-info-sm .p-addr {
-    font-size: 12px;
-    color: #888;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
+.prop-img-sm { width: 100%; height: 130px; object-fit: cover; border-radius: 16px; margin-bottom: 10px; }
+.prop-info-sm .p-price { font-weight: 900; color: #111; font-size: 1.1rem; margin-bottom: 5px; }
+.prop-info-sm .p-addr { font-size: 0.85rem; color: #888; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* ===============================
-   7. 네비게이션 화살표 (반투명 호버 효과 추가)
+   7. 네비게이션 화살표
    =============================== */
 .nav-btn {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    
-    background: rgba(255, 255, 255, 0.7); /* 배경도 살짝 더 투명하게 */
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    
-    border: none;
-    font-size: 20px; 
-    color: #666;     
-    cursor: pointer;
-    transition: all 0.3s ease;
-    
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 10; 
-    
-    /* 🔥 [수정] 평소에는 40% 정도만 보이게 하여 뒤의 글씨가 비치도록 설정 */
-    opacity: 0.4; 
+    position: absolute; top: 50%; transform: translateY(-50%);
+    background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);
+    width: 44px; height: 44px; border-radius: 50%; box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    border: none; font-size: 18px; color: #111; cursor: pointer; transition: 0.3s; z-index: 10;
+    display: flex; align-items: center; justify-content: center;
 }
-
-.nav-btn:hover {
-    color: #4facfe;
-    background: #fff;
-    transform: translateY(-50%) scale(1.1);
-    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.2);
-    
-    /* 🔥 [수정] 마우스를 올렸을 때는 완전 불투명(100%)하게 또렷해짐 */
-    opacity: 1; 
-}
-
-.nav-btn.prev { left: 5px; }
-.nav-btn.next { right: 5px; }
+.nav-btn:hover { background: #111; color: #fff; transform: translateY(-50%) scale(1.1); }
+.nav-btn.prev { left: 5px; } .nav-btn.next { right: 5px; }
 
 /* ===============================
    8. 입력 필드
    =============================== */
-.edit-input {
-    flex: 1;
-    height: 40px;
-    padding: 0 15px;
-    border-radius: 8px;
-    border: 1px solid transparent;
-    background-color: #f2f4f6;
-    font-size: 0.95rem;
-    transition: 0.2s ease;
-}
-
-.edit-input:focus {
-    background-color: #fff;
-    border-color: #3182f6;
-    box-shadow: 0 0 0 2px rgba(49,130,246,0.1);
-}
+.edit-input { background: #f4f6f8; border-radius: 14px; border: 1.5px solid transparent; font-weight: 600; padding: 0 20px; height: 48px; color: #333; width: 100%; box-sizing: border-box; transition: 0.2s ease; }
+.edit-input:focus { background: #fff; border-color: #4facfe; box-shadow: 0 0 0 4px rgba(79, 172, 254, 0.15); outline: none; }
 
 /* ===============================
    9. 모달 시스템
    =============================== */
-.modal {
-    display: none;
-    position: fixed;
-    z-index: 9999;
-    inset: 0;
-    background: rgba(0,0,0,0.5);
-}
-
-.modal-content {
-    background: #fff;
-    margin: 7% auto;
-    padding: 25px;
-    width: 90%;
-    max-width: 600px;
-    border-radius: 20px;
-    max-height: 75vh;
-    overflow-y: auto;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-}
-
-.modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 2px solid #f1f2f6;
-    padding-bottom: 15px;
-    margin-bottom: 20px;
-}
-
+.modal { display: none; position: fixed; z-index: 9999; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); }
+.modal-content { background: #fff; margin: 7% auto; padding: 35px; width: 90%; max-width: 550px; border-radius: 32px; box-shadow: 0 25px 60px rgba(0,0,0,0.2); max-height: 75vh; overflow-y: auto; }
+.modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #f1f2f6; padding-bottom: 15px; margin-bottom: 20px; }
 
 /* ===============================
    10. 모달 내부 리스트 & 편집모드
    =============================== */
-.modal-item-list {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 0;
-    border-bottom: 1px solid #eee;
-}
-
-
-/* 체크박스 */
-.edit-checkbox {
-    display: none;
-    width: 18px;
-    height: 18px;
-    margin-right: 10px;
-    cursor: pointer;
-}
-
+.modal-item-list { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #eee; }
+.edit-checkbox { display: none; width: 18px; height: 18px; margin-right: 10px; cursor: pointer; accent-color: #111; }
 .is-editing .edit-checkbox { display: block; }
-
-/* 전체 선택 영역 */
-#selectAllArea {
-    display: none;
-    padding: 10px 0 5px 5px;
-    font-size: 13px;
-    color: #999;
-}
-
+#selectAllArea { display: none; padding: 10px 0 5px 5px; font-size: 13px; color: #999; }
 .is-editing #selectAllArea { display: block; }
 
 /* ===============================
    11. 모달 버튼 스타일
    =============================== */
-
-.btn-delete-simple {
-    background: none;
-    border: none;
-    color: #ff4757;
-    font-weight: bold;
-    cursor: pointer;
-}
-
-.btn-edit-mode {
-    background: none;
-    border: none;
-    color: #888;
-    cursor: pointer;
-    font-size: 14px;
-}
-
-.btn-cancel-simple {
-    background: none;
-    border: none;
-    color: #aaa;
-    cursor: pointer;
-}
-
-/* 보기 버튼 */
-.view-btn {
-    background: #fff;
-    color: #4facfe;
-    border: 1px solid #4facfe;
-    padding: 6px 16px;
-    border-radius: 20px;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: 0.2s ease;
-    text-decoration: none;
-}
-
-.view-btn:hover {
-    background: #4facfe;
-    color: #fff;
-}
+.btn-delete-simple { background: none; border: none; color: #ff4757; font-weight: bold; cursor: pointer; }
+.btn-edit-mode { background: none; border: none; color: #888; cursor: pointer; font-size: 14px; }
+.btn-cancel-simple { background: none; border: none; color: #aaa; cursor: pointer; }
+.view-btn { background: #111; color: #fff; border-radius: 12px; font-weight: 700; padding: 8px 18px; border: none; cursor: pointer; transition: 0.2s ease; text-decoration: none; display: inline-block; }
+.view-btn:hover { background: #333; }
 
 /* ===============================
    12. 공용
    =============================== */
-.empty-box {
-    text-align: center;
-    padding: 60px 0;
-    color: #ccc;
-    font-size: 14px;
-}
-
-.view-all {
-    font-size: 13px;
-    color: #aaa;
-    text-decoration: none;
-}
+.empty-box { text-align: center; padding: 60px 0; color: #ccc; font-size: 14px; }
+.view-all { font-size: 13px; color: #aaa; text-decoration: none; font-weight: 600; }
+.view-all:hover { color: #333; }
