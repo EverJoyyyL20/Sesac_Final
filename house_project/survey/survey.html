@@ -50,6 +50,9 @@
             font-size: 0.9rem; cursor: pointer; margin-top: 10px; transition: color 0.3s;
         }
         .skip-btn:hover { color: #888; }
+        
+        /* 🔥 상세 조건용 그룹 여백 */
+        .detail-q-group { margin-bottom: 25px; text-align: left; }
     </style>
 </head>
 <body>
@@ -143,7 +146,50 @@
             </div>
         </div>
 
-        <div class="q-card" id="step-2" style="display: none;"></div>
+        <div class="q-card" id="step-2">
+            <h2>🏠 상세 희망 조건을 선택해주세요.</h2>
+            
+            <div class="detail-q-group">
+                <p class="sub-q">희망하는 건물 연식 (중복 가능)</p>
+                <div class="options-group multi-group" data-key="building_age">
+                    <button type="button" class="opt-btn" onclick="toggleBtn(this, true)">신축 (5년 이하)</button>
+                    <button type="button" class="opt-btn" onclick="toggleBtn(this, true)">준신축 (5~10년)</button>
+                    <button type="button" class="opt-btn" style="grid-column: span 2;" onclick="toggleBtn(this, true)">구축 (10년 이상)</button>
+                </div>
+            </div>
+
+            <div class="detail-q-group">
+                <p class="sub-q">희망하는 방 개수 (중복 가능)</p>
+                <div class="options-group multi-group" data-key="room_count">
+                    <button type="button" class="opt-btn" onclick="toggleBtn(this, true)">1개</button>
+                    <button type="button" class="opt-btn" onclick="toggleBtn(this, true)">2개</button>
+                    <button type="button" class="opt-btn" style="grid-column: span 2;" onclick="toggleBtn(this, true)">3개 이상</button>
+                </div>
+            </div>
+
+            <div class="detail-q-group">
+                <p class="sub-q">반지하 혹은 옥탑방도 괜찮으신가요?</p>
+                <div class="options-group single-group" data-key="special_room">
+                    <button type="button" class="opt-btn" onclick="toggleBtn(this, false)">네, 상관없어요</button>
+                    <button type="button" class="opt-btn" onclick="toggleBtn(this, false)">아니요, 피하고 싶어요</button>
+                </div>
+            </div>
+
+            <div class="detail-q-group">
+                <p class="sub-q">주차장이 필요하신가요?</p>
+                <div class="options-group single-group" data-key="parking">
+                    <button type="button" class="opt-btn" onclick="toggleBtn(this, false)">네, 필요해요</button>
+                    <button type="button" class="opt-btn" onclick="toggleBtn(this, false)">아니요, 상관없어요</button>
+                </div>
+            </div>
+
+            <p class="limit-info detail-empty" style="color: orange; display: none; margin-top: 10px; text-align: center;">모든 항목을 1개 이상 선택해주세요! ⚠️</p>
+
+            <div class="next-btn-container" style="display: flex; gap: 10px;">
+                <button type="button" class="back-btn" onclick="prevStep(1)" style="flex: 1;">이전</button>
+                <button type="button" class="confirm-btn" onclick="validateStep2()" style="flex: 2;">다음 질문으로</button>
+            </div>
+        </div>
 
         {% for q in questions %}
         {% set step_num = 3 + loop.index0 %}
@@ -164,7 +210,7 @@
             <p class="limit-info weight-empty" style="color: orange; display: none; margin-top: 10px; text-align: center;">항목을 선택해주세요! ⚠️</p>
             
             <div class="next-btn-container" style="display: flex; gap: 10px;">
-                <button type="button" class="back-btn" onclick="prevStep({{ 1 if loop.first else step_num - 1 }})" style="flex: 1;">이전</button>
+                <button type="button" class="back-btn" onclick="prevStep({{ 2 if loop.first else step_num - 1 }})" style="flex: 1;">이전</button>
                 {% if loop.last %}
                 <button type="button" class="confirm-btn" onclick="submitFinalSurvey()" style="flex: 2;">분석 완료</button>
                 {% else %}
@@ -185,7 +231,6 @@
 <script>
     let map;
     let currentIdx = 0;
-    // Step 2를 건너뛰지만 진행바 계산을 위해 totalSteps는 유지
     const totalSteps = 3 + {{ questions|length }}; 
 
     const surveyResults = { 
@@ -302,7 +347,43 @@
             surveyResults.budget.min_dep = document.getElementById('j_dep_min').value || 0;
             surveyResults.budget.max_dep = document.getElementById('j_dep_max').value || 0;
         }
-        // 중요: 상세 조건(Step 2)을 생략하고 바로 Step 3로 이동
+        // 🔥 상세 조건(Step 2)으로 정상 이동하도록 복구
+        nextStep(2); 
+    }
+
+    // 🔥 상세조건 버튼 클릭 로직
+    function toggleBtn(btn, isMulti) {
+        const group = btn.closest('.options-group');
+        if (!isMulti) {
+            group.querySelectorAll('.opt-btn').forEach(b => b.classList.remove('selected'));
+        }
+        btn.classList.toggle('selected');
+        document.querySelector('.detail-empty').style.display = 'none';
+    }
+
+    // 🔥 상세조건 유효성 검사 및 데이터 저장
+    function validateStep2() {
+        const step2 = document.getElementById('step-2');
+        const groups = step2.querySelectorAll('.options-group');
+        let isValid = true;
+
+        groups.forEach(group => {
+            if (group.querySelectorAll('.selected').length === 0) {
+                isValid = false;
+            }
+        });
+
+        if (!isValid) {
+            step2.querySelector('.detail-empty').style.display = 'block';
+            return;
+        }
+
+        // 선택한 값 저장 (건물 유형은 제외)
+        surveyResults.building_age = Array.from(step2.querySelector('[data-key="building_age"]').querySelectorAll('.selected')).map(b => b.innerText);
+        surveyResults.room_count = Array.from(step2.querySelector('[data-key="room_count"]').querySelectorAll('.selected')).map(b => b.innerText);
+        surveyResults.special_room = step2.querySelector('[data-key="special_room"] .selected').innerText;
+        surveyResults.parking = step2.querySelector('[data-key="parking"] .selected').innerText;
+
         nextStep(3); 
     }
 

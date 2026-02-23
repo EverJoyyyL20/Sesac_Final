@@ -152,6 +152,56 @@ def build_match_pipeline(match_query, nw, target_coords=None, limit=10, is_rando
         
     return pipeline
 
+# 🔥 [추가] 상세 희망 조건 필터 적용 로직
+def apply_detail_filters(query, selected_survey):
+    # 1. 희망하는 건물 연식
+    b_age = selected_survey.get('building_age', [])
+    if b_age:
+        current_year = datetime.now().year
+        age_conditions = []
+        for age in b_age:
+            if "신축" in age:
+                age_conditions.append({"built_year": {"$gte": str(current_year - 5)}})
+                age_conditions.append({"year_built": {"$gte": str(current_year - 5)}})
+            elif "준신축" in age:
+                age_conditions.append({"built_year": {"$gte": str(current_year - 10), "$lt": str(current_year - 5)}})
+                age_conditions.append({"year_built": {"$gte": str(current_year - 10), "$lt": str(current_year - 5)}})
+            elif "구축" in age:
+                age_conditions.append({"built_year": {"$lt": str(current_year - 10), "$gte": "1000"}})
+                age_conditions.append({"year_built": {"$lt": str(current_year - 10), "$gte": "1000"}})
+        
+        if age_conditions:
+            query.setdefault("$and", []).append({"$or": age_conditions})
+
+    # 2. 희망하는 방 개수
+    r_count = selected_survey.get('room_count', [])
+    if r_count:
+        room_conditions = []
+        for rc in r_count:
+            if rc == "1개":
+                room_conditions.append({"room_counts": "1개"})
+            elif rc == "2개":
+                room_conditions.append({"room_counts": "2개"})
+            elif rc == "3개 이상":
+                # 3개~9개, 혹은 10개 이상의 두 자릿수 매칭
+                room_conditions.append({"room_counts": {"$regex": "^[3-9]개|^[1-9][0-9]+개"}})
+        
+        if room_conditions:
+            query.setdefault("$and", []).append({"$or": room_conditions})
+
+    # 3. 반지하/옥탑방 제외 (floor 필드 검사)
+    s_room = selected_survey.get('special_room', "")
+    if "피하고 싶어요" in s_room:
+        # '반지하' 단어가 포함되거나, 정규식을 통해 앞뒤 숫자가 같은 '옥탑(예: 15/15, 15중 15)' 형태 제외
+        query["floor"] = {"$not": {"$regex": "반지하|([0-9]+)\\s*[/중]\\s*\\1(?:[^0-9]|$)"}}
+
+    # 4. 주차장 유무
+    park = selected_survey.get('parking', "")
+    if "필요해요" in park:
+        query["hasParking"] = {"$ne": "주차 불가능"}
+
+    return query
+
 # ------------------------------------------------------------------
 # 라우트 핸들러
 # ------------------------------------------------------------------
@@ -249,6 +299,9 @@ def survey_result(index):
         if max_dep > 0: query['deposit'] = {"$gte": min_dep, "$lte": max_dep}
         if max_rent > 0: query['price'] = {"$gte": min_rent, "$lte": max_rent}
 
+    # 🔥 [추가] 상세 희망 조건 필터 적용
+    query = apply_detail_filters(query, selected_survey)
+
     # [2] 검색 결과 카운팅 및 예산 완화 시뮬레이션
     total_count = houses_col.count_documents(query)
     suggested_count = 0
@@ -329,6 +382,9 @@ def survey_short(index):
         if max_rent > 0:
             query['price'] = {"$gte": min_rent, "$lte": max_rent}
 
+    # 🔥 [추가] 상세 희망 조건 필터 적용
+    query = apply_detail_filters(query, selected_survey)
+
     # -------------------------
     # 점수순 정렬
     # -------------------------
@@ -401,6 +457,9 @@ def survey_short_more(index):
             query['deposit'] = {"$gte": min_dep, "$lte": max_dep}
         if max_rent > 0:
             query['price'] = {"$gte": min_rent, "$lte": max_rent}
+
+    # 🔥 [추가] 상세 희망 조건 필터 적용
+    query = apply_detail_filters(query, selected_survey)
 
     # 현재 블록 가져오기
     current_block = session.get('short_block', 0)
