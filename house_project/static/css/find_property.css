@@ -1,7 +1,17 @@
 /* ============================================================
    1. 지도 및 전체 레이아웃
    ============================================================ */
-#map-container { flex: 1; position: relative; width: 100%; height: calc(100vh - 70px); }
+body, html {
+    overflow: hidden; /* 🔥 [추가] 브라우저 전체 우측 스크롤바 생성 원천 차단 */
+}
+
+#map-container { 
+    flex: 1; 
+    position: relative; 
+    width: 100%; 
+    height: calc(100vh - 70px); 
+    overflow: hidden; /* 🔥 [추가] 지도 컨테이너 밖으로 요소가 삐져나가지 못하게 가둠 */
+}
 #map { width: 100%; height: 100%; }
 
 /* ============================================================
@@ -19,7 +29,9 @@
     background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
     border-radius: 28px; box-shadow: 0 20px 50px rgba(0,0,0,0.12);
     border: 1px solid rgba(255,255,255,0.6); transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); box-sizing: border-box;
-    display: flex; flex-direction: column; max-height: calc(100vh - 40px); /* 화면 넘어감 방지 */
+    display: flex; flex-direction: column; 
+    /* 🔥 [핵심 수정] 네비바 높이(70px)와 상하 여백을 고려하여 화면에 딱 맞게 높이 축소 */
+    max-height: calc(100vh - 110px); 
 }
 .search-box.closed { transform: translateX(-360px); }
 
@@ -32,14 +44,21 @@
 }
 
 /* ============================================================
-   3. 필터 내부 (스크롤 지원)
+   3. 필터 내부 (내부 스크롤 지원)
    ============================================================ */
 .search-header { padding: 20px 25px; border-bottom: 1px solid rgba(0,0,0,0.05); flex-shrink: 0; }
 .search-header strong { font-size: 1.1rem; font-weight: 900; color: #111; }
 
-#filter-content { flex: 1; padding: 20px 25px; overflow-y: auto; }
+#filter-content { 
+    flex: 1; 
+    padding: 20px 25px; 
+    overflow-y: auto; 
+    min-height: 0; /* 🔥 [추가] 내부 콘텐츠가 길어져도 부모(search-box) 크기를 억지로 늘리지 못하게 방어 */
+}
 #filter-content::-webkit-scrollbar { width: 6px; }
 #filter-content::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
+
+/* ... 이 아래 .f-section 등은 기존 코드 그대로 유지하시면 됩니다 ... */
 
 .f-section { margin-bottom: 18px; }
 .f-section label { display: block; margin-bottom: 8px; font-weight: 700; color: #555; font-size: 0.85rem; }
