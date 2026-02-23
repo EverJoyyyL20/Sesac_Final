@@ -67,7 +67,7 @@
         <div class="f-section">
             <label>📍 주소로 검색 (반경 설정)</label>
             <div class="f-row" style="flex-direction: column; gap: 5px;">
-                <input type="text" id="search-address" placeholder="주소를 선택하려면 클릭하세요" readonly onclick="execDaumPostcode()" style="width: 100%; cursor: pointer; background-color: #f9f9f9;">
+                <input type="text" id="search-address" placeholder="주소를 입력하려면 클릭하세요" readonly onclick="execDaumPostcode()" style="width: 100%; cursor: pointer; background-color: #f9f9f9;">
                 <div class="f-row">
                     <select id="search-radius" onchange="updateMarkers()">
                         <option value="500">500m 이내</option>
@@ -414,7 +414,7 @@
                 <div class="detail-row"><span>🏢 층수</span><span class="${floorClass}">${prop.floor}</span></div>
                 <div class="detail-row"><span>📐 면적</span><b>${prop.area ?? '정보없음'} ㎡</b></div>
                 <div class="detail-row"><span>🏠 건물유형</span><b>${prop.buildtype ?? '정보없음'}</b></div>
-                <div class="detail-row"><span>🚗 주차</span><b>${prop.parking ? '가능' : '불가'}</b></div>
+                <div class="detail-row"><span>🚗 주차</span><b>${prop.parking && prop.parking.trim() === "주차 가능" ? '가능' : '불가능'}</b></div>
             `;
             if (prop.score) drawRadarChart(prop.score);
             document.getElementById('propertyModal').style.display = 'block';

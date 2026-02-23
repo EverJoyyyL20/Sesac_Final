@@ -77,7 +77,7 @@ def get_property_by_id(prop_id):
                 "address": item.get('address'),
                 "floor": floor_display,
                 "location": item.get('location'),
-                "parking":item.get("hasparking"),
+                "parking":item.get("hasParking"),
                 "buildtype":item.get("buildingUse"),
                 "area": item.get('size_m2'),
                 "images": item.get('images') if isinstance(item.get('images'), list) else [],
