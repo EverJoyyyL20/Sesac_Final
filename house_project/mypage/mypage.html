@@ -8,9 +8,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/mypage.css') }}">
     <style>
-        .nav-btn {
-            z-index: 10;
-        }
+        .nav-btn { z-index: 10; }
     </style>
 </head>
 <body>
@@ -168,7 +166,7 @@
                 <div id="modalBtnGroup">
                     <button class="btn-edit-mode" onclick="toggleEditMode()">수정</button>
                 </div>
-                <span class="close-btn" onclick="closeModal()">&times;</span>
+                <span class="close-btn" onclick="closeModal()" style="cursor: pointer; font-size: 24px; color: #888;">&times;</span>
             </div>
         </div>
         <div id="selectAllArea">
@@ -180,25 +178,24 @@
 </div>
 
 <script>
-    let slideIndices = {
-        survey: 0,
-        property: 0
-    };
+    let slideIndices = { survey: 0, property: 0 };
+    
+    // 🔥 모달창에서 어떤 항목을 보고 있는지 추적하는 변수
+    let currentModalType = ''; 
 
-    // 🔥 [핵심 추가 로직] 페이지가 로드될 때 매물 개수에 따라 화살표를 자동으로 세팅합니다.
     document.addEventListener("DOMContentLoaded", function() {
         ['survey', 'property'].forEach(type => {
             const wrapper = document.getElementById(`${type}-slider`);
             if (wrapper) {
                 const totalItems = wrapper.getElementsByClassName('slide-item').length;
-                const perPage = (type === 'survey') ? 1 : 2; // 설문은 1장씩, 찜매물은 2장씩
+                const perPage = (type === 'survey') ? 1 : 2; 
                 const maxIndex = Math.ceil(totalItems / perPage) - 1;
 
                 const prevBtn = document.getElementById(`${type}-prev`);
                 const nextBtn = document.getElementById(`${type}-next`);
 
-                if (prevBtn) prevBtn.style.display = 'none'; // 첫 페이지이므로 왼쪽 화살표는 숨김
-                if (nextBtn) nextBtn.style.display = maxIndex > 0 ? 'block' : 'none'; // 다음 페이지가 있으면 오른쪽 화살표 노출
+                if (prevBtn) prevBtn.style.display = 'none'; 
+                if (nextBtn) nextBtn.style.display = maxIndex > 0 ? 'block' : 'none'; 
             }
         });
     });
@@ -216,18 +213,15 @@
 
         slideIndices[type] += direction;
 
-        // 범위 초과 방지
         if (slideIndices[type] < 0) slideIndices[type] = 0;
         if (slideIndices[type] > maxIndex) slideIndices[type] = maxIndex;
 
-        // 슬라이더 이동 연산
         const itemWidth = items[0].offsetWidth; 
         const gap = parseFloat(window.getComputedStyle(wrapper).gap) || 0; 
         const moveDistance = (itemWidth + gap) * perPage; 
 
         wrapper.style.transform = `translateX(-${slideIndices[type] * moveDistance}px)`;
         
-        // 텍스트 형식 렌더링
         if (type === 'survey') {
             const pageIndicator = document.getElementById('survey-page-indicator');
             if (pageIndicator) {
@@ -235,19 +229,13 @@
             }
         }
 
-        // 🔥 [화살표 동기화] 이동할 때마다 왼쪽/오른쪽 화살표 숨김/표시를 계산합니다.
         const prevBtn = document.getElementById(`${type}-prev`);
         const nextBtn = document.getElementById(`${type}-next`);
         
-        if (prevBtn) {
-            prevBtn.style.display = slideIndices[type] > 0 ? 'block' : 'none';
-        }
-        if (nextBtn) {
-            nextBtn.style.display = slideIndices[type] < maxIndex ? 'block' : 'none';
-        }
+        if (prevBtn) { prevBtn.style.display = slideIndices[type] > 0 ? 'block' : 'none'; }
+        if (nextBtn) { nextBtn.style.display = slideIndices[type] < maxIndex ? 'block' : 'none'; }
     }
 
-    // 설문 개별 삭제 로직
     function deleteSurvey(surveyId) {
         if (confirm("이 설문 내역을 영구적으로 삭제하시겠습니까?")) {
             fetch('/delete_survey', {
@@ -276,6 +264,7 @@
 
     let isEditMode = false;
 
+    // 🔥 [수정 2] 설문 결과 모달에도 수정/삭제 UI 적용
     function openModal(event, type) {
         if (event) event.preventDefault();
 
@@ -285,11 +274,10 @@
         const btnGroup = document.getElementById('modalBtnGroup');
         const selectArea = document.getElementById('selectAllArea'); 
 
+        currentModalType = type; // 현재 모달 종류 기록
         isEditMode = false;
         modal.classList.remove('is-editing');
-
         if (selectArea) selectArea.style.display = "none";
-
         modal.style.display = "block";
         body.innerHTML = "";
 
@@ -302,12 +290,12 @@
                 {% for fav in favorites %}
                 html += `
                     <div class="modal-item-list">
-                        <input type="checkbox" class="edit-checkbox fav-check" data-id="{{ fav._id_str or fav.id }}">
+                        <input type="checkbox" class="edit-checkbox modal-check" data-id="{{ fav._id_str or fav.id }}">
                         <div style="flex-grow:1; text-align:left;">
                             <strong style="color:#ff4757;">{{ fav.price }}</strong><br>
                             <span style="color:#666; font-size:12px;">{{ fav.address }}</span>
                         </div>
-                        <button class="view-btn" onclick="location.href='/find?id={{ fav._id_str or fav.id }}'">보기</button>
+                        <button class="view-btn hide-on-edit" onclick="location.href='/find?id={{ fav._id_str or fav.id }}'">보기</button>
                     </div>`;
                 {% endfor %}
             {% else %}
@@ -317,21 +305,24 @@
 
         } else if (type === 'survey') {
             title.innerText = "📝 최근 설문 리포트";
-            btnGroup.innerHTML = "";
-            if (selectArea) selectArea.style.display = "none";
-
+            // 설문 리포트 모달에도 수정 버튼 추가
+            btnGroup.innerHTML = `<button class="btn-edit-mode" onclick="toggleEditMode()">수정</button>`;
+            
             let html = '<div style="display: grid; grid-template-columns: 1fr; gap: 15px; margin-top:10px;">';
             {% if surveys %}
                 {% for s in surveys %}
                 html += `
-                    <div class="survey-item-card" style="text-align:left;">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                            <span class="count-badge" style="background:#f0f2f5; padding:2px 8px; border-radius:5px; font-size:11px;">{{ s.date }}</span>
-                            <span style="color:#4facfe; font-size:12px; font-weight:bold;">분석완료</span>
+                    <div class="survey-item-card" style="text-align:left; display:flex; align-items:center; padding:15px; gap:10px;">
+                        <input type="checkbox" class="edit-checkbox modal-check" data-id="{{ s._id }}">
+                        <div style="flex-grow:1; width: 100%; min-width: 0;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                                <span class="count-badge" style="background:#f0f2f5; padding:2px 8px; border-radius:5px; font-size:11px;">{{ s.date }}</span>
+                                <span style="color:#4facfe; font-size:12px; font-weight:bold;">분석완료</span>
+                            </div>
+                            <h4 style="margin:5px 0; font-size:16px;">📍 {{ s.location }}</h4>
+                            <p style="font-size:13px; color:#555; margin:5px 0;">{{ s.main_info }}</p>
+                            <a href="/survey/result/{{ loop.index0 }}" class="btn-result-link hide-on-edit" style="display:block; text-align:center; text-decoration:none; margin-top:10px; padding:10px; box-sizing: border-box;">리포트 결과 보기</a>
                         </div>
-                        <h4 style="margin:5px 0; font-size:16px;">📍 {{ s.location }}</h4>
-                        <p style="font-size:13px; color:#555; margin:5px 0;">{{ s.main_info }}</p>
-                        <a href="/survey/result/{{ loop.index0 }}" class="btn-result-link" style="display:block; text-decoration:none; margin-top:10px;">리포트 결과 보기</a>
                     </div>`;
                 {% endfor %}
             {% else %}
@@ -342,12 +333,13 @@
         }
     }
 
+    // 🔥 [수정 2] 토글 로직을 공통(hide-on-edit)으로 변경
     function toggleEditMode() {
         isEditMode = !isEditMode;
         const modal = document.getElementById('commonModal');
         const btnGroup = document.getElementById('modalBtnGroup');
         const selectArea = document.getElementById('selectAllArea'); 
-        const viewButtons = document.querySelectorAll('.view-btn');
+        const hideElements = document.querySelectorAll('.hide-on-edit');
 
         if (isEditMode) {
             modal.classList.add('is-editing');
@@ -357,13 +349,13 @@
                 <button class="btn-delete-simple" onclick="deleteSelected()">삭제</button>
                 <button class="btn-cancel-simple" onclick="toggleEditMode()">취소</button>
             `;
-            viewButtons.forEach(b => b.style.display = 'none');
+            hideElements.forEach(el => el.style.display = 'none');
         } else {
             modal.classList.remove('is-editing');
             if (selectArea) selectArea.style.display = "none";
 
             btnGroup.innerHTML = `<button class="btn-edit-mode" onclick="toggleEditMode()">수정</button>`;
-            viewButtons.forEach(b => b.style.display = 'inline-block');
+            hideElements.forEach(el => el.style.display = ''); // 기본 디스플레이로 원복
 
             const selectAllCb = document.getElementById('selectAll');
             if (selectAllCb) selectAllCb.checked = false;
@@ -372,22 +364,31 @@
     }
 
     function toggleAllCheckboxes(source) {
-        document.querySelectorAll('.fav-check').forEach(cb => cb.checked = source.checked);
+        document.querySelectorAll('.modal-check').forEach(cb => cb.checked = source.checked);
     }
 
     function closeModal() { document.getElementById('commonModal').style.display = "none"; }
 
+    // 🔥 [수정 2] 모달 타입에 따라 다중 삭제 API를 구분하여 전송
     function deleteSelected() {
-        const selected = document.querySelectorAll('.fav-check:checked');
+        const selected = document.querySelectorAll('.modal-check:checked');
         const ids = Array.from(selected).map(cb => cb.getAttribute('data-id'));
 
         if (ids.length === 0) {
-            alert('삭제할 매물을 선택해주세요.');
+            alert('삭제할 항목을 선택해주세요.');
             return;
         }
 
-        if (confirm('선택한 매물을 찜 목록에서 삭제하시겠습니까?')) {
-            fetch('/delete_favorites', {
+        const confirmMsg = currentModalType === 'property' 
+            ? '선택한 매물을 찜 목록에서 삭제하시겠습니까?' 
+            : '선택한 설문 내역을 영구적으로 삭제하시겠습니까?';
+            
+        const endpoint = currentModalType === 'property' 
+            ? '/delete_favorites' 
+            : '/delete_surveys';
+
+        if (confirm(confirmMsg)) {
+            fetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ ids: ids })
@@ -397,8 +398,12 @@
                 if (data.success) {
                     location.reload(); 
                 } else {
-                    alert('삭제 중 오류가 발생했습니다.');
+                    alert(data.message || '삭제 중 오류가 발생했습니다.');
                 }
+            })
+            .catch(err => {
+                console.error("Error:", err);
+                alert('서버 통신 중 오류가 발생했습니다.');
             });
         }
     }
