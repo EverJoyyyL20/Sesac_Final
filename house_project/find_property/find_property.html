@@ -10,30 +10,6 @@
     <script type="text/javascript" src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId={{ client_id }}&submodules=geocoder"></script>
     <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
-    <style>
-        /* 🔥 [추가] 방 개수 선택 버튼 스타일 (둥그런 네모) */
-        .room-btn {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 12px; /* 둥그런 네모 */
-            background: #fff;
-            color: #666;
-            cursor: pointer;
-            font-size: 13px;
-            transition: all 0.2s ease;
-            text-align: center;
-            font-weight: 500;
-        }
-        .room-btn:hover { background: #f8f9fa; }
-        .room-btn.active {
-            background: #f0f7ff;
-            border-color: #4facfe;
-            color: #4facfe;
-            font-weight: bold;
-        }
-    </style>
 </head>
 <body>
 
@@ -64,27 +40,26 @@
             <strong>🔍 매물 상세 필터</strong>
         </div>
         
-        <div class="f-section">
-            <label>📍 주소로 검색 (반경 설정)</label>
-            <div class="f-row" style="flex-direction: column; gap: 5px;">
-                <input type="text" id="search-address" placeholder="주소를 입력하려면 클릭하세요" readonly onclick="execDaumPostcode()" style="width: 100%; cursor: pointer; background-color: #f9f9f9;">
-                <div class="f-row">
+        <div id="filter-content">
+            
+            <div class="address-search-container">
+                <label>📍 주소로 검색 (반경 설정)</label>
+                <input type="text" id="search-address" placeholder="주소를 입력하려면 클릭하세요" readonly onclick="execDaumPostcode()">
+                <div class="address-lower-row">
                     <select id="search-radius" onchange="updateMarkers()">
                         <option value="500">500m 이내</option>
                         <option value="1000" selected>1km 이내</option>
                         <option value="2000">2km 이내</option>
                     </select>
-                    <button onclick="execDaumPostcode()" class="iw-btn" style="width: 60px;">검색</button>
+                    <button onclick="execDaumPostcode()" class="address-search-btn">검색</button>
                 </div>
-                <button id="reset-search" onclick="resetSearchCenter()" style="display:none; font-size: 11px; margin-top:5px; background:none; border:none; color:#666; text-decoration:underline; cursor:pointer;">📍 반경 검색 해제</button>
+                <button id="reset-search" onclick="resetSearchCenter()" style="display:none;">📍 반경 검색 해제</button>
             </div>
-        </div>
 
-        <div id="filter-content">
             <div class="f-section">
                 <label>거래유형</label>
                 <div class="f-row">
-                    <select id="filter-type" onchange="handleTypeChange()" style="width: 100%;">
+                    <select id="filter-type" onchange="handleTypeChange()">
                         <option value="">전체 거래</option>
                         <option value="월세">월세</option>
                         <option value="전세">전세</option>
@@ -112,7 +87,7 @@
 
             <div class="f-section">
                 <label>방 개수</label>
-                <div class="f-row" style="flex-direction: column; gap: 8px;">
+                <div class="f-row">
                     <button type="button" class="room-btn" data-val="원룸" onclick="toggleRoom(this)">원룸</button>
                     <button type="button" class="room-btn" data-val="투룸" onclick="toggleRoom(this)">투룸</button>
                     <button type="button" class="room-btn" data-val="쓰리룸+" onclick="toggleRoom(this)">쓰리룸+</button>
@@ -142,7 +117,7 @@
 
 <div id="propertyModal" class="modal">
     <div class="modal-content">
-        <h2 style="margin:0 0 20px 0; font-size: 20px;">🏠 매물 상세 정보</h2>
+        <h2>🏠 매물 상세 정보</h2>
         
         <div class="detail-slider-container" id="detailSlider">
             <div class="detail-slider-wrapper" id="sliderWrapper">
@@ -254,14 +229,6 @@
         }).open();
     }
 
-    document.getElementById('search-radius').onchange = function() {
-        if (searchCenter && searchCircle) {
-            const newRadius = parseInt(this.value);
-            searchCircle.setRadius(newRadius);
-            updateMarkers();
-        }
-    };
-
     function resetSearchCenter() {
         searchCenter = null;
         if (centerMarker) centerMarker.setMap(null);
@@ -271,10 +238,9 @@
         updateMarkers();
     }
 
-    // 🔥 [추가] 방 개수 버튼 클릭 시 활성화/비활성화 처리
     function toggleRoom(btn) {
         btn.classList.toggle('active');
-        updateMarkers(); // 선택 즉시 마커 업데이트
+        updateMarkers();
     }
 
     function updateMarkers() {
@@ -282,12 +248,11 @@
         const bounds = map.getBounds();
         const requestId = ++lastRequestId;
 
-        // 🔥 [수정] 방 개수 다중 선택 데이터 수집
         const selectedRooms = Array.from(document.querySelectorAll('.room-btn.active')).map(b => b.dataset.val).join(',');
 
         const filters = {
             type: document.getElementById('filter-type').value,
-            rooms: selectedRooms, // 수집된 데이터 추가
+            rooms: selectedRooms, 
             minDep: document.getElementById('min-deposit').value,
             maxDep: document.getElementById('max-deposit').value,
             minPri: document.getElementById('min-price').value,
@@ -302,7 +267,6 @@
         let apiUrl = zoom < 14 ? '/api/stats/gu' : `/api/properties?sw_lat=${bounds.getSW().lat()}&sw_lng=${bounds.getSW().lng()}&ne_lat=${bounds.getNE().lat()}&ne_lng=${bounds.getNE().lng()}`;
 
         if (zoom >= 14) {
-            // 🔥 [수정] building_use 파라미터 대신 rooms 파라미터 전송
             apiUrl += `&type=${filters.type}&rooms=${filters.rooms}&min_deposit=${filters.minDep}&max_deposit=${filters.maxDep}`;
             apiUrl += `&min_price=${filters.minPri}&max_price=${filters.maxPri}&min_size=${filters.minSize}&max_size=${filters.maxSize}`;
             apiUrl += `&parking=${filters.parking}&exclude_under=${filters.excludeUnder}`;
