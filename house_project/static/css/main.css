@@ -94,14 +94,12 @@
 }
 
 /* ===============================
-   모달 오버레이 (기존 기능 유지)
+   모달 오버레이 (기존 유지)
    =============================== */
 .modal-overlay {
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
     background: rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(8px);
     display: flex;
@@ -121,7 +119,31 @@
     animation: slideUp 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-/* 텍스트 영역 */
+/* ===============================
+   [수정/추가] 입력 요소 (닉네임 & 한줄소개)
+   =============================== */
+
+/* 닉네임 입력창 디자인 추가 */
+.setup-modal input[type="text"] {
+    width: 100%;
+    padding: 16px;
+    border: 1px solid #eee;
+    border-radius: 14px;
+    background: #fdfdfd;
+    font-size: 1rem;
+    box-sizing: border-box;
+    transition: all 0.3s ease;
+    margin-bottom: 25px; /* 닉네임과 소개창 사이 간격을 넓힘 */
+}
+
+.setup-modal input[type="text"]:focus {
+    outline: none;
+    border-color: #4facfe;
+    background: #fff;
+    box-shadow: 0 0 8px rgba(79, 172, 254, 0.1);
+}
+
+/* 한 줄 소개 디자인 (기존 스타일 유지하되 간격만 조정) */
 .setup-modal textarea {
     width: 100%;
     padding: 16px;
@@ -129,16 +151,34 @@
     border-radius: 14px;
     background: #fdfdfd;
     font-size: 1rem;
+    font-weight: 500;       /* [추가] 닉네임처럼 글자를 두껍게 설정 (Bold) */
+    color: #333;           /* [추가] 글자색을 진하게 하여 선명도 높임 */
     line-height: 1.5;
     resize: none;
     box-sizing: border-box;
-    margin-top: 15px;
-    transition: border-color 0.3s;
+    /* 🔥 폰트 일치 설정: 닉네임(input)이 사용하는 시스템 기본 서체를 강제 지정 */
+    font-family: system-ui, -apple-system, sans-serif;  
+    letter-spacing: -0.5px; /* Hero 섹션처럼 살짝 자간을 줄여 세련되게 */
+    transition: all 0.3s ease;
+    /* margin-top: 15px; -> 삭제 (위의 input 마진으로 조절) */
+}
+
+/* ===============================
+   입력창 안내 문구(Placeholder) 스타일
+   =============================== */
+
+/* 한 줄 소개(textarea) 내의 글자를 부드럽게 */
+.setup-modal textarea::placeholder {
+    color: #b0b0b0;      /* 연한 회색으로 변경 */
+    font-size: 0.95rem;  /* 글자 크기를 살짝 줄여서 부드럽게 */
+    font-weight: 500;    /* 글자 두께를 가늘게 */
 }
 
 .setup-modal textarea:focus {
     outline: none;
     border-color: #4facfe;
+    background: #fff;
+    box-shadow: 0 0 8px rgba(79, 172, 254, 0.1);
 }
 
 /* ===============================

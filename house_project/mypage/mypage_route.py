@@ -196,6 +196,7 @@ def update_profile():
     
     users_col.update_one({'email': session['user_id']}, {'$set': update_data})
     session['nickname'] = new_nickname
+    session['needs_setup'] = False     # 팝업 중단 선언
     
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return jsonify({"success": True, "message": "성공적으로 수정되었습니다."})

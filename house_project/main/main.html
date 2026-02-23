@@ -97,6 +97,10 @@
         .then(data => {
             if(data.success) {
                 alert("프로필 설정이 완료되었습니다!");
+                // ✅ 수정: alert을 없애고 모달을 즉시 숨긴 후 새로고침
+                const overlay = document.getElementById('setup-modal-overlay');
+                if(overlay) overlay.style.display = 'none'; 
+                
                 location.reload(); 
             } else {
                 const errorMsg = document.getElementById('nick-error');
