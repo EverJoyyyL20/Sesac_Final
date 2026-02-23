@@ -1,236 +1,51 @@
 /* survey.css */
-
-/* 1. 기본 레이아웃 및 배경 */
-body {
-    background-color: #f8f9fa;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
-}
+body { background-color: #f8f9fa; margin: 0; display: flex; flex-direction: column; min-height: 100vh; }
 
 .survey-wrapper {
-    width: 100%;
-    max-width: 550px; /* 상세 조건이 많으므로 약간 넓게 조정 */
-    margin: 60px auto; /* 내비바 여백 및 중앙 정렬 */
-    background: #ffffff;
-    padding: 50px 40px;
-    border-radius: 24px;
-    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.06);
-    box-sizing: border-box;
+    width: 100%; max-width: 580px; margin: 100px auto; 
+    background: rgba(255,255,255,0.98); padding: 50px 45px;
+    border-radius: 36px; box-shadow: 0 25px 60px rgba(0, 0, 0, 0.05);
+    box-sizing: border-box; border: 1px solid rgba(0,0,0,0.02);
 }
 
-/* 2. 진행 바 (Progress Bar) */
-.progress-area {
-    margin-bottom: 40px;
-}
+.gauge-background { width: 100%; height: 10px; background: #f0f2f5; border-radius: 10px; overflow: hidden; }
+#gauge-fill { width: 5%; height: 100%; background: linear-gradient(90deg, #4facfe, #00f2fe); transition: 0.5s; border-radius: 10px; }
+.progress-text { font-size: 0.9rem; color: #111; font-weight: 800; margin-top: 12px; text-align: right; }
 
-.gauge-background {
-    width: 100%;
-    height: 8px;
-    background: #f0f0f0;
-    border-radius: 10px;
-    overflow: hidden;
-}
+.q-card { display: none; animation: fadeIn 0.5s ease-out; }
+.q-card.active { display: block; }
+.q-card h2 { font-size: 1.8rem; line-height: 1.4; margin-bottom: 20px; color: #111; font-weight: 900; word-break: keep-all; }
+.hint-text { font-size: 1rem; color: #888; font-weight: 500; margin-bottom: 30px; }
+.sub-q { font-weight: 800; margin: 30px 0 15px; color: #333; font-size: 1.05rem; }
 
-#gauge-fill {
-    width: 5%; /* 초기값 */
-    height: 100%;
-    background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
-    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-}
+.options-group { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 15px; }
 
-.progress-text {
-    font-size: 0.85rem;
-    color: #4facfe;
-    font-weight: 700;
-    margin-top: 10px;
-    text-align: right;
-}
-
-/* 3. 질문 카드 및 텍스트 */
-.hint-text {
-    margin-top: 6px;
-    margin-bottom: 18px;
-    font-size: 16px;
-    color: #9aa0a6; /* 연한 회색 */
-}
-
-.q-card {
-    display: none;
-    animation: fadeIn 0.4s ease-out;
-}
-
-.q-card.active {
-    display: block;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(15px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-h2 {
-    font-size: 1.6rem;
-    line-height: 1.4;
-    margin-bottom: 30px;
-    color: #222;
-    word-break: keep-all;
-    font-weight: 800;
-}
-
-.sub-q {
-    font-weight: 700;
-    margin: 30px 0 12px;
-    color: #444;
-    font-size: 0.95rem;
-}
-
-/* 4. 옵션 버튼 (Grid Layout) */
-.options-group {
-    display: grid;
-    grid-template-columns: 1fr 1fr; /* 기본 2열 */
-    gap: 12px;
-    margin-top: 15px;
-}
-
+/* 선택 버튼 하이엔드 스타일 */
 .opt-btn {
-    padding: 16px;
-    border: 2px solid #f1f1f1;
-    background: #fff;
-    border-radius: 14px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    font-size: 0.95rem;
-    font-weight: 500;
-    color: #666;
-    text-align: center;
+    padding: 18px; border: 2px solid #edf1f5; background: #fff;
+    border-radius: 20px; cursor: pointer; transition: all 0.3s ease;
+    font-size: 1rem; font-weight: 600; color: #555;
 }
+.opt-btn:hover { border-color: #4facfe; box-shadow: 0 8px 20px rgba(79, 172, 254, 0.1); }
 
-.opt-btn:hover {
-    border-color: #4facfe;
-    background: #f0f7ff;
-}
-
+/* 🔥 [수정] 클릭(선택) 시 검정색이 아닌 파란색 테마로 채워지도록 변경 */
 .opt-btn.selected {
-    border-color: #4facfe;
-    background-color: #f0f7ff;
-    color: #4facfe;
-    font-weight: 700;
-    box-shadow: 0 4px 12px rgba(79, 172, 254, 0.1);
+    background-color: #4facfe !important; color: #fff !important;
+    border-color: #4facfe !important; font-weight: 800;
+    box-shadow: 0 8px 25px rgba(79, 172, 254, 0.3) !important;
 }
 
-/* 5. 입력 필드 및 조건부 영역 */
 .input-field {
-    width: 100%;
-    padding: 16px;
-    border: 2px solid #f1f1f1;
-    border-radius: 14px;
-    box-sizing: border-box;
-    font-size: 1rem;
-    transition: all 0.3s;
+    width: 100%; padding: 20px; border: 1.5px solid transparent; background: #f4f6f8;
+    border-radius: 16px; box-sizing: border-box; font-size: 1.05rem; font-weight: 600; transition: 0.3s;
 }
+.input-field:focus { border-color: #4facfe; outline: none; background-color: #fff; box-shadow: 0 0 0 4px rgba(79,172,254,0.15); }
 
-.input-field:focus {
-    border-color: #4facfe;
-    outline: none;
-    background-color: #fff;
-}
+.conditional-area { display: none; padding: 25px; background: #f8f9fa; border-radius: 24px; margin-top: 20px; border: 1px solid #edf1f5; }
 
-.conditional-area {
-    display: none; /* JS에서 조절 */
-    padding: 20px;
-    background: #f9fbff; /* 살짝 푸른 빛이 도는 배경 */
-    border-radius: 16px;
-    margin-top: 20px;
-    border: 1px dashed #d0e8ff;
-}
+.next-btn-container { margin-top: 40px; }
+.confirm-btn { width: 100%; padding: 20px; background: #111; color: white; border: none; border-radius: 20px; font-size: 1.15rem; font-weight: 900; cursor: pointer; transition: 0.3s; box-shadow: 0 12px 30px rgba(0,0,0,0.15); }
+.confirm-btn:hover { background: #333; transform: translateY(-3px); }
+.back-btn { background: #f4f6f8; color: #555; border: none; border-radius: 20px; font-weight: 800; cursor: pointer; transition: 0.3s; padding: 20px; }
 
-/* 6. 하단 확인 버튼 */
-.next-btn-container {
-    margin-top: 40px;
-}
-
-.confirm-btn {
-    width: 100%;
-    padding: 18px;
-    background: #4facfe;
-    color: white;
-    border: none;
-    border-radius: 16px;
-    font-size: 1.1rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.3s;
-    box-shadow: 0 5px 15px rgba(79, 172, 254, 0.3);
-}
-
-.confirm-btn:hover {
-    background: #00c6ff;
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(79, 172, 254, 0.4);
-}
-
-/* 7. 경고 메시지 */
-.limit-info {
-    font-size: 0.85rem;
-    margin-top: 12px;
-    text-align: center;
-    font-weight: 600;
-}
-
-/* 완료 화면 정렬 */
-#complete-screen h2 {
-    margin-top: 10px;
-}
-
-.rec-card {
-    background: #fff;
-    border: 2px solid #f0f7ff;
-    border-radius: 15px;
-    padding: 15px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-}
-
-.rec-card:hover {
-    transform: translateY(-3px);
-    border-color: #4facfe;
-    box-shadow: 0 6px 12px rgba(79, 172, 254, 0.2);
-}
-
-.match-score {
-    font-size: 1.2rem;
-    font-weight: bold;
-    color: #4facfe;
-}
-.q-card { display: none; }
-.q-card.active { display: block; animation: fadeIn 0.5s; }
-.sub-q { font-weight: bold; margin: 20px 0 10px; color: #333; }
-.input-group { margin-bottom: 15px; }
-.conditional-area { display: none; padding: 15px; background: #f9f9f9; border-radius: 10px; margin-top: 10px; }
-        
-        /* 로딩 스크린 스타일 */
-#loading-screen {
-    display: none;
-    text-align: center;
-    padding: 100px 20px;
-    }
-.loader {
-    border: 8px solid #f3f3f3;
-    border-top: 8px solid #4facfe;
-    border-radius: 50%;
-    width: 60px;
-    height: 60px;
-    animation: spin 1s linear infinite;
-    margin: 0 auto 20px;
-}
-@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-        /* 진행 바 스타일 */
-.progress-area { margin-bottom: 30px; }
-.gauge-background { width: 100%; height: 10px; background: #eee; border-radius: 5px; overflow: hidden; }
-#gauge-fill { width: 0%; height: 100%; background: linear-gradient(to right, #4facfe, #00f2fe); transition: width 0.3s; }
-.progress-text { margin-top: 10px; font-size: 0.9rem; color: #666; text-align: center; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }

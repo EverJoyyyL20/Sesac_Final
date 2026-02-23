@@ -1,212 +1,177 @@
 /* ============================================================
-   1. 지도 및 전체 레이아웃 (기존 코드 유지)
+   1. 지도 및 전체 레이아웃
    ============================================================ */
-#map-container {
-    flex: 1;
-    position: relative;
-    width: 100%;
-    height: calc(100vh - 60px);
-}
-
-#map {
-    width: 100%;
-    height: 100%;
-}
+#map-container { flex: 1; position: relative; width: 100%; height: calc(100vh - 70px); }
+#map { width: 100%; height: 100%; }
 
 /* ============================================================
-   2. 상태 헤더 및 사이드 필터 (기존 코드 유지)
+   2. 상태 헤더 및 사이드 필터
    ============================================================ */
 .status-header {
-    position: absolute;
-    top: 15px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 1001;
-    background: rgba(255, 255, 255, 0.95);
-    padding: 8px 20px;
-    border-radius: 30px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
-    font-weight: 600;
-    font-size: 13px;
-    border: 1px solid #eee;
-    pointer-events: none;
+    position: absolute; top: 20px; left: 50%; transform: translateX(-50%); z-index: 1001;
+    background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+    padding: 12px 25px; border-radius: 50px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    font-weight: 800; font-size: 0.95rem; color: #111; border: 1px solid rgba(255,255,255,0.6); pointer-events: none;
 }
 
 .search-box {
-    position: absolute;
-    top: 30px;
-    left: 20px;
-    z-index: 1000;
-    width: 290px;
-    background: #fff;
-    border-radius: 16px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
-    border: 1px solid #eee;
-    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    box-sizing: border-box;
+    position: absolute; top: 20px; left: 20px; z-index: 1000; width: 320px;
+    background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
+    border-radius: 28px; box-shadow: 0 20px 50px rgba(0,0,0,0.12);
+    border: 1px solid rgba(255,255,255,0.6); transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); box-sizing: border-box;
 }
-
-.search-box.closed {
-    transform: translateX(-310px);
-}
+.search-box.closed { transform: translateX(-340px); }
 
 #toggle-btn {
-    position: absolute;
-    right: -36px;
-    top: 20px;
-    width: 36px;
-    height: 48px;
-    background: #fff;
-    border: 1px solid #ddd;
-    border-left: none;
-    border-radius: 0 10px 10px 0;
-    cursor: pointer;
-    box-shadow: 4px 0 8px rgba(0,0,0,0.1);
-    font-weight: bold;
-    font-size: 18px;
-    color: #4facfe;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1001;
-}
-
-#toggle-btn:hover {
-    color: #007bff;
-    background: #f8f9fa;
+    position: absolute; right: -42px; top: 30px; width: 42px; height: 54px;
+    background: rgba(255,255,255,0.95); backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.6); border-left: none; border-radius: 0 16px 16px 0;
+    cursor: pointer; box-shadow: 5px 0 15px rgba(0,0,0,0.08);
+    font-weight: 900; font-size: 1.2rem; color: #111; z-index: 1001;
 }
 
 /* ============================================================
-   3. 필터 내부 및 마커/태그 (기존 코드 유지)
+   3. 필터 내부
    ============================================================ */
-.search-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 14px 18px;
-    border-bottom: 1px solid #f0f0f0;
-    border-radius: 16px 16px 0 0;
-}
+.search-header { padding: 20px 25px; border-bottom: 1px solid rgba(0,0,0,0.05); }
+.search-header strong { font-size: 1.1rem; font-weight: 900; color: #111; }
 
-.search-header strong { font-size: 14px; color: #333; }
-#filter-content { padding: 15px 18px; overflow: visible; }
-.f-section { margin-bottom: 12px; }
-.f-section label { display: block; margin-bottom: 5px; font-weight: bold; color: #666; font-size: 12px; }
-.f-row { display: flex; align-items: center; gap: 6px; }
+#filter-content { padding: 20px 25px; }
+.f-section { margin-bottom: 18px; }
+.f-section label { display: block; margin-bottom: 8px; font-weight: 700; color: #555; font-size: 0.85rem; }
+.f-row { display: flex; align-items: center; gap: 8px; }
 .f-row input, .f-row select {
-    flex: 1; padding: 7px 10px; height: 34px; border: 1px solid #ddd;
-    border-radius: 8px; outline: none; font-size: 12px; box-sizing: border-box; width: 100%;
+    flex: 1; padding: 0 15px; height: 42px; border: 1.5px solid #edf1f5;
+    border-radius: 14px; outline: none; font-size: 0.9rem; font-weight: 600; color: #333;
+    background: rgba(255,255,255,0.6); transition: 0.3s; box-sizing: border-box; width: 100%;
 }
-.f-check-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
-.f-check-row label { font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 5px; color: #777; }
+.f-row input:focus, .f-row select:focus { border-color: #111; background: #fff; }
 
+.f-check-row { display: flex; flex-wrap: wrap; gap: 15px; margin-top: 10px; }
+.f-check-row label { font-size: 0.85rem; font-weight: 600; color: #444; cursor: pointer; }
+
+/* ============================================================
+   4. 지도 위 마커 태그 (블랙/그레이 유리 질감)
+   ============================================================ */
 .price-tag {
-    background: #4facfe; color: #fff; padding: 6px 14px; border-radius: 20px;
-    font-size: 12px; font-weight: bold; border: 2px solid #fff; box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+    background: linear-gradient(135deg, rgba(40, 40, 40, 0.9), rgba(15, 15, 15, 0.95)); 
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    color: #fff; padding: 10px 20px; border-radius: 50px;
+    font-size: 0.85rem; font-weight: 800; border: 1.5px solid rgba(255, 255, 255, 0.25); 
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4); cursor: pointer;
 }
 
 .gu-tag {
-    background: #fff; color: #333; padding: 10px 20px; border-radius: 25px;
-    font-size: 14px; font-weight: 800; border: 2px solid #4facfe; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    transition: 0.2s ease;
+    background: linear-gradient(135deg, rgba(60, 60, 60, 0.85), rgba(20, 20, 20, 0.95)); 
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    color: #eee; padding: 12px 25px; border-radius: 50px;
+    font-size: 1.05rem; font-weight: 900; border: 1.5px solid rgba(255, 255, 255, 0.25); 
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3); transition: 0.3s ease; cursor: pointer;
 }
-.gu-tag:hover { background: #4facfe; color: #fff; transform: scale(1.05); }
+.gu-tag:hover { 
+    background: linear-gradient(135deg, rgba(80, 80, 80, 0.95), rgba(30, 30, 30, 1));
+    color: #fff; transform: scale(1.08); border-color: rgba(255, 255, 255, 0.5);
+}
 
 /* ============================================================
-   4. 정보창 (IW-Container) (기존 코드 유지)
+   🔥 5. [복구됨] 말풍선 정보창 (InfoWindow) 디자인 
    ============================================================ */
-.iw-container { padding: 8px; min-width: 220px; background: #fff; border-radius: 12px; }
-.iw-title { font-size: 15px; font-weight: 800; color: #e74c3c; margin-bottom: 4px; }
+.iw-container { 
+    padding: 20px; min-width: 220px; background: rgba(255, 255, 255, 0.98); 
+    backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+    border-radius: 24px; box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+    border: 1px solid rgba(0,0,0,0.05); text-align: center;
+}
+.iw-item { margin-bottom: 12px; }
+.iw-item:last-child { margin-bottom: 0; }
+.iw-title { font-size: 1.2rem; font-weight: 900; color: #111; margin-bottom: 15px; }
+
+/* 팝업 내 하이엔드 블랙 버튼 */
 .iw-btn {
-    width: 100%; background: #f0f7ff; color: #4facfe; border: 1px solid #4facfe;
-    padding: 7px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold;
+    width: 100%; background: #111; color: #fff; border: none;
+    padding: 14px; border-radius: 14px; cursor: pointer; font-size: 0.95rem; font-weight: 800;
+    transition: 0.2s ease; box-shadow: 0 5px 15px rgba(0,0,0,0.1);
 }
+.iw-btn:hover { background: #333; transform: translateY(-2px); }
 
 /* ============================================================
-   5. 모달 및 [추가] 상세페이지 스와이프 구조
+   🔥 6. [복구됨] 모달 (상세 정보) 기본 뼈대
    ============================================================ */
-.modal {
-    display: none; position: fixed; z-index: 10001; left: 0; top: 0;
-    width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(4px);
-}
-
+.modal { display: none; position: fixed; z-index: 10001; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(8px); }
 .modal-content {
-    background: #fff; margin: 15vh auto; padding: 25px; border-radius: 24px;
-    width: 90%; max-width: 400px; box-shadow: 0 20px 40px rgba(0,0,0,0.2);
-    animation: modalFadeIn 0.3s ease-out;
+    background: #fff; margin: 5vh auto; padding: 35px; border-radius: 32px;
+    width: 90%; max-width: 440px; box-shadow: 0 30px 60px rgba(0,0,0,0.2);
+    border: 1px solid rgba(255,255,255,0.8); animation: modalFadeIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    max-height: 90vh; 
+    display: flex; flex-direction: column; overflow: hidden; /* 모달 밖으로 삐져나감 방지 */
 }
+.modal-content h2 { font-weight: 900; color: #111; margin: 0 0 20px 0; font-size: 1.4rem; }
 
-/* [추가] 정보/차트 전환 슬라이더 */
-.detail-slider-container { overflow: hidden; width: 100%; position: relative; }
-.detail-slider-wrapper { display: flex; transition: transform 0.3s ease-out; width: 200%; }
-.detail-page { min-width: 50%; width: 50%; box-sizing: border-box; }
+/* 상세페이지/차트 좌우 스와이프 구조 */
+.detail-slider-container { overflow: hidden; width: 100%; position: relative; flex: 1; }
+.detail-slider-wrapper { display: flex; transition: transform 0.3s ease-out; width: 200%; height: 100%; }
+.detail-page { min-width: 50%; width: 50%; box-sizing: border-box; overflow-y: auto; padding-right: 5px; }
+.detail-page::-webkit-scrollbar { width: 6px; }
+.detail-page::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
 
 /* ============================================================
-   6. 매물 이미지 슬라이더 (기존 버튼 기능 유지)
+   🔥 7. [복구됨] 매물 사진 슬라이더 (가로 넘김 고정)
    ============================================================ */
-.image-slider-wrapper { position: relative; width: 100%; margin-bottom: 15px; }
+.image-slider-wrapper { position: relative; width: 100%; margin-bottom: 25px; }
 .modal-img-container {
-    display: flex; gap: 10px; padding-bottom: 5px; overflow-x: auto;
-    scroll-behavior: smooth; scroll-snap-type: x mandatory;
+    display: flex; flex-wrap: nowrap; gap: 10px; overflow-x: auto;
+    scroll-behavior: smooth; scroll-snap-type: x mandatory; /* 한 장씩 자석처럼 걸리게 */
     scrollbar-width: none; -ms-overflow-style: none;
+    border-radius: 20px;
 }
 .modal-img-container::-webkit-scrollbar { display: none; }
+
 .prop-img {
-    width: 280px; height: 200px; object-fit: cover; border-radius: 8px;
-    flex-shrink: 0; scroll-snap-align: center; background-color: #f0f0f0;
+    flex: 0 0 100%; /* 이미지가 부모 너비를 꽉 채우도록 강제 (세로 붕괴 방지) */
+    width: 100%; height: 240px; object-fit: cover; border-radius: 20px;
+    scroll-snap-align: center; background-color: #f4f6f8;
 }
 
-/* 기존 슬라이더 버튼 스타일 복구 */
+/* 좌우 넘김 버튼 */
 .slider-btn {
     position: absolute; top: 50%; transform: translateY(-50%);
-    background-color: rgba(0, 0, 0, 0.5); color: white; border: none;
-    border-radius: 50%; width: 40px; height: 40px; font-size: 20px;
+    background: rgba(255, 255, 255, 0.9); color: #111; border: none;
+    border-radius: 50%; width: 40px; height: 40px; font-size: 18px; font-weight: bold;
     cursor: pointer; z-index: 10; display: flex; align-items: center; justify-content: center;
-    transition: background-color 0.3s;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.15); transition: 0.2s;
 }
-.slider-btn:hover { background-color: rgba(0, 0, 0, 0.8); }
-.prev-btn { left: 10px; }
-.next-btn { right: 10px; }
+.slider-btn:hover { background: #111; color: #fff; transform: translateY(-50%) scale(1.1); }
+.prev-btn { left: -10px; }
+.next-btn { right: -10px; }
 
 .no-img-placeholder {
-    width: 100%; height: 150px; background-color: #eee; border-radius: 8px;
-    display: flex; align-items: center; justify-content: center; color: #888; font-size: 0.9em; margin-bottom: 15px;
+    width: 100%; height: 160px; background-color: #f4f6f8; border-radius: 20px;
+    display: flex; align-items: center; justify-content: center; color: #888; font-size: 0.95rem; margin-bottom: 20px; font-weight: 600;
 }
 
 /* ============================================================
-   7. 상세 텍스트 및 [추가] 찜하기/도트/차트
+   8. 텍스트 정보 및 하단 모달 닫기 버튼
    ============================================================ */
-.detail-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 15px; }
-.detail-row span { min-width: 70px; color: #666; }
-.detail-row b { font-weight: 600; }
+.detail-row { font-size: 1rem; margin-bottom: 14px; color: #555; display: flex; align-items: center; }
+.detail-row span { min-width: 85px; font-weight: 700; color: #888; }
+.detail-row b { color: #111; font-weight: 800; font-size: 1.1rem; }
 
-/* [추가] 하단 버튼 영역 */
-.modal-footer-btns { display: flex; gap: 10px; margin-top: 15px; }
-.fav-btn {
-    flex: 1; padding: 12px; background: #fff; border: 1px solid #ddd;
-    border-radius: 12px; cursor: pointer; font-weight: bold;
-}
-.close-btn {
-    flex: 1; padding: 12px; background: #eee; border: none;
-    border-radius: 12px; cursor: pointer; font-weight: bold; color: #444;
-}
+.modal-footer-btns { display: flex; gap: 12px; margin-top: 25px; }
+.fav-btn { flex: 1; padding: 18px; background: #111; color: #fff; border: none; border-radius: 16px; font-weight: 800; font-size: 1.05rem; transition: 0.3s; cursor:pointer; }
+.fav-btn:hover { background: #333; transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
+.close-btn { flex: 1; padding: 18px; background: #f4f6f8; border: none; border-radius: 16px; font-weight: 800; color: #444; font-size: 1.05rem; cursor:pointer; transition:0.3s; }
+.close-btn:hover { background: #e2e6ea; }
 
-/* [추가] 스와이프 도트 */
-.slider-dots { text-align: center; margin-top: 10px; }
-.dot { height: 8px; width: 8px; background-color: #bbb; border-radius: 50%; display: inline-block; margin: 0 4px; cursor: pointer; }
-.dot.active { background-color: #4facfe; width: 18px; border-radius: 5px; }
+/* 차트/상세 전환 점(Dot) */
+.slider-dots { text-align: center; margin-top: 15px; }
+.dot { height: 8px; width: 8px; background-color: #ddd; border-radius: 50%; display: inline-block; margin: 0 5px; cursor: pointer; transition: 0.3s; }
+.dot.active { background-color: #111; width: 24px; border-radius: 10px; }
 
-/* [추가] 차트 크기 */
-#radarChart { max-height: 300px; width: 100% !important; }
+#radarChart { max-height: 250px; width: 100% !important; margin: 0 auto; }
 
-/* ============================================================
-   8. 특수 강조 (층수 등) (기존 코드 유지)
-   ============================================================ */
-.floor-tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.9em; background: #f0f4f8; }
-.floor-danger { background: #fff5f5; color: #e03131; font-weight: bold; border: 1px solid #ffa8a8; }
-.floor-warn { background: #fff9db; color: #f08c00; font-weight: bold; border: 1px solid #ffe066; }
+/* 특수 층수 태그 */
+.floor-tag { display: inline-block; padding: 4px 10px; border-radius: 8px; font-size: 0.9rem; background: #f4f6f8; font-weight: 700; color:#333; }
+.floor-danger { background: #fff5f5; color: #e03131; border: 1px solid #ffc9c9; }
+.floor-warn { background: #fff9db; color: #f08c00; border: 1px solid #ffe066; }
 
-@keyframes modalFadeIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-}
+@keyframes modalFadeIn { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }

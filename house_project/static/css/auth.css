@@ -1,217 +1,63 @@
 /* auth.css */
-
-/* 1. 레이아웃: 내비바와 겹치지 않게 상단 여백 확보 */
 .page-wrapper {
-    display: flex;
-    justify-content: center;
-    align-items: flex-start; /* 컨텐츠가 길어질 경우를 대비 */
-    background-color: #f8f9fa;
-    padding: 100px 20px; /* 위아래 넉넉한 여백 */
-    min-height: calc(100vh - 60px);
-    box-sizing: border-box;
+    display: flex; justify-content: center; align-items: center;
+    background-color: transparent; padding: 60px 20px; min-height: calc(100vh - 70px);
 }
 
-/* --- 중요: 내비바 관련 스타일 삭제 --- */
-/* auth.css 내부에 .navbar, .logo, .nav-left 등의 코드가 있다면 모두 삭제하세요.
-   삭제해야 common.css의 스타일이 그대로 적용됩니다. */
-
-/* 2. 로그인/회원가입 박스 디자인 통일 */
-.login-box, .register-box {
-    background: #ffffff;
-    width: 100%;
-    max-width: 420px;
-    padding: 50px 40px;
-    border-radius: 20px; /* 프로젝트 공통 곡률 */
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+.login-box, .register-box, .delete-box {
+    background: #ffffff; width: 100%; max-width: 440px; 
+    padding: 50px 40px !important; margin: 0 auto;
+    border-radius: 32px; /* 하이엔드 곡률 */
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0,0,0,0.02);
     text-align: center;
 }
 
-/* 3. 입력창 스타일 */
-.input-group {
-    margin-bottom: 15px;
-    text-align: left;
+.login-box h2, .register-box h2, .delete-box h2 {
+    font-weight: 900; font-size: 1.8rem; margin-bottom: 30px; color: #111;
 }
 
+.input-group { margin-bottom: 15px; text-align: left; }
+.input-group label { font-size: 0.85rem; font-weight: 700; color: #888; margin-left: 5px; margin-bottom: 8px; display: block;}
+
 .input-group input {
-    width: 100%;
-    padding: 16px 20px;
-    border: 1px solid #eee;
-    border-radius: 12px;
-    background-color: #fdfdfd;
-    font-size: 15px;
-    box-sizing: border-box;
-    transition: all 0.3s ease;
+    width: 100%; padding: 18px 20px; background-color: #f4f6f8;
+    border: 1.5px solid transparent; border-radius: 16px;
+    font-size: 15px; font-weight: 600; color: #333;
+    box-sizing: border-box; transition: all 0.3s ease;
 }
 
 .input-group input:focus {
-    outline: none;
-    border-color: #4facfe;
-    background-color: #fff;
+    outline: none; border-color: #4facfe; background-color: #fff;
+    box-shadow: 0 0 0 4px rgba(79, 172, 254, 0.15);
 }
 
-/* 4. 버튼 스타일 (프로젝트 포인트 컬러 통일) */
-.login-btn, .register-btn {
-    width: 100%;
-    padding: 16px;
-    background: #4facfe;
-    color: white;
-    border: none;
-    border-radius: 12px;
-    font-size: 1rem;
-    font-weight: 700;
-    cursor: pointer;
-    margin-top: 10px;
-    transition: all 0.3s;
+.login-btn, .register-btn, .delete-btn {
+    width: 100%; padding: 18px; background: #111; color: white;
+    border: none; border-radius: 16px; font-size: 1.1rem; font-weight: 800;
+    cursor: pointer; margin-top: 15px; transition: all 0.3s;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
 }
 
-.login-btn:hover, .register-btn:hover {
-    background: #00c6ff;
-    transform: translateY(-2px);
-}
+.login-btn:hover, .register-btn:hover { background: #333; transform: translateY(-3px); }
+
+.delete-btn { background: #ff4d4f; box-shadow: 0 8px 20px rgba(255,77,79,0.2); }
+.delete-btn:hover { background: #ff7875; transform: translateY(-3px); }
 
 .google-btn {
-    width: 100%;
-    height: 52px;
-    border-radius: 10px;
-    border: 1px solid #ddd;
-    background: white;
-    
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-
-    font-size: 16px;
-    font-weight: 500;
-    cursor: pointer;
-
-    /* 👇 추가 */
-    box-sizing: border-box;
-    padding: 0 16px;
+    width: 100%; padding: 16px !important; height: auto !important;
+    border-radius: 16px !important; border: 1.5px solid #eee !important;
+    background: white; font-weight: 700 !important; color: #222;
+    display: flex; justify-content: center; align-items: center; gap: 10px;
+    cursor: pointer; transition: 0.3s; box-sizing: border-box;
 }
+.google-btn:hover { background: #f8f9fa; border-color: #ddd !important; }
+.google-btn img { width: 20px; height: 20px; }
 
-.google-btn:hover {
-    background-color: #f9f9f9;
-}
-.google-btn img {
-    width: 20px;
-    height: 20px;
-    object-fit: contain;
-}
+.divider { margin: 35px 0 !important; text-align: center; position: relative; }
+.divider hr { border: none; height: 1px; background: #eee; }
+.divider span { position: absolute; top: -11px !important; left: 50%; transform: translateX(-50%); background: #fff !important; padding: 0 15px; color: #bbb !important; font-size: 0.85rem !important; font-weight: 600; }
 
-
-/* 5. 구분선 및 링크 */
-.divider {
-    margin: 30px 0;
-    text-align: center;
-    position: relative;
-}
-
-.divider hr { border: 0; height: 1px; background: #eee; }
-
-.divider span {
-    position: absolute;
-    top: -10px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: #fff;
-    padding: 0 15px;
-    color: #bbb;
-    font-size: 0.8rem;
-}
-
-.signup-link, .login-link {
-    margin-top: 30px;
-    font-size: 14px;
-    color: #888;
-}
-
-.signup-link a, .login-link a {
-    color: #4facfe;
-    text-decoration: none;
-    font-weight: 700;
-}
-
-.signup-link a:hover, .login-link a:hover { text-decoration: underline; }
-
-/* auth.css 맨 아래에 복사해서 붙여넣으세요 */
-
-/* 1. 탈퇴 박스 (중앙 정렬 및 가로 폭) */
-.delete-box {
-    background: #ffffff;
-    width: 100%;
-    max-width: 450px; /* 너무 넓지 않게 조정 */
-    padding: 40px;
-    border-radius: 20px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
-    text-align: center;
-    margin: 0 auto;
-}
-
-/* 2. 경고 텍스트 박스 (빨간색 강조) */
-.warning {
-    background-color: #fff5f5; /* 아주 연한 빨강 배경 */
-    color: #e03131; /* 강렬한 빨강 글씨 */
-    padding: 20px;
-    border-radius: 12px;
-    font-size: 0.9rem;
-    line-height: 1.6;
-    margin-bottom: 30px;
-    border: 1px solid #ffc9c9;
-    text-align: center;
-}
-
-/* 3. 체크박스 영역 (왼쪽 정렬) */
-.policy-check-area {
-    margin: 20px 0;
-    text-align: left;
-}
-
-.policy-check-area label {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    cursor: pointer;
-    font-size: 14px;
-    color: #666;
-}
-
-.policy-check-area input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-    accent-color: #e03131; /* 체크 시 빨간색 표시 */
-}
-
-/* 4. 탈퇴 버튼 (강조색) */
-.delete-btn {
-    width: 100%;
-    padding: 16px;
-    background-color: #e03131;
-    color: white;
-    border: none;
-    border-radius: 12px;
-    font-size: 1rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.3s;
-    margin-top: 10px;
-}
-
-.delete-btn:hover {
-    background-color: #c92a2a;
-    transform: translateY(-2px);
-}
-
-/* 5. 취소 링크 */
-.back-link {
-    display: block;
-    margin-top: 20px;
-    color: #999;
-    text-decoration: none;
-    font-size: 14px;
-}
-
-.back-link:hover {
-    color: #333;
-    text-decoration: underline;
-}
+.warning { background: #fff5f5; color: #ff4d4f; border-radius: 16px; border: none; font-weight: 600; padding: 20px; font-size: 0.95rem; margin-bottom: 30px; }
+.signup-link, .login-link, .back-link { margin-top: 30px; font-size: 0.95rem; color: #888; font-weight: 500; display: block;}
+.signup-link a, .login-link a, .back-link:hover { color: #111; text-decoration: none; font-weight: 800; }

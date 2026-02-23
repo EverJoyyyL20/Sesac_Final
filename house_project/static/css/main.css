@@ -1,83 +1,100 @@
-   =============================== */
-.welcome-text {
-    font-size: 1.1rem;
-    margin-right: 15px;
-    color: #fff;
-}
-
 /* ===============================
-   2. Hero Section (배경 이미지 버전 유지)
+   Hero Section (메인 비주얼)
    =============================== */
 .hero {
     position: relative;
     flex: 1;
-    min-height: calc(100vh - 140px);
+    min-height: 100vh; /* 화면에 꽉 차도록 확장 */
     display: flex;
     justify-content: center;
     align-items: center;
     text-align: center;
 
-    background:
-        linear-gradient(rgba(255,255,255,0.15), rgba(255,255,255,0.15)),
-        url("../img/main_bg.png");
+    /* 🔥 최고급 모던 하우스의 초고화질 배경 적용 + 글씨가 잘 보이도록 다크 그라데이션 */
+    background: 
+        linear-gradient(to bottom, rgba(0,0,0,0.4), rgba(0,0,0,0.9)),
+        url("https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?q=80&w=2075&auto=format&fit=crop");
     background-size: cover;
     background-position: center;
-    background-repeat: no-repeat;
+    background-attachment: fixed;
 
     padding: 0 20px;
+    margin-top: -65px; /* 상단 네비게이션 바 아래로 자연스럽게 밀어넣음 */
 }
 
-/* Hero 내부 박스 */
+/* Hero 내부 텍스트 래퍼 */
 .hero-content {
-    background-color: rgba(0, 0, 0, 0.45);
-    padding: 50px 60px;
-    border-radius: 20px;
-    max-width: 800px;
-    width: 90%;
-    box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+    max-width: 900px;
+    width: 100%;
+    z-index: 2;
+    animation: fadeInUp 1s ease-out;
 }
 
-/* 제목 */
+/* 메인 타이틀 */
 .hero-content h1 {
-    font-size: 2.8rem;
-    font-weight: 800;
+    font-size: 3.5rem; /* 글씨 크기 압도적으로 확대 */
+    font-weight: 900;
     margin-bottom: 20px;
-    color: #fff;
-    letter-spacing: -1px;
+    color: #ffffff;
+    letter-spacing: -1.5px;
+    line-height: 1.25;
+    word-break: keep-all;
 }
 
-/* 설명 */
+/* 혹시 강조하고 싶은 글씨에 <span class="highlight">를 씌우면 적용되는 파란 그라데이션 */
+.hero-content h1 .highlight {
+    background: linear-gradient(135deg, #4facfe, #00f2fe);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* 서브 설명 */
 .hero-content p {
-    font-size: 1.25rem;
-    margin-bottom: 40px;
-    color: #f1f1f1;
-    font-weight: 500;
+    font-size: 1.15rem;
+    margin-bottom: 50px;
+    color: #a0aab5;
+    font-weight: 400;
     line-height: 1.6;
+    letter-spacing: -0.5px;
 }
 
 /* ===============================
-   3. 메인 버튼 (통일된 고급 스타일)
+   메인 버튼 (AILA 스타일 둥근 하얀 버튼)
    =============================== */
 .survey-btn {
-    padding: 18px 50px;
-    font-size: 1.15rem;
-    font-weight: 700;
-    background: linear-gradient(135deg, #4f86fe 0%, #0099ff 100%);
-    color: white;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 18px 45px;
+    font-size: 1.1rem;
+    font-weight: 800;
+    background: #ffffff; /* 하얀색 버튼 */
+    color: #111111;      /* 검은색 글씨 */
     border: none;
-    border-radius: 14px;
+    border-radius: 50px; /* 완전 둥글게 */
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 10px 25px rgba(79, 172, 254, 0.35);
+    transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+}
+
+.survey-btn::after {
+    content: '→';
+    margin-left: 10px;
+    font-size: 1.2rem;
+    transition: margin 0.3s ease;
 }
 
 .survey-btn:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 15px 30px rgba(79, 172, 254, 0.45);
+    transform: translateY(-3px);
+    box-shadow: 0 15px 30px rgba(255,255,255,0.15);
+}
+
+.survey-btn:hover::after {
+    margin-left: 15px; /* 호버 시 화살표가 살짝 움직임 */
 }
 
 /* ===============================
-   4. 모달 오버레이
+   모달 오버레이 (기존 기능 유지)
    =============================== */
 .modal-overlay {
     position: fixed;
@@ -85,14 +102,11 @@
     left: 0;
     width: 100%;
     height: 100%;
-
-    background: rgba(0, 0, 0, 0.45);
+    background: rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(8px);
-
     display: flex;
     justify-content: center;
     align-items: center;
-
     z-index: 10000;
 }
 
@@ -128,7 +142,7 @@
 }
 
 /* ===============================
-   5. 모달 버튼 그룹
+   모달 버튼 그룹
    =============================== */
 .modal-btns {
     display: flex;
@@ -151,43 +165,20 @@
     background: linear-gradient(135deg, #4facfe, #00c6ff);
     color: white;
 }
+.btn-save:hover { transform: translateY(-2px); }
 
-.btn-save:hover {
-    transform: translateY(-2px);
-}
-
-.btn-skip {
-    background: #f1f1f1;
-    color: #666;
-}
-
-.btn-skip:hover {
-    background: #e5e5e5;
-}
+.btn-skip { background: #f1f1f1; color: #666; }
+.btn-skip:hover { background: #e5e5e5; }
 
 /* ===============================
-   6. Footer
+   애니메이션
    =============================== */
-.footer {
-    background-color: #D3D3D3;
-    padding: 30px 0;
-    text-align: center;
-    width: 100%;
-    color: #000;
-    font-size: 0.9rem;
-    border-top: 1px solid #ddd;
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
-/* ===============================
-   7. 애니메이션
-   =============================== */
 @keyframes slideUp {
-    from {
-        transform: translateY(30px);
-        opacity: 0;
-    }
-    to {
-        transform: translateY(0);
-        opacity: 1;
-    }
+    from { transform: translateY(30px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
 }
