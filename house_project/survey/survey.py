@@ -23,6 +23,7 @@ except Exception as e:
 
 survey_bp = Blueprint('survey', __name__, template_folder='.')
 
+# DB 카테고리 키와 한글 명칭 매핑 (7개 지표로 통일)
 category_map = {
     "traffic": "교통", "convenience": "편의", "green": "녹지",
     "play": "놀이", "health": "건강", "living": "생활", "safety": "안전"
@@ -57,10 +58,12 @@ TYPE_MAP = {
 # ------------------------------------------------------------------
 
 def generate_recommendation_reason(user_weights, house_info):
+    # 가중치가 높은 상위 2개 카테고리 추출
     sorted_weights = sorted(user_weights.items(), key=lambda x: x[1], reverse=True)
     top_interests = [f"{category_map.get(k, k)}" for k, v in sorted_weights[:2]]
     
-    scores = house_info.get('scores', {})
+    # 매물의 강점 점수 추출 (category_scores 필드 사용)
+    scores = house_info.get('category_scores', {})
     sorted_scores = sorted(scores.items(), key=lambda x: x[1], reverse=True)
     top_strengths = [f"{category_map.get(k.lower(), k)}({int(v*100)}점)" for k, v in sorted_scores[:2]]
 
@@ -83,7 +86,15 @@ def generate_recommendation_reason(user_weights, house_info):
     except:
         return "라이프스타일 분석 결과, 고객님께 가장 가치 있는 매물로 선정되었습니다!"
 
-def get_user_normalized_weights(category_log):
+def get_user_normalized_weights(category_log, custom_weights=None):
+    if custom_weights:
+        # 프론트에서 보낸 {'traffic': 20, 'living': 15 ...} 형태 처리
+        w_sum = sum(custom_weights.values())
+        if w_sum == 0: return {k: 1/7 for k in category_map.keys()}
+        # 합계가 1이 되도록 정규화
+        return {k: float(v) / w_sum for k, v in custom_weights.items()}
+
+    # 설문 로그 기반 가중치 계산 (기존 로직)
     total_counts = {'traffic': 6, 'convenience': 10, 'green': 7, 'play': 6, 'health': 6, 'living': 13, 'safety': 10}
     log_counts = Counter(category_log)
     user_weights = {cat: ((log_counts.get(cat, 0) + 1) / total_counts[cat]) for cat in total_counts}
@@ -94,23 +105,28 @@ def format_property_data(houses):
     for h in houses:
         h['_id_str'] = str(h['_id'])
         rt, p = h.get('rent_type'), h.get('price', 0)
+        # 가격 표시 변환
         h['price_display'] = f"{p}" if rt == "전세" else f"{h.get('deposit',0)}/{p}"
+        
+        # 이미지 처리
         raw_imgs = h.get('images', [])
         processed_imgs = [img + ('&w=800' if '?' in img else '?w=800') for img in raw_imgs]
         if not processed_imgs:
             processed_imgs = [url_for('static', filename='img/default_room.jpg')]
         h['images'] = processed_imgs
         h['main_image'] = processed_imgs[0]
+        
+        # 차트용 데이터 (7각형 순서: 교통, 편의, 녹지, 놀이, 건강, 생활, 안전)
         scores = h.get('category_scores', {})
-        h['chart_data'] = [round(scores.get(c, 0) * 100, 1) for c in ['traffic', 'convenience', 'green', 'play', 'health', 'safety']]
+        h['chart_data'] = [round(scores.get(c, 0) * 100, 1) for c in ['traffic', 'convenience', 'green', 'play', 'health', 'living', 'safety']]
     return houses
 
 def build_match_pipeline(match_query, nw, target_coords=None, limit=10, is_random=False):
     pipeline = []
-    # 라이프스타일 가중치 계산 식
+    # 라이프스타일 가중치 계산 식 (7개 지표 합산)
     lifestyle_score_expr = {"$add": [{"$multiply": [{"$ifNull": [f"$category_scores.{c}", 0]}, nw[c]]} for c in nw]}
 
-    if target_coords and 'lng' in target_coords and 'lat' in target_coords:
+    if target_coords and 'lng' in target_coords and 'lat' in target_coords and float(target_coords['lat']) != 0:
         pipeline.append({
             "$geoNear": {
                 "near": {
@@ -122,9 +138,8 @@ def build_match_pipeline(match_query, nw, target_coords=None, limit=10, is_rando
                 "query": match_query
             }
         })
-        # 5km 이내 가산점 (최대 100점)
+        # 5km 이내 가산점
         dist_score_expr = {"$divide": [{"$max": [0, {"$subtract": [5000, "$distance_meters"]}]}, 50]}
-        # 거리 가중치 30% 반영
         final_score_expr = {
             "$add": [
                 {"$multiply": [lifestyle_score_expr, 100, 0.7]},
@@ -142,17 +157,14 @@ def build_match_pipeline(match_query, nw, target_coords=None, limit=10, is_rando
     })
 
     if is_random:
-        # 제비뽑기 모드: 70점 이상 매물 중 무작위 추출
         pipeline.append({"$match": {"match_score": {"$gte": 70.0}}})
         pipeline.append({"$sample": {"size": limit}})
     else:
-        # 정렬 모드: 점수 높은 순
         pipeline.append({"$sort": {"match_score": -1}})
         pipeline.append({"$limit": limit})
         
     return pipeline
 
-# 🔥 [추가] 상세 희망 조건 필터 적용 로직
 def apply_detail_filters(query, selected_survey):
     # 1. 희망하는 건물 연식
     b_age = selected_survey.get('building_age', [])
@@ -169,7 +181,6 @@ def apply_detail_filters(query, selected_survey):
             elif "구축" in age:
                 age_conditions.append({"built_year": {"$lt": str(current_year - 10), "$gte": "1000"}})
                 age_conditions.append({"year_built": {"$lt": str(current_year - 10), "$gte": "1000"}})
-        
         if age_conditions:
             query.setdefault("$and", []).append({"$or": age_conditions})
 
@@ -178,21 +189,16 @@ def apply_detail_filters(query, selected_survey):
     if r_count:
         room_conditions = []
         for rc in r_count:
-            if rc == "1개":
-                room_conditions.append({"room_counts": "1개"})
-            elif rc == "2개":
-                room_conditions.append({"room_counts": "2개"})
+            if rc == "1개": room_conditions.append({"room_counts": "1개"})
+            elif rc == "2개": room_conditions.append({"room_counts": "2개"})
             elif rc == "3개 이상":
-                # 3개~9개, 혹은 10개 이상의 두 자릿수 매칭
                 room_conditions.append({"room_counts": {"$regex": "^[3-9]개|^[1-9][0-9]+개"}})
-        
         if room_conditions:
             query.setdefault("$and", []).append({"$or": room_conditions})
 
-    # 3. 반지하/옥탑방 제외 (floor 필드 검사)
+    # 3. 반지하/옥탑방 제외
     s_room = selected_survey.get('special_room', "")
     if "피하고 싶어요" in s_room:
-        # '반지하' 단어가 포함되거나, 정규식을 통해 앞뒤 숫자가 같은 '옥탑(예: 15/15, 15중 15)' 형태 제외
         query["floor"] = {"$not": {"$regex": "반지하|([0-9]+)\\s*[/중]\\s*\\1(?:[^0-9]|$)"}}
 
     # 4. 주차장 유무
@@ -241,9 +247,9 @@ def save_survey():
         "contract_type": data.get('contract_type', ""),
         "budget": {
             "min_dep": int(budget_raw.get('min_dep', 0) or 0),
-            "max_dep": int(budget_raw.get('max_dep', 0) or 0),
+            "max_dep": int(budget_raw.get('max_dep', 0) or 2000000000), # 최대값 없을 시 크게 잡음
             "min_rent": int(budget_raw.get('min_rent', 0) or 0),
-            "max_rent": int(budget_raw.get('max_rent', 0) or 0)
+            "max_rent": int(budget_raw.get('max_rent', 0) or 10000000)
         },
         "building_type": data.get('building_type', []),
         "building_age": data.get('building_age', []),
@@ -268,22 +274,28 @@ def survey_result(index):
     
     user_id = session['user_id']
     surveys = list(db.survey_results.find({"user_id": user_id}).sort("created_at", -1))
+    
     if not surveys or index >= len(surveys):
         return redirect('/mypage')
 
     selected_survey = surveys[index]
+    survey_id = selected_survey['_id']
+    
     nw = get_user_normalized_weights(selected_survey.get('category_log', []))
-    target_coords = selected_survey.get('target_coords')
-
-    # 사용자 유형 결정
     top2 = sorted(nw.items(), key=lambda x: x[1], reverse=True)[:2]
-    user_type, user_type_desc = TYPE_MAP.get(frozenset([top2[0][0], top2[1][0]]), ("기본형", "분석 중입니다."))
+    user_type, user_type_desc = TYPE_MAP.get(frozenset([top2[0][0], top2[1][0]]), ("기본형", "당신에게 꼭 맞는 매물을 찾고 있어요."))
 
-    # [1] 기본 검색 쿼리 구성
+    # 7각형 차트용 (항목 7개로 확장)
+    chart_keys = ['traffic', 'convenience', 'green', 'play', 'health', 'living', 'safety']
+    user_chart_labels = ['교통', '편의', '녹지', '놀이', '건강', '생활', '안전']
+    user_chart_data = [round(nw.get(k, 0) * 100, 1) for k in chart_keys]
+
+    # 필터 쿼리 구성
     query = {}
+    target_coords = selected_survey.get('target_coords')
     loc = selected_survey.get('location')
-    if not target_coords and loc and loc != "상관없음":
-        query['address'] = {"$regex": loc}
+    if not target_coords or target_coords.get('lat') == 0:
+        if loc and loc != "상관없음": query['address'] = {"$regex": loc}
     
     c_type = selected_survey.get('contract_type')
     target_rent_type = {"jeonse": "전세", "monthly": "월세"}.get(c_type, c_type)
@@ -299,30 +311,30 @@ def survey_result(index):
         if max_dep > 0: query['deposit'] = {"$gte": min_dep, "$lte": max_dep}
         if max_rent > 0: query['price'] = {"$gte": min_rent, "$lte": max_rent}
 
-    # 🔥 [추가] 상세 희망 조건 필터 적용
     query = apply_detail_filters(query, selected_survey)
 
-    # [2] 검색 결과 카운팅 및 예산 완화 시뮬레이션
     total_count = houses_col.count_documents(query)
-    suggested_count = 0
-    if total_count == 0:
-        relaxed_query = query.copy()
-        if target_rent_type == "전세" and max_dep > 0:
-            relaxed_query['price'] = {"$gte": min_dep, "$lte": int(max_dep * 1.4)}
-        elif target_rent_type == "월세":
-            if max_dep > 0: relaxed_query['deposit'] = {"$gte": min_dep, "$lte": int(max_dep * 1.2)}
-            if max_rent > 0: relaxed_query['price'] = {"$gte": min_rent, "$lte": int(max_rent * 1.4)}
-        suggested_count = houses_col.count_documents(relaxed_query)
-
-    # [3] 실제 데이터 가져오기
     pipeline = build_match_pipeline(query, nw, target_coords=target_coords, limit=10)
     matched_properties = format_property_data(list(houses_col.aggregate(pipeline)))
 
+    # AI 코멘트 캐싱 로직
     top_3 = matched_properties[:3]
     others = matched_properties[3:]
-    
+    saved_comments = selected_survey.get('ai_comments', {})
+    is_updated = False
+
     for house in top_3:
-        house['ai_comment'] = generate_recommendation_reason(nw, house)
+        h_id = house['_id_str']
+        if h_id in saved_comments:
+            house['ai_comment'] = saved_comments[h_id]
+        else:
+            new_comment = generate_recommendation_reason(nw, house)
+            house['ai_comment'] = new_comment
+            saved_comments[h_id] = new_comment
+            is_updated = True
+
+    if is_updated:
+        db.survey_results.update_one({"_id": survey_id}, {"$set": {"ai_comments": saved_comments}})
     
     return render_template(
         'result.html', 
@@ -330,167 +342,82 @@ def survey_result(index):
         top_3=top_3, 
         others=others, 
         current_index=index, 
-        survey_id=str(selected_survey['_id']),
+        survey_id=str(survey_id),
         user_type=user_type, 
         user_type_desc=user_type_desc,
         total_count=total_count,
-        suggested_count=suggested_count
+        user_chart_labels=user_chart_labels,
+        user_chart_data=user_chart_data,
+        chart_keys=chart_keys
     )
+
+# 🔥 [실시간 시뮬레이션용 API]
+@survey_bp.route('/survey/recalculate', methods=['POST'])
+def recalculate():
+    if 'user_id' not in session: return jsonify({"status": "error"}), 401
+    
+    data = request.get_json()
+    custom_weights = data.get('weights') # 프론트 슬라이더 값
+    survey_id = data.get('survey_id')
+    
+    selected_survey = db.survey_results.find_one({"_id": ObjectId(survey_id)})
+    if not selected_survey: return jsonify({"status": "error"}), 404
+    
+    # 1. 수정된 가중치로 정규화
+    nw = get_user_normalized_weights(None, custom_weights=custom_weights)
+    
+    # 2. 필터 조건 재구성 (필요 시 시뮬레이터에서 필터값도 보낼 수 있음)
+    query = {}
+    # ... (기존 query 구성 로직과 동일하게 필터 적용 가능) ...
+    query = apply_detail_filters(query, selected_survey)
+    
+    # 3. 다시 매칭 실행
+    pipeline = build_match_pipeline(query, nw, target_coords=selected_survey.get('target_coords'), limit=10)
+    matched_properties = format_property_data(list(houses_col.aggregate(pipeline)))
+    
+    return jsonify({
+        "status": "success",
+        "items": matched_properties
+    })
+
+# --- 쇼츠(Shorts) 라우터는 기존과 동일하게 유지하되 apply_detail_filters만 호출하도록 수정 ---
 
 @survey_bp.route('/survey/short/<int:index>')
 def survey_short(index):
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-
-    surveys = list(
-        db.survey_results.find({"user_id": session['user_id']})
-        .sort("created_at", -1)
-    )
-
-    if not surveys or index >= len(surveys):
-        return redirect('/mypage')
-
+    if 'user_id' not in session: return redirect(url_for('login'))
+    surveys = list(db.survey_results.find({"user_id": session['user_id']}).sort("created_at", -1))
+    if not surveys or index >= len(surveys): return redirect('/mypage')
+    
     selected_survey = surveys[index]
-
     nw = get_user_normalized_weights(selected_survey.get('category_log', []))
-    target_coords = selected_survey.get('target_coords')
+    query = apply_detail_filters({}, selected_survey) # 기본 필터 적용
 
-    # -------------------------
-    # 기본 필터 구성
-    # -------------------------
-    query = {}
-
-    loc = selected_survey.get('location')
-    if not target_coords and loc and loc != "상관없음":
-        query['address'] = {"$regex": loc}
-
-    c_type = selected_survey.get('contract_type')
-    target_rent_type = {"jeonse": "전세", "monthly": "월세"}.get(c_type, c_type)
-    if target_rent_type:
-        query['rent_type'] = target_rent_type
-
-    budget = selected_survey.get('budget', {})
-    min_dep, max_dep = budget.get('min_dep', 0), budget.get('max_dep', 0)
-    min_rent, max_rent = budget.get('min_rent', 0), budget.get('max_rent', 0)
-
-    if target_rent_type == "전세":
-        if max_dep > 0:
-            query['price'] = {"$gte": min_dep, "$lte": max_dep}
-    elif target_rent_type == "월세":
-        if max_dep > 0:
-            query['deposit'] = {"$gte": min_dep, "$lte": max_dep}
-        if max_rent > 0:
-            query['price'] = {"$gte": min_rent, "$lte": max_rent}
-
-    # 🔥 [추가] 상세 희망 조건 필터 적용
-    query = apply_detail_filters(query, selected_survey)
-
-    # -------------------------
-    # 점수순 정렬
-    # -------------------------
-    pipeline = build_match_pipeline(
-        query,
-        nw,
-        target_coords=target_coords,
-        limit=100000,   # 전체 정렬 후
-        is_random=False
-    )
-
-    # 첫 블록 (0~49)
-    pipeline.append({"$skip": 0})
-    pipeline.append({"$limit": 50})
+    pipeline = build_match_pipeline(query, nw, target_coords=selected_survey.get('target_coords'), limit=50)
     pipeline.append({"$sample": {"size": 12}})
-
-    recommendations = format_property_data(
-        list(houses_col.aggregate(pipeline))
-    )
-
-    # 현재 블록 정보 세션 저장
+    
+    recommendations = format_property_data(list(houses_col.aggregate(pipeline)))
     session['short_block'] = 0
-    session['seen_ids'] = [str(item['_id']) for item in recommendations]
     session.modified = True
 
-    return render_template(
-        'shorts.html',
-        recommendations=recommendations,
-        current_index=index
-    )
+    return render_template('shorts.html', recommendations=recommendations, current_index=index)
 
 @survey_bp.route('/survey/short/<int:index>/more')
 def survey_short_more(index):
-    if 'user_id' not in session:
-        return jsonify({"status": "error"}), 401
-
-    surveys = list(
-        db.survey_results.find({"user_id": session['user_id']})
-        .sort("created_at", -1)
-    )
-
-    if not surveys or index >= len(surveys):
-        return jsonify({"status": "error"}), 400
+    if 'user_id' not in session: return jsonify({"status": "error"}), 401
+    surveys = list(db.survey_results.find({"user_id": session['user_id']}).sort("created_at", -1))
+    if not surveys or index >= len(surveys): return jsonify({"status": "error"}), 400
 
     selected_survey = surveys[index]
-
     nw = get_user_normalized_weights(selected_survey.get('category_log', []))
-    target_coords = selected_survey.get('target_coords')
+    query = apply_detail_filters({}, selected_survey)
 
-    query = {}
-
-    loc = selected_survey.get('location')
-    if not target_coords and loc and loc != "상관없음":
-        query['address'] = {"$regex": loc}
-
-    c_type = selected_survey.get('contract_type')
-    target_rent_type = {"jeonse": "전세", "monthly": "월세"}.get(c_type, c_type)
-    if target_rent_type:
-        query['rent_type'] = target_rent_type
-
-    budget = selected_survey.get('budget', {})
-    min_dep, max_dep = budget.get('min_dep', 0), budget.get('max_dep', 0)
-    min_rent, max_rent = budget.get('min_rent', 0), budget.get('max_rent', 0)
-
-    if target_rent_type == "전세":
-        if max_dep > 0:
-            query['price'] = {"$gte": min_dep, "$lte": max_dep}
-    elif target_rent_type == "월세":
-        if max_dep > 0:
-            query['deposit'] = {"$gte": min_dep, "$lte": max_dep}
-        if max_rent > 0:
-            query['price'] = {"$gte": min_rent, "$lte": max_rent}
-
-    # 🔥 [추가] 상세 희망 조건 필터 적용
-    query = apply_detail_filters(query, selected_survey)
-
-    # 현재 블록 가져오기
-    current_block = session.get('short_block', 0)
-    next_block = current_block + 1
-
-    pipeline = build_match_pipeline(
-        query,
-        nw,
-        target_coords=target_coords,
-        limit=100000,
-        is_random=False
-    )
-
-    pipeline.append({"$skip": next_block * 50})
-    pipeline.append({"$limit": 50})
-    pipeline.append({"$sample": {"size": 12}})
-
+    next_block = session.get('short_block', 0) + 1
+    pipeline = build_match_pipeline(query, nw, target_coords=selected_survey.get('target_coords'), limit=100)
+    pipeline.extend([{"$skip": next_block * 12}, {"$limit": 12}])
+    
     new_items = list(houses_col.aggregate(pipeline))
-
-    if not new_items:
-        return jsonify({
-            "status": "success",
-            "items": [],
-            "has_more": False
-        })
+    if not new_items: return jsonify({"status": "success", "items": [], "has_more": False})
 
     session['short_block'] = next_block
     session.modified = True
-
-    return jsonify({
-        "status": "success",
-        "items": format_property_data(new_items),
-        "has_more": True
-    })
+    return jsonify({"status": "success", "items": format_property_data(new_items), "has_more": True})
