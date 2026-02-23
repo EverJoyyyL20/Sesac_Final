@@ -286,59 +286,152 @@ def survey_result(index):
 
 @survey_bp.route('/survey/short/<int:index>')
 def survey_short(index):
-    if 'user_id' not in session: return redirect(url_for('login'))
-    
-    selected_survey = db.survey_results.find_one({"user_id": session['user_id']}, sort=[("created_at", -1)])
-    if not selected_survey: return redirect('/mypage')
-    
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    surveys = list(
+        db.survey_results.find({"user_id": session['user_id']})
+        .sort("created_at", -1)
+    )
+
+    if not surveys or index >= len(surveys):
+        return redirect('/mypage')
+
+    selected_survey = surveys[index]
+
     nw = get_user_normalized_weights(selected_survey.get('category_log', []))
     target_coords = selected_survey.get('target_coords')
-    
-    # 숏츠는 전체 매물 중 라이프스타일에 맞는 것 12개 랜덤 추출
-    pipeline = build_match_pipeline({}, nw, target_coords=target_coords, limit=12, is_random=True)
-    recommendations = format_property_data(list(houses_col.aggregate(pipeline)))
-    
-    # 첫 로드 시 본 매물 ID 세션 저장
+
+    # -------------------------
+    # 기본 필터 구성
+    # -------------------------
+    query = {}
+
+    loc = selected_survey.get('location')
+    if not target_coords and loc and loc != "상관없음":
+        query['address'] = {"$regex": loc}
+
+    c_type = selected_survey.get('contract_type')
+    target_rent_type = {"jeonse": "전세", "monthly": "월세"}.get(c_type, c_type)
+    if target_rent_type:
+        query['rent_type'] = target_rent_type
+
+    budget = selected_survey.get('budget', {})
+    min_dep, max_dep = budget.get('min_dep', 0), budget.get('max_dep', 0)
+    min_rent, max_rent = budget.get('min_rent', 0), budget.get('max_rent', 0)
+
+    if target_rent_type == "전세":
+        if max_dep > 0:
+            query['price'] = {"$gte": min_dep, "$lte": max_dep}
+    elif target_rent_type == "월세":
+        if max_dep > 0:
+            query['deposit'] = {"$gte": min_dep, "$lte": max_dep}
+        if max_rent > 0:
+            query['price'] = {"$gte": min_rent, "$lte": max_rent}
+
+    # -------------------------
+    # 점수순 정렬
+    # -------------------------
+    pipeline = build_match_pipeline(
+        query,
+        nw,
+        target_coords=target_coords,
+        limit=100000,   # 전체 정렬 후
+        is_random=False
+    )
+
+    # 첫 블록 (0~49)
+    pipeline.append({"$skip": 0})
+    pipeline.append({"$limit": 50})
+    pipeline.append({"$sample": {"size": 12}})
+
+    recommendations = format_property_data(
+        list(houses_col.aggregate(pipeline))
+    )
+
+    # 현재 블록 정보 세션 저장
+    session['short_block'] = 0
     session['seen_ids'] = [str(item['_id']) for item in recommendations]
     session.modified = True
-    
-    return render_template('shorts.html', recommendations=recommendations, current_index=index)
+
+    return render_template(
+        'shorts.html',
+        recommendations=recommendations,
+        current_index=index
+    )
 
 @survey_bp.route('/survey/short/<int:index>/more')
 def survey_short_more(index):
-    if 'user_id' not in session: return jsonify({"status": "error"}), 401
-    
-    seen_ids = session.get('seen_ids', [])
-    selected_survey = db.survey_results.find_one({"user_id": session['user_id']}, sort=[("created_at", -1)])
+    if 'user_id' not in session:
+        return jsonify({"status": "error"}), 401
+
+    surveys = list(
+        db.survey_results.find({"user_id": session['user_id']})
+        .sort("created_at", -1)
+    )
+
+    if not surveys or index >= len(surveys):
+        return jsonify({"status": "error"}), 400
+
+    selected_survey = surveys[index]
+
     nw = get_user_normalized_weights(selected_survey.get('category_log', []))
     target_coords = selected_survey.get('target_coords')
-    
-    # 이미 본 매물 제외 쿼리
-    query = {"_id": {"$nin": [ObjectId(i) for i in seen_ids]}} if seen_ids else {}
-    
-    pipeline = build_match_pipeline(query, nw, target_coords=target_coords, limit=10, is_random=True)
-    new_items = list(houses_col.aggregate(pipeline))
-    
-    # 세션 업데이트
-    new_ids = [str(item['_id']) for item in new_items]
-    session['seen_ids'] = seen_ids + new_ids
-    session.modified = True
-    
-    return jsonify({
-        "status": "success", 
-        "items": format_property_data(new_items), 
-        "has_more": len(new_items) > 0
-    })
 
-@survey_bp.route('/survey/result/<string:survey_id>/expand')
-def expand_region(survey_id):
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    
-    # 지역 정보와 좌표 정보를 비워서 전국 검색으로 변경
-    db.survey_results.update_one(
-        {"_id": ObjectId(survey_id)},
-        {"$set": {"location": "", "target_coords": None}}
+    query = {}
+
+    loc = selected_survey.get('location')
+    if not target_coords and loc and loc != "상관없음":
+        query['address'] = {"$regex": loc}
+
+    c_type = selected_survey.get('contract_type')
+    target_rent_type = {"jeonse": "전세", "monthly": "월세"}.get(c_type, c_type)
+    if target_rent_type:
+        query['rent_type'] = target_rent_type
+
+    budget = selected_survey.get('budget', {})
+    min_dep, max_dep = budget.get('min_dep', 0), budget.get('max_dep', 0)
+    min_rent, max_rent = budget.get('min_rent', 0), budget.get('max_rent', 0)
+
+    if target_rent_type == "전세":
+        if max_dep > 0:
+            query['price'] = {"$gte": min_dep, "$lte": max_dep}
+    elif target_rent_type == "월세":
+        if max_dep > 0:
+            query['deposit'] = {"$gte": min_dep, "$lte": max_dep}
+        if max_rent > 0:
+            query['price'] = {"$gte": min_rent, "$lte": max_rent}
+
+    # 현재 블록 가져오기
+    current_block = session.get('short_block', 0)
+    next_block = current_block + 1
+
+    pipeline = build_match_pipeline(
+        query,
+        nw,
+        target_coords=target_coords,
+        limit=100000,
+        is_random=False
     )
-    
-    return redirect(url_for('survey.survey_result', index=0))
+
+    pipeline.append({"$skip": next_block * 50})
+    pipeline.append({"$limit": 50})
+    pipeline.append({"$sample": {"size": 12}})
+
+    new_items = list(houses_col.aggregate(pipeline))
+
+    if not new_items:
+        return jsonify({
+            "status": "success",
+            "items": [],
+            "has_more": False
+        })
+
+    session['short_block'] = next_block
+    session.modified = True
+
+    return jsonify({
+        "status": "success",
+        "items": format_property_data(new_items),
+        "has_more": True
+    })
