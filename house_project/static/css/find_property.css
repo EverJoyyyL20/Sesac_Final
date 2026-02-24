@@ -175,14 +175,14 @@ body, html {
     background: #fff; margin: 5vh auto; padding: 35px; border-radius: 32px;
     width: 90%; max-width: 440px; box-shadow: 0 30px 60px rgba(0,0,0,0.2);
     border: 1px solid rgba(255,255,255,0.8); animation: modalFadeIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    max-height: 90vh; display: flex; flex-direction: column; overflow: hidden;
+    height: 90vh; display: flex; flex-direction: column; overflow: hidden;
 }
 .modal-content h2 { font-weight: 900; color: #111; margin: 0 0 20px 0; font-size: 1.4rem; }
 
-.detail-slider-container { overflow: hidden; width: 100%; position: relative; flex: 1; }
+.detail-slider-container { overflow: hidden; width: 100%; position: relative; flex: 1; min-height: 0; }
 .detail-slider-wrapper { display: flex; transition: transform 0.3s ease-out; width: 200%; height: 100%; }
-.detail-page { min-width: 50%; width: 50%; box-sizing: border-box; overflow-y: auto; padding-right: 5px; }
-.detail-page::-webkit-scrollbar { width: 6px; }
+.detail-page { min-width: 50%; width: 50%; box-sizing: border-box; overflow-y: auto; padding-right: 5px; min-height: 0; overflow-x: hidden;  }
+.detail-page::-webkit-scrollbar { width: 6px; height: 6px;  /* 🔥 가로 (이게 핵심) */ }
 .detail-page::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
 
 /* ============================================================
@@ -210,7 +210,7 @@ body, html {
 /* ============================================================
    9. 텍스트 정보 및 모달 하단 버튼
    ============================================================ */
-.detail-row { font-size: 1rem; margin-bottom: 14px; color: #555; display: flex; align-items: center; }
+.detail-row { font-size: 1rem; margin-bottom: 14px; color: #555; display: flex; align-items: center; gap: 8px }
 .detail-row span { min-width: 85px; font-weight: 700; color: #888; }
 .detail-row b { color: #111; font-weight: 800; font-size: 1.1rem; }
 
