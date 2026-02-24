@@ -16,7 +16,12 @@
 
 <div class="navbar">
     <div class="nav-left">
-        <a href="{{ url_for('main.index') }}">메인페이지</a>
+        <a href="{{ url_for('main.index') }}" class="main-home-link">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 28px; height: 28px;">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                <circle cx="12" cy="13" r="2" fill="#4facfe" stroke="#4facfe"></circle>
+            </svg>
+        </a>
         <a href="{{ url_for('find.find') }}">매물찾기</a>
     </div>
     <div class="nav-links">
