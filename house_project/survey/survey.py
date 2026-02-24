@@ -348,39 +348,111 @@ def survey_result(index):
         total_count=total_count,
         user_chart_labels=user_chart_labels,
         user_chart_data=user_chart_data,
-        chart_keys=chart_keys
+        chart_keys=chart_keys,
+        index = index
     )
 
 # 🔥 [실시간 시뮬레이션용 API]
 @survey_bp.route('/survey/recalculate', methods=['POST'])
 def recalculate():
-    if 'user_id' not in session: return jsonify({"status": "error"}), 401
-    
-    data = request.get_json()
-    custom_weights = data.get('weights') # 프론트 슬라이더 값
-    survey_id = data.get('survey_id')
-    
-    selected_survey = db.survey_results.find_one({"_id": ObjectId(survey_id)})
-    if not selected_survey: return jsonify({"status": "error"}), 404
-    
-    # 1. 수정된 가중치로 정규화
-    nw = get_user_normalized_weights(None, custom_weights=custom_weights)
-    
-    # 2. 필터 조건 재구성 (필요 시 시뮬레이터에서 필터값도 보낼 수 있음)
-    query = {}
-    # ... (기존 query 구성 로직과 동일하게 필터 적용 가능) ...
-    query = apply_detail_filters(query, selected_survey)
-    
-    # 3. 다시 매칭 실행
-    pipeline = build_match_pipeline(query, nw, target_coords=selected_survey.get('target_coords'), limit=10)
-    matched_properties = format_property_data(list(houses_col.aggregate(pipeline)))
-    
-    return jsonify({
-        "status": "success",
-        "items": matched_properties
-    })
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"status": "error", "message": "No data"}), 400
+            
+        custom_weights = data.get('weights')
+        survey_id_raw = data.get('survey_id')
+        
+        # 1. 가중치 데이터 형식 검증 및 변환
+        keys = ["traffic", "convenience", "green", "play", "health", "living", "safety"]
+        nw = {}
+        
+        # 만약 custom_weights가 리스트([20, 10...])로 왔을 경우
+        if isinstance(custom_weights, list):
+            for i, key in enumerate(keys):
+                nw[key] = custom_weights[i] if i < len(custom_weights) else 0
+        # 만약 객체({'traffic': 20...})로 왔을 경우
+        elif isinstance(custom_weights, dict):
+            nw = {k: custom_weights.get(k, 0) for k in keys}
+        else:
+            return jsonify({"status": "error", "message": "Invalid weights format"}), 400
 
-# --- 쇼츠(Shorts) 라우터는 기존과 동일하게 유지하되 apply_detail_filters만 호출하도록 수정 ---
+        # 2. 사용자 및 설문 데이터 확인
+        if 'user_id' not in session:
+            return jsonify({"status": "error", "message": "Unauthorized"}), 401
+            
+        surveys = list(db.survey_results.find({"user_id": session['user_id']}).sort("created_at", -1))
+        
+        selected_survey = None
+        # ID가 인덱스(0, 1, 2...)인지 ObjectId인지 판단
+        if str(survey_id_raw).isdigit():
+            idx = int(survey_id_raw)
+            if idx < len(surveys):
+                selected_survey = surveys[idx]
+        else:
+            try:
+                selected_survey = db.survey_results.find_one({"_id": ObjectId(survey_id_raw)})
+            except:
+                # ObjectId 변환 실패 시 최신 설문 사용
+                if surveys: selected_survey = surveys[0]
+
+        if not selected_survey:
+            return jsonify({"status": "error", "message": "Survey not found"}), 404
+
+        # 3. 필터 및 매칭 로직 실행
+        # NW 정규화 (합계를 1로)
+        total_w = sum(nw.values())
+        if total_w > 0:
+            nw_norm = {k: v/total_w for k, v in nw.items()}
+        else:
+            nw_norm = {k: 1/7 for k in keys}
+
+        # 필터 수집 (JS에서 보낸 filters가 있다면 사용, 없으면 기존 설문 필터 사용)
+        client_filters = data.get('filters', {})
+        if client_filters:
+            # JS에서 보낸 실시간 필터 적용
+            query = apply_detail_filters({}, client_filters)
+            # 가격 필터 추가
+            c_type = client_filters.get('contract_type')
+            target_rent_type = {"jeonse": "전세", "monthly": "월세"}.get(c_type, c_type)
+            if target_rent_type: query['rent_type'] = target_rent_type
+            
+            min_dep = int(client_filters.get('min_dep') or 0)
+            max_dep = int(client_filters.get('max_dep') or 2000000000)
+            if target_rent_type == "전세":
+                query['price'] = {"$gte": min_dep, "$lte": max_dep}
+            else:
+                query['deposit'] = {"$gte": min_dep, "$lte": max_dep}
+                query['price'] = {"$gte": int(client_filters.get('min_rent') or 0), "$lte": int(client_filters.get('max_rent') or 10000000)}
+        else:
+            query = apply_detail_filters({}, selected_survey)
+
+        pipeline = build_match_pipeline(query, nw_norm, target_coords=selected_survey.get('target_coords'), limit=12)
+        matched_properties = format_property_data(list(houses_col.aggregate(pipeline)))
+
+        # --- 이 부분을 추가하세요 ---
+        # 실시간 조정 시에도 상위 3개 매물에 대해 AI 추천 사유 생성
+        for house in matched_properties[:3]:
+            # generate_recommendation_reason 함수를 호출하여 코멘트 생성
+            house['ai_comment'] = generate_recommendation_reason(nw_norm, house)
+        # --------------------------
+
+        # 유저 타입 계산
+        sorted_nw = sorted(nw_norm.items(), key=lambda x: x[1], reverse=True)
+        top2_keys = frozenset([sorted_nw[0][0], sorted_nw[1][0]])
+        user_type, user_type_desc = TYPE_MAP.get(top2_keys, ("맞춤형 분석가", "라이프스타일에 맞는 매물을 찾는 중입니다."))
+
+        return jsonify({
+            "status": "success",
+            "items": matched_properties,
+            "user_type": user_type,
+            "user_type_desc": user_type_desc
+        })
+    except Exception as e:
+        import traceback
+        print(f"❌ Recalculate Error: {str(e)}")
+        print(traceback.format_exc()) # 상세 에러 로그 출력
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 @survey_bp.route('/survey/short/<int:index>')
 def survey_short(index):
