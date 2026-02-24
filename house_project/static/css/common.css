@@ -15,6 +15,7 @@ body, html {
     width: 100%;
     display: flex;
     flex-direction: column;
+    overflow-y: overlay; /* 스크롤바가 없더라도 공간을 미리 확보하여 레이아웃 뒤틀림 방지 */
 }
 
 /* --- 2. 네비게이션 바 (완벽한 블랙 유리 질감) --- */
@@ -22,7 +23,7 @@ body, html {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px 5%; 
+    padding: 12px 5% !important; 
     width: 100%;
     /* 🔥 완전한 검정색 톤 베이스에 투명도를 부여 */
     background-color: rgba(0, 0, 0, 0.6); 
