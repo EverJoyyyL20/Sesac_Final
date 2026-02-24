@@ -355,7 +355,7 @@
         fetch(`/api/property/${id}`).then(res => res.json()).then(prop => {
             window.currentSelectedProp = prop;
             
-            ('info');
+            switchTab('info');
 
             const favBtn = document.getElementById('favoriteBtn');
             favBtn.innerText = prop.is_favorite ? '💔 찜 취소' : '❤️ 찜하기';
