@@ -198,18 +198,25 @@ def get_properties():
     rent_type = request.args.get('type')
     if rent_type: query["rent_type"] = rent_type
 
-    # 다중 방 개수 필터 로직
+    # 다중 방 개수 필터 로직 (room_counts 필드 기준 검색으로 수정됨)
     rooms_param = request.args.get('rooms')
     if rooms_param:
         room_list = rooms_param.split(',')
-        search_rooms = []
+        room_conditions = []
         for r in room_list:
-            if r == '쓰리룸+':
-                search_rooms.extend(['쓰리룸', '포룸', '아파트', '빌라'])
-            else:
-                search_rooms.append(r)
-        if search_rooms:
-            query["buildingUse"] = {"$in": search_rooms}
+            # 💡 핵심 수정 1: URL 통신 중 '+' 기호가 공백(' ')으로 치환되는 현상 방지
+            r = r.strip()
+            
+            if r == '원룸':
+                room_conditions.append({"room_counts": "1개"})
+            elif r == '투룸':
+                room_conditions.append({"room_counts": "2개"})
+            elif r in ['쓰리룸+', '쓰리룸']:
+                # 💡 핵심 수정 2: '3', '3개', '4개' 등 3 이상의 숫자가 포함된 모든 데이터를 확실하게 잡아내는 유연한 정규식
+                room_conditions.append({"room_counts": {"$regex": "[3-9]|[1-9][0-9]"}})
+        
+        if room_conditions:
+            query.setdefault("$and", []).append({"$or": room_conditions})
 
     # 🔥 [수정된 부분] 전세/월세에 따른 가격/보증금 필터 동적 할당
     min_dep = request.args.get('min_deposit', type=int)
