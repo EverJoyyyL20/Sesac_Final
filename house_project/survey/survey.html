@@ -9,9 +9,6 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/survey.css') }}">
     <style>
-        /* 🔥 [수정] common.css의 디자인을 방해하던 .navbar 관련 스타일 삭제 */
-
-        /* [설문 카드 애니메이션] */
         #loading-screen { display: none; text-align: center; padding: 50px 20px; }
         .q-card { display: none; }
         .q-card.active { display: block; animation: fadeIn 0.5s ease; }
@@ -26,7 +23,6 @@
         .back-btn { background: #eee; color: #666; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; transition: 0.3s; padding: 10px; }
         .back-btn:hover { background: #e0e0e0; }
 
-        /* [지도 관련 스타일] */
         #map-selection-area { display: none; margin-top: 20px; width: 100%; }
         #map-container { width: 100%; height: 350px; border-radius: 15px; border: 1px solid #ddd; margin: 15px 0; position: relative; overflow: hidden; }
         #map { width: 100%; height: 100%; }
@@ -43,8 +39,6 @@
             font-size: 0.9rem; cursor: pointer; margin-top: 10px; transition: color 0.3s;
         }
         .skip-btn:hover { color: #888; }
-        
-        /* 상세 조건용 그룹 여백 */
         .detail-q-group { margin-bottom: 25px; text-align: left; }
     </style>
 </head>
@@ -235,7 +229,7 @@
         location: "", 
         target_coords: { lat: 0, lng: 0 },
         contract_type: "", 
-        budget: { min_dep: 0, max_dep: 0, min_rent: 0, max_rent: 0 },
+        budget: { min_dep: null, max_dep: null, min_rent: null, max_rent: null },
         building_type: [],
         building_age: [],
         room_count: [],
@@ -334,16 +328,18 @@
         document.getElementById('jeonse-area').style.display = (type === 'jeonse') ? 'block' : 'none';
     }
 
+    // 🔥 [핵심수정] 값이 입력되지 않았을 경우 강제로 0을 넣지 않고 빈값(Null) 그대로 전달
     function validateStep1() {
         if (!surveyResults.contract_type) { alert("계약 형태를 선택해주세요!"); return; }
+        
         if (surveyResults.contract_type === 'monthly') {
-            surveyResults.budget.min_dep = document.getElementById('m_dep_min').value || 0;
-            surveyResults.budget.max_dep = document.getElementById('m_dep_max').value || 0;
-            surveyResults.budget.min_rent = document.getElementById('m_rent_min').value || 0;
-            surveyResults.budget.max_rent = document.getElementById('m_rent_max').value || 0;
+            surveyResults.budget.min_dep = document.getElementById('m_dep_min').value;
+            surveyResults.budget.max_dep = document.getElementById('m_dep_max').value;
+            surveyResults.budget.min_rent = document.getElementById('m_rent_min').value;
+            surveyResults.budget.max_rent = document.getElementById('m_rent_max').value;
         } else {
-            surveyResults.budget.min_dep = document.getElementById('j_dep_min').value || 0;
-            surveyResults.budget.max_dep = document.getElementById('j_dep_max').value || 0;
+            surveyResults.budget.min_dep = document.getElementById('j_dep_min').value;
+            surveyResults.budget.max_dep = document.getElementById('j_dep_max').value;
         }
         nextStep(2); 
     }

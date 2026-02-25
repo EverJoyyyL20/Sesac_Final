@@ -7,6 +7,7 @@ import os
 from dotenv import load_dotenv 
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import PromptTemplate
+import concurrent.futures
 
 load_dotenv(override=True)
 
@@ -23,7 +24,6 @@ except Exception as e:
 
 survey_bp = Blueprint('survey', __name__, template_folder='.')
 
-# DB 카테고리 키와 한글 명칭 매핑 (7개 지표로 통일)
 category_map = {
     "traffic": "교통", "convenience": "편의", "green": "녹지",
     "play": "놀이", "health": "건강", "living": "생활", "safety": "안전"
@@ -54,47 +54,87 @@ TYPE_MAP = {
 }
 
 # ------------------------------------------------------------------
-# 유틸리티 함수
+# DB 실제 데이터를 활용한 완벽한 프라이빗 브리핑 생성
 # ------------------------------------------------------------------
-
-def generate_recommendation_reason(user_weights, house_info):
-    # 가중치가 높은 상위 2개 카테고리 추출
-    sorted_weights = sorted(user_weights.items(), key=lambda x: x[1], reverse=True)
-    top_interests = [f"{category_map.get(k, k)}" for k, v in sorted_weights[:2]]
+def generate_recommendation_reason(user_id, nw, house_info):
+    user_doc = db.user.find_one({"email": user_id})
+    actual_weight = user_doc.get("Weight", nw) if user_doc else nw
     
-    # 매물의 강점 점수 추출 (category_scores 필드 사용)
+    sorted_weights = sorted(actual_weight.items(), key=lambda x: x[1], reverse=True)
+    top_interests = [f"{category_map.get(k, k)}({int(float(v)*100)}%)" for k, v in sorted_weights[:2]]
+    
     scores = house_info.get('category_scores', {})
-    sorted_scores = sorted(scores.items(), key=lambda x: x[1], reverse=True)
-    top_strengths = [f"{category_map.get(k.lower(), k)}({int(v*100)}점)" for k, v in sorted_scores[:2]]
+    all_scores = [f"{category_map.get(k.lower(), k)} {int(float(v)*100)}점" for k, v in scores.items() if float(v) > 0]
+    
+    lng, lat = None, None
+    if 'location' in house_info and 'coordinates' in house_info['location']:
+        coords = house_info['location']['coordinates']
+        if len(coords) == 2:
+            lng, lat = coords[0], coords[1]
+    
+    nearby_infra_names = []
+    if lat is not None and lng is not None:
+        try:
+            infra_cursor = db.infra.aggregate([
+                {
+                    "$geoNear": {
+                        "near": { "type": "Point", "coordinates": [float(lng), float(lat)] },
+                        "distanceField": "dist",
+                        "maxDistance": 1000, 
+                        "spherical": True
+                    }
+                },
+                { "$limit": 6 } 
+            ])
+            for doc in infra_cursor:
+                name = doc.get('name')
+                cat = doc.get('category', '')
+                cat_kr = category_map.get(cat, cat)
+                if name: nearby_infra_names.append(f"{name}({cat_kr})")
+        except Exception as e:
+            pass
+
+    infra_str = ", ".join(list(set(nearby_infra_names))) if nearby_infra_names else "훌륭한 지역 상권 및 인프라"
 
     template = """
-    당신은 전문 부동산 컨설턴트입니다. 사용자의 선호도와 매물 데이터를 분석하여 추천 이유를 작성하세요.
-    [사용자 선호] 중요 가치: {top_interests}
-    [매물 정보] 주소: {address}, 가격: {price}, 핵심 강점: {top_strengths}
-    가이드: 한 문장(80자 이내), "~하기 때문에 딱 맞는 매물입니다" 말투 사용.
+    당신은 상위 1% VIP를 전담하는 수석 부동산 큐레이터입니다.
+    고객의 최우선 가중치, 매물의 실제 지표 점수, 그리고 매물 1km 이내의 실제 인프라 시설을 종합하여 이 매물을 강력히 추천하는 '심층 브리핑'을 작성해주세요.
+
+    [고객 분석 데이터] 최우선 선호 지표: {top_interests}
+    [추천 매물 데이터] 주소: {address}, 가격: {price}
+    [매물 평가 점수] {all_scores}
+    [매물 주변 실제 인프라] {infra_str}
+
+    [작성 가이드]
+    1. 분량: 반드시 3~4개의 문단으로 구성된 긴 호흡의 글 (약 350~450자 분량)을 작성하세요. 절대 짧게 쓰지 마세요.
+    2. 내용 구성:
+       - 첫 문단: 고객의 '{top_interests}' 성향을 언급하며 이 매물이 왜 완벽한 맞춤형 공간인지 총평하세요.
+       - 두 번째 문단: [매물 평가 점수]에 명시된 구체적인 '점수 숫자'를 1~2개 언급하며 객관적인 강점을 논리적으로 어필하세요.
+       - 세 번째 문단: [매물 주변 실제 인프라]에 나열된 장소 이름들(예: 특정 공원, 식당, 병원명 등)을 직접 언급하며, 이곳에 살면 어떤 프리미엄 일상을 누릴 수 있는지 시각적으로 묘사하세요.
+    3. 톤앤매너: 5성급 호텔 컨시어지나 프라이빗 뱅커(PB)처럼 극도로 정중하고, 세련되며, 확신에 찬 어조를 사용하세요. (~입니다, ~누리실 수 있습니다)
+    4. 제약사항: 문장 첫머리나 끝에 마크다운(```)이나 HTML 태그를 절대 넣지 마세요. 자연스러운 엔터(줄바꿈)만 사용하여 문단을 구분하세요.
     """
     prompt = PromptTemplate.from_template(template)
     chain = prompt | llm
+    
     try:
         response = chain.invoke({
             "top_interests": ", ".join(top_interests),
             "address": house_info['address'],
             "price": house_info['price_display'],
-            "top_strengths": ", ".join(top_strengths)
+            "all_scores": ", ".join(all_scores),
+            "infra_str": infra_str
         })
-        return response.content
-    except:
-        return "라이프스타일 분석 결과, 고객님께 가장 가치 있는 매물로 선정되었습니다!"
+        return response.content.replace("```", "").strip()
+    except Exception as e:
+        return "고객님의 라이프스타일 지표와 주변 인프라를 종합적으로 분석한 결과, 가장 추천해 드리는 맞춤형 매물입니다."
 
 def get_user_normalized_weights(category_log, custom_weights=None):
     if custom_weights:
-        # 프론트에서 보낸 {'traffic': 20, 'living': 15 ...} 형태 처리
         w_sum = sum(custom_weights.values())
         if w_sum == 0: return {k: 1/7 for k in category_map.keys()}
-        # 합계가 1이 되도록 정규화
         return {k: float(v) / w_sum for k, v in custom_weights.items()}
 
-    # 설문 로그 기반 가중치 계산 (기존 로직)
     total_counts = {'traffic': 6, 'convenience': 10, 'green': 7, 'play': 6, 'health': 6, 'living': 13, 'safety': 10}
     log_counts = Counter(category_log)
     user_weights = {cat: ((log_counts.get(cat, 0) + 1) / total_counts[cat]) for cat in total_counts}
@@ -105,10 +145,8 @@ def format_property_data(houses):
     for h in houses:
         h['_id_str'] = str(h['_id'])
         rt, p = h.get('rent_type'), h.get('price', 0)
-        # 가격 표시 변환
         h['price_display'] = f"{p}" if rt == "전세" else f"{h.get('deposit',0)}/{p}"
         
-        # 이미지 처리
         raw_imgs = h.get('images', [])
         processed_imgs = [img + ('&w=800' if '?' in img else '?w=800') for img in raw_imgs]
         if not processed_imgs:
@@ -116,14 +154,12 @@ def format_property_data(houses):
         h['images'] = processed_imgs
         h['main_image'] = processed_imgs[0]
         
-        # 차트용 데이터 (7각형 순서: 교통, 편의, 녹지, 놀이, 건강, 생활, 안전)
         scores = h.get('category_scores', {})
         h['chart_data'] = [round(scores.get(c, 0) * 100, 1) for c in ['traffic', 'convenience', 'green', 'play', 'health', 'living', 'safety']]
     return houses
 
 def build_match_pipeline(match_query, nw, target_coords=None, limit=10, is_random=False):
     pipeline = []
-    # 라이프스타일 가중치 계산 식 (7개 지표 합산)
     lifestyle_score_expr = {"$add": [{"$multiply": [{"$ifNull": [f"$category_scores.{c}", 0]}, nw[c]]} for c in nw]}
 
     if target_coords and 'lng' in target_coords and 'lat' in target_coords and float(target_coords['lat']) != 0:
@@ -138,7 +174,6 @@ def build_match_pipeline(match_query, nw, target_coords=None, limit=10, is_rando
                 "query": match_query
             }
         })
-        # 5km 이내 가산점
         dist_score_expr = {"$divide": [{"$max": [0, {"$subtract": [5000, "$distance_meters"]}]}, 50]}
         final_score_expr = {
             "$add": [
@@ -166,7 +201,6 @@ def build_match_pipeline(match_query, nw, target_coords=None, limit=10, is_rando
     return pipeline
 
 def apply_detail_filters(query, selected_survey):
-    # 1. 희망하는 건물 연식
     b_age = selected_survey.get('building_age', [])
     if b_age:
         current_year = datetime.now().year
@@ -184,7 +218,6 @@ def apply_detail_filters(query, selected_survey):
         if age_conditions:
             query.setdefault("$and", []).append({"$or": age_conditions})
 
-    # 2. 희망하는 방 개수
     r_count = selected_survey.get('room_count', [])
     if r_count:
         room_conditions = []
@@ -196,17 +229,16 @@ def apply_detail_filters(query, selected_survey):
         if room_conditions:
             query.setdefault("$and", []).append({"$or": room_conditions})
 
-    # 3. 반지하/옥탑방 제외
     s_room = selected_survey.get('special_room', "")
     if "피하고 싶어요" in s_room:
         query["floor"] = {"$not": {"$regex": "반지하|([0-9]+)\\s*[/중]\\s*\\1(?:[^0-9]|$)"}}
 
-    # 4. 주차장 유무
     park = selected_survey.get('parking', "")
     if "필요해요" in park:
         query["hasParking"] = {"$ne": "주차 불가능"}
 
     return query
+
 
 # ------------------------------------------------------------------
 # 라우트 핸들러
@@ -238,7 +270,14 @@ def save_survey():
 
     user_id = session['user_id']
     data = request.get_json() 
+    
+    # 🔥 [수정] 빈칸으로 넘어온 경우 강제로 엄청난 숫자를 채우지 않고 None으로 깔끔하게 처리
     budget_raw = data.get('budget', {})
+    def parse_budget(val):
+        try:
+            if val is None or str(val).strip() == "": return None
+            return int(val)
+        except: return None
     
     new_survey = {
         "user_id": user_id,
@@ -246,10 +285,10 @@ def save_survey():
         "target_coords": data.get('target_coords'),
         "contract_type": data.get('contract_type', ""),
         "budget": {
-            "min_dep": int(budget_raw.get('min_dep', 0) or 0),
-            "max_dep": int(budget_raw.get('max_dep', 0) or 2000000000), # 최대값 없을 시 크게 잡음
-            "min_rent": int(budget_raw.get('min_rent', 0) or 0),
-            "max_rent": int(budget_raw.get('max_rent', 0) or 10000000)
+            "min_dep": parse_budget(budget_raw.get('min_dep')),
+            "max_dep": parse_budget(budget_raw.get('max_dep')),
+            "min_rent": parse_budget(budget_raw.get('min_rent')),
+            "max_rent": parse_budget(budget_raw.get('max_rent'))
         },
         "building_type": data.get('building_type', []),
         "building_age": data.get('building_age', []),
@@ -283,14 +322,20 @@ def survey_result(index):
     
     nw = get_user_normalized_weights(selected_survey.get('category_log', []))
     top2 = sorted(nw.items(), key=lambda x: x[1], reverse=True)[:2]
-    user_type, user_type_desc = TYPE_MAP.get(frozenset([top2[0][0], top2[1][0]]), ("기본형", "당신에게 꼭 맞는 매물을 찾고 있어요."))
+    top2_keys = [top2[0][0], top2[1][0]]
+    user_type, user_type_desc = TYPE_MAP.get(frozenset(top2_keys), ("기본형", "당신에게 꼭 맞는 매물을 찾고 있어요."))
 
-    # 7각형 차트용 (항목 7개로 확장)
     chart_keys = ['traffic', 'convenience', 'green', 'play', 'health', 'living', 'safety']
     user_chart_labels = ['교통', '편의', '녹지', '놀이', '건강', '생활', '안전']
     user_chart_data = [round(nw.get(k, 0) * 100, 1) for k in chart_keys]
 
-    # 필터 쿼리 구성
+    is_updated = False
+    detailed_analysis = selected_survey.get('lifestyle_report')
+    if not detailed_analysis:
+        detailed_analysis = generate_sandbox_lifestyle_analysis(nw, top2_keys)
+        db.survey_results.update_one({"_id": survey_id}, {"$set": {"lifestyle_report": detailed_analysis}})
+        is_updated = True
+
     query = {}
     target_coords = selected_survey.get('target_coords')
     loc = selected_survey.get('location')
@@ -302,14 +347,29 @@ def survey_result(index):
     if target_rent_type: query['rent_type'] = target_rent_type
     
     budget = selected_survey.get('budget', {})
-    min_dep, max_dep = budget.get('min_dep', 0), budget.get('max_dep', 0)
-    min_rent, max_rent = budget.get('min_rent', 0), budget.get('max_rent', 0)
+    min_dep, max_dep = budget.get('min_dep'), budget.get('max_dep')
+    min_rent, max_rent = budget.get('min_rent'), budget.get('max_rent')
 
+    # 과거에 저장된 20억 데이터 호환성 보정
+    if max_dep == 2000000000: max_dep = None
+    if max_rent == 10000000: max_rent = None
+
+    # 🔥 [수정] 값이 있을 때만 필터 조건에 넣도록 개선
     if target_rent_type == "전세":
-        if max_dep > 0: query['price'] = {"$gte": min_dep, "$lte": max_dep}
+        price_q = {}
+        if min_dep is not None: price_q["$gte"] = min_dep
+        if max_dep is not None: price_q["$lte"] = max_dep
+        if price_q: query['price'] = price_q
     elif target_rent_type == "월세":
-        if max_dep > 0: query['deposit'] = {"$gte": min_dep, "$lte": max_dep}
-        if max_rent > 0: query['price'] = {"$gte": min_rent, "$lte": max_rent}
+        dep_q = {}
+        if min_dep is not None: dep_q["$gte"] = min_dep
+        if max_dep is not None: dep_q["$lte"] = max_dep
+        if dep_q: query['deposit'] = dep_q
+        
+        rent_q = {}
+        if min_rent is not None: rent_q["$gte"] = min_rent
+        if max_rent is not None: rent_q["$lte"] = max_rent
+        if rent_q: query['price'] = rent_q
 
     query = apply_detail_filters(query, selected_survey)
 
@@ -317,24 +377,29 @@ def survey_result(index):
     pipeline = build_match_pipeline(query, nw, target_coords=target_coords, limit=10)
     matched_properties = format_property_data(list(houses_col.aggregate(pipeline)))
 
-    # AI 코멘트 캐싱 로직
     top_3 = matched_properties[:3]
     others = matched_properties[3:]
-    saved_comments = selected_survey.get('ai_comments', {})
-    is_updated = False
+    saved_comments = selected_survey.get('ai_comments_v2', {})
 
-    for house in top_3:
-        h_id = house['_id_str']
-        if h_id in saved_comments:
-            house['ai_comment'] = saved_comments[h_id]
-        else:
-            new_comment = generate_recommendation_reason(nw, house)
-            house['ai_comment'] = new_comment
-            saved_comments[h_id] = new_comment
-            is_updated = True
+    futures = {}
+    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+        for house in top_3:
+            h_id = house['_id_str']
+            if h_id in saved_comments:
+                house['ai_comment'] = saved_comments[h_id]
+            else:
+                futures[h_id] = executor.submit(generate_recommendation_reason, user_id, nw, house)
+        
+        for house in top_3:
+            h_id = house['_id_str']
+            if h_id in futures:
+                new_comment = futures[h_id].result()
+                house['ai_comment'] = new_comment
+                saved_comments[h_id] = new_comment
+                is_updated = True
 
     if is_updated:
-        db.survey_results.update_one({"_id": survey_id}, {"$set": {"ai_comments": saved_comments}})
+        db.survey_results.update_one({"_id": survey_id}, {"$set": {"ai_comments_v2": saved_comments}})
     
     return render_template(
         'result.html', 
@@ -349,10 +414,10 @@ def survey_result(index):
         user_chart_labels=user_chart_labels,
         user_chart_data=user_chart_data,
         chart_keys=chart_keys,
+        detailed_analysis=detailed_analysis,
         index = index
     )
 
-# 🔥 [실시간 시뮬레이션용 API]
 @survey_bp.route('/survey/recalculate', methods=['POST'])
 def recalculate():
     try:
@@ -363,28 +428,23 @@ def recalculate():
         custom_weights = data.get('weights')
         survey_id_raw = data.get('survey_id')
         
-        # 1. 가중치 데이터 형식 검증 및 변환
         keys = ["traffic", "convenience", "green", "play", "health", "living", "safety"]
         nw = {}
         
-        # 만약 custom_weights가 리스트([20, 10...])로 왔을 경우
         if isinstance(custom_weights, list):
             for i, key in enumerate(keys):
                 nw[key] = custom_weights[i] if i < len(custom_weights) else 0
-        # 만약 객체({'traffic': 20...})로 왔을 경우
         elif isinstance(custom_weights, dict):
             nw = {k: custom_weights.get(k, 0) for k in keys}
         else:
             return jsonify({"status": "error", "message": "Invalid weights format"}), 400
 
-        # 2. 사용자 및 설문 데이터 확인
         if 'user_id' not in session:
             return jsonify({"status": "error", "message": "Unauthorized"}), 401
             
         surveys = list(db.survey_results.find({"user_id": session['user_id']}).sort("created_at", -1))
         
         selected_survey = None
-        # ID가 인덱스(0, 1, 2...)인지 ObjectId인지 판단
         if str(survey_id_raw).isdigit():
             idx = int(survey_id_raw)
             if idx < len(surveys):
@@ -393,51 +453,65 @@ def recalculate():
             try:
                 selected_survey = db.survey_results.find_one({"_id": ObjectId(survey_id_raw)})
             except:
-                # ObjectId 변환 실패 시 최신 설문 사용
                 if surveys: selected_survey = surveys[0]
 
         if not selected_survey:
             return jsonify({"status": "error", "message": "Survey not found"}), 404
 
-        # 3. 필터 및 매칭 로직 실행
-        # NW 정규화 (합계를 1로)
         total_w = sum(nw.values())
         if total_w > 0:
             nw_norm = {k: v/total_w for k, v in nw.items()}
         else:
             nw_norm = {k: 1/7 for k in keys}
 
-        # 필터 수집 (JS에서 보낸 filters가 있다면 사용, 없으면 기존 설문 필터 사용)
         client_filters = data.get('filters', {})
         if client_filters:
-            # JS에서 보낸 실시간 필터 적용
             query = apply_detail_filters({}, client_filters)
-            # 가격 필터 추가
             c_type = client_filters.get('contract_type')
             target_rent_type = {"jeonse": "전세", "monthly": "월세"}.get(c_type, c_type)
             if target_rent_type: query['rent_type'] = target_rent_type
             
-            min_dep = int(client_filters.get('min_dep') or 0)
-            max_dep = int(client_filters.get('max_dep') or 2000000000)
+            def parse_filter_val(val):
+                if val is None or str(val).strip() == "": return None
+                try: return int(val)
+                except: return None
+
+            min_dep = parse_filter_val(client_filters.get('min_dep'))
+            max_dep = parse_filter_val(client_filters.get('max_dep'))
+
             if target_rent_type == "전세":
-                query['price'] = {"$gte": min_dep, "$lte": max_dep}
+                price_q = {}
+                if min_dep is not None: price_q["$gte"] = min_dep
+                if max_dep is not None: price_q["$lte"] = max_dep
+                if price_q: query['price'] = price_q
             else:
-                query['deposit'] = {"$gte": min_dep, "$lte": max_dep}
-                query['price'] = {"$gte": int(client_filters.get('min_rent') or 0), "$lte": int(client_filters.get('max_rent') or 10000000)}
+                dep_q = {}
+                if min_dep is not None: dep_q["$gte"] = min_dep
+                if max_dep is not None: dep_q["$lte"] = max_dep
+                if dep_q: query['deposit'] = dep_q
+                
+                min_rent = parse_filter_val(client_filters.get('min_rent'))
+                max_rent = parse_filter_val(client_filters.get('max_rent'))
+                rent_q = {}
+                if min_rent is not None: rent_q["$gte"] = min_rent
+                if max_rent is not None: rent_q["$lte"] = max_rent
+                if rent_q: query['price'] = rent_q
         else:
             query = apply_detail_filters({}, selected_survey)
 
         pipeline = build_match_pipeline(query, nw_norm, target_coords=selected_survey.get('target_coords'), limit=12)
         matched_properties = format_property_data(list(houses_col.aggregate(pipeline)))
 
-        # --- 이 부분을 추가하세요 ---
-        # 실시간 조정 시에도 상위 3개 매물에 대해 AI 추천 사유 생성
-        for house in matched_properties[:3]:
-            # generate_recommendation_reason 함수를 호출하여 코멘트 생성
-            house['ai_comment'] = generate_recommendation_reason(nw_norm, house)
-        # --------------------------
+        futures_recalc = {}
+        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+            for house in matched_properties[:3]:
+                h_id = house['_id_str']
+                futures_recalc[h_id] = executor.submit(generate_recommendation_reason, session['user_id'], nw_norm, house)
+            
+            for house in matched_properties[:3]:
+                h_id = house['_id_str']
+                house['ai_comment'] = futures_recalc[h_id].result()
 
-        # 유저 타입 계산
         sorted_nw = sorted(nw_norm.items(), key=lambda x: x[1], reverse=True)
         top2_keys = frozenset([sorted_nw[0][0], sorted_nw[1][0]])
         user_type, user_type_desc = TYPE_MAP.get(top2_keys, ("맞춤형 분석가", "라이프스타일에 맞는 매물을 찾는 중입니다."))
@@ -451,7 +525,7 @@ def recalculate():
     except Exception as e:
         import traceback
         print(f"❌ Recalculate Error: {str(e)}")
-        print(traceback.format_exc()) # 상세 에러 로그 출력
+        print(traceback.format_exc()) 
         return jsonify({"status": "error", "message": str(e)}), 500
 
 @survey_bp.route('/survey/short/<int:index>')
@@ -462,7 +536,7 @@ def survey_short(index):
     
     selected_survey = surveys[index]
     nw = get_user_normalized_weights(selected_survey.get('category_log', []))
-    query = apply_detail_filters({}, selected_survey) # 기본 필터 적용
+    query = apply_detail_filters({}, selected_survey) 
 
     pipeline = build_match_pipeline(query, nw, target_coords=selected_survey.get('target_coords'), limit=50)
     pipeline.append({"$sample": {"size": 12}})
@@ -493,3 +567,87 @@ def survey_short_more(index):
     session['short_block'] = next_block
     session.modified = True
     return jsonify({"status": "success", "items": format_property_data(new_items), "has_more": True})
+
+def generate_sandbox_lifestyle_analysis(nw_weights, top2_keys):
+    weight_pct = {category_map[k]: f"{v*100:.1f}%" for k, v in nw_weights.items()}
+    top_names = [category_map[k] for k in top2_keys]
+
+    template = """
+    당신은 상위 1% VIP를 전담하는 프리미엄 공간 큐레이터이자 수석 라이프스타일 애널리스트입니다.
+    고객의 설문조사 결과(가중치)를 바탕으로, 기계적인 보고서가 아닌 '프라이빗 매거진' 스타일의 1:1 맞춤형 공간 큐레이션 브리핑을 작성해주세요.
+
+    [고객 데이터]
+    - 최우선 핵심 가치 2가지: {top_names}
+    - 7대 지표별 세부 가중치: {weight_pct}
+
+    [작성 가이드 및 HTML 구조]
+    반드시 아래 제공된 HTML 태그 구조를 그대로 사용하여 내용만 채워주세요. (CSS 클래스가 미리 세팅되어 있습니다.)
+
+    <div class="report-header">
+        <h2 class="title">고객님의 라이프스타일 페르소나</h2>
+        <p class="summary">
+            </p>
+    </div>
+
+    <div class="report-body">
+        <h3 class="section-title"><i class="fa-solid fa-magnifying-glass-chart"></i> 데이터로 읽어낸 3대 핵심 니즈</h3>
+        
+        <div class="insight-card">
+            <div class="insight-header">
+                <span class="badge">1순위 지표명 (예: 교통)</span>
+                <span class="weight-text">00.0%</span>
+            </div>
+            <p class="insight-desc">
+                </p>
+        </div>
+    </div>
+
+    <div class="report-footer">
+        <h3 class="section-title"><i class="fa-solid fa-location-dot"></i> 수석 큐레이터의 핀포인트 추천 지역</h3>
+        <div class="curation-box">
+            <h4 class="dong-name"></h4>
+            <p class="dong-desc">
+                </p>
+            <ul class="dong-points">
+                <li>장점 1</li>
+                <li>장점 2</li>
+                <li>장점 3</li>
+            </ul>
+        </div>
+    </div>
+
+    [말투 및 제약 조건]
+    - 톤앤매너: 5성급 호텔 컨시어지나 프라이빗 뱅커(PB)처럼 극도로 정중하고, 세련되며, 신뢰감 있는 전문가의 말투를 사용하세요. (~입니다, ~하시군요)
+    - 🔥 치명적 제약: 당신의 응답은 웹페이지의 HTML 안에 바로 삽입됩니다. 따라서 답변의 맨 처음과 맨 끝에 ```html, ``` 같은 마크다운 코드블럭 기호나 부연 설명을 절대 붙이지 마세요. 오직 순수한 HTML 텍스트만 출력해야 합니다.
+    """
+    
+    prompt = PromptTemplate.from_template(template)
+    chain = prompt | llm
+    
+    try:
+        response = chain.invoke({
+            "top_names": ", ".join(top_names),
+            "weight_pct": str(weight_pct)
+        })
+        clean_html = response.content.replace("```html", "").replace("```", "").strip()
+        return clean_html
+    except Exception as e:
+        print(f"Sandbox LLM Analysis Error: {e}")
+        return "<p>라이프스타일 분석을 불러오는 중 오류가 발생했습니다.</p>"
+
+@survey_bp.route('/survey/prompt_test/<int:index>')
+def survey_prompt_sandbox(index):
+    if 'user_id' not in session: return redirect(url_for('login'))
+    user_id = session['user_id']
+    surveys = list(db.survey_results.find({"user_id": user_id}).sort("created_at", -1))
+    if not surveys or index >= len(surveys): return "설문 결과가 없습니다.", 404
+    selected_survey = surveys[index]
+    nw = get_user_normalized_weights(selected_survey.get('category_log', []))
+    sorted_nw = sorted(nw.items(), key=lambda x: x[1], reverse=True)
+    top2_keys = [sorted_nw[0][0], sorted_nw[1][0]]
+    user_type, user_type_desc = TYPE_MAP.get(frozenset(top2_keys), ("✨ 맞춤형 라이프", "당신만의 특별한 매물을 찾고 있어요."))
+    chart_keys = ['traffic', 'convenience', 'green', 'play', 'health', 'living', 'safety']
+    user_chart_labels = ['교통', '편의', '녹지', '놀이', '건강', '생활', '안전']
+    user_chart_data = [round(nw.get(k, 0) * 100, 1) for k in chart_keys]
+    detailed_analysis = generate_sandbox_lifestyle_analysis(nw, top2_keys)
+    return render_template('prompt_test.html', user_type=user_type, user_type_desc=user_type_desc, detailed_analysis=detailed_analysis, user_chart_labels=user_chart_labels, user_chart_data=user_chart_data)

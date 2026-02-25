@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="referrer" content="no-referrer">
-    <title>라이프스타일 매칭 결과 | 시뮬레이터</title>
+    <title>라이프스타일 매칭 결과 | ZIPMATCH</title>
     
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'/%3E%3Ccircle cx='12' cy='13' r='2' fill='%234facfe' stroke='%234facfe'/%3E%3C/svg%3E">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -13,79 +13,18 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
-
-        /* 하단 플로팅 내비게이션 바 */
-        .floating-nav {
-            position: fixed;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            z-index: 5000; /* 최상단 배치 */
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(10px);
-            padding: 10px 25px;
-            border-radius: 50px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-            border: 1px solid rgba(255,255,255,0.5);
-        }
-
-        .nav-btn {
-            border: none;
-            padding: 12px 25px;
-            border-radius: 30px;
-            font-weight: 800;
-            cursor: pointer;
-            transition: 0.3s;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 0.95rem;
-        }
-
-        /* 이전 버튼 */
-        .btn-prev {
-            background: #f1f2f6;
-            color: #555;
-        }
-        .btn-prev:hover { background: #dfe4ea; }
-
-        /* 다음 버튼 */
-        .btn-next {
-            background: var(--primary);
-            color: white;
-        }
-        .btn-next:hover { 
-            background: #5649c0; 
-            transform: translateY(-2px);
-        }
-
-        /* 현재 단계 표시기 (선택사항) */
-        .step-indicator {
-            font-size: 0.85rem;
-            font-weight: 700;
-            color: var(--primary);
-            margin: 0 10px;
-            letter-spacing: 1px;
-        }
-
         :root {
-            --primary: #6c5ce7;
+            --primary: #4facfe; 
             --secondary: #a29bfe;
             --bg: #f5f6fa;
-            --dark: #2d3436;
+            --dark: #111;
             --gold: #ffd700;
             --white: #ffffff;
             --gray: #888;
             --border: #eee;
         }
 
-        * {
-            box-sizing: border-box;
-            -webkit-font-smoothing: antialiased;
-        }
+        * { box-sizing: border-box; -webkit-font-smoothing: antialiased; }
 
         body, html {
             margin: 0; padding: 0; width: 100%; height: 100%;
@@ -95,7 +34,6 @@
             overflow: hidden;
         }
 
-        /* --- 가로 슬라이드 래퍼 --- */
         .main-wrapper {
             display: flex; width: 300vw; height: 100vh;
             transition: transform 0.7s cubic-bezier(0.85, 0, 0.15, 1);
@@ -103,218 +41,189 @@
 
         section {
             width: 100vw; height: 100vh;
-            padding-top: 90px; padding-bottom: 50px;
+            padding-top: 90px; padding-bottom: 90px;
             box-sizing: border-box;
             overflow-y: auto;
             position: relative;
         }
 
-        /* --- 카드 공통 스타일 --- */
+        /* --- [STEP 1] 프라이빗 리포트 --- */
+        .report-wrapper { max-width: 1300px; margin: 0 auto; padding: 0 20px; }
+
+        .summary-card {
+            background: linear-gradient(135deg, #111 0%, #222 100%);
+            color: #fff; padding: 45px; border-radius: 28px;
+            text-align: center; margin-bottom: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+        }
+        .summary-card h2 { font-size: 2.5rem; font-weight: 900; margin: 0 0 10px 0; color: var(--primary); }
+        .summary-card p { font-size: 1.25rem; margin: 0; color: #ccc; }
+
+        .grid-layout { display: grid; grid-template-columns: 380px 1fr; gap: 40px; align-items: start; }
+
+        .glass-panel {
+            background: #fff; border: 1px solid #edf1f5;
+            border-radius: 28px; padding: 40px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.04);
+            display: flex; flex-direction: column; justify-content: center;
+            position: sticky; top: 110px; 
+        }
+
+        .llm-output-panel {
+            background: #fff; border: 1px solid #edf1f5;
+            border-radius: 28px; padding: 50px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.04);
+        }
+
+        .report-header { margin-bottom: 40px; }
+        .report-header .title { font-size: 1.8rem; font-weight: 900; color: #111; margin-bottom: 15px; }
+        .report-header .summary { font-size: 1.1rem; line-height: 1.7; color: #555; background: #f8f9fb; padding: 25px; border-radius: 16px; border-left: 5px solid var(--primary); font-weight: 600; }
+
+        .section-title { font-size: 1.4rem; font-weight: 800; color: #111; margin: 45px 0 20px 0; display: flex; align-items: center; gap: 10px; border-bottom: 2px solid #f0f2f5; padding-bottom: 15px; }
+
+        .insight-card {
+            background: #fff; border: 1px solid #edf1f5; border-radius: 16px;
+            padding: 25px; margin-bottom: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.02); transition: 0.3s;
+        }
+        .insight-card:hover { transform: translateY(-3px); box-shadow: 0 10px 25px rgba(0,0,0,0.06); border-color: var(--primary); }
+        .insight-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .insight-header .badge { background: #111; color: #fff; padding: 6px 14px; border-radius: 8px; font-weight: 800; font-size: 0.95rem; }
+        .insight-header .weight-text { font-size: 1.2rem; font-weight: 900; color: var(--primary); }
+        .insight-desc { font-size: 1.05rem; line-height: 1.6; color: #444; margin: 0; }
+
+        .curation-box {
+            background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+            padding: 35px; border-radius: 20px; border: 1px solid #e2e8f0;
+        }
+        .curation-box .dong-name { font-size: 1.6rem; font-weight: 900; color: #111; margin: 0 0 10px 0; display: inline-block; box-shadow: inset 0 -12px 0 rgba(79, 172, 254, 0.3); }
+        .curation-box .dong-desc { font-size: 1.05rem; line-height: 1.7; color: #333; margin-bottom: 20px; font-weight: 600; }
+        .curation-box .dong-points { padding-left: 20px; margin: 0; }
+        .curation-box .dong-points li { margin-bottom: 10px; color: #555; line-height: 1.6; font-size: 1rem; }
+
+        /* --- [STEP 2] 풀사이즈 가로형 카드 리스트 --- */
         .glass-card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(15px);
-            border-radius: 30px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.06);
-            padding: 40px; margin: 0 auto 30px;
-            max-width: 1100px;
+            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(15px);
+            border-radius: 30px; box-shadow: 0 20px 40px rgba(0,0,0,0.06);
+            padding: 40px; margin: 0 auto 30px; max-width: 1200px;
             border: 1px solid rgba(255,255,255,0.3);
         }
 
-        /* --- [Page 1] 시뮬레이터 섹션 --- */
-        .simulator-layout {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: stretch;
-        }
-        
-        .chart-section {
-            background: white; border-radius: 25px; padding: 30px;
-            text-align: center; position: relative; height: 100%;
-            display: flex; flex-direction: column; justify-content: center;
-        }
-        .weight-cfg-btn {
-            position: absolute; top: 20px; right: 20px;
-            background: var(--primary); color: white; border: none;
-            padding: 10px 18px; border-radius: 50px; cursor: pointer;
-            font-weight: 700; font-size: 0.85rem; z-index: 5;
-        }
-
-        .ai-status-panel {
-            margin-bottom: 25px; padding: 25px; background: #f8f7ff;
-            border-radius: 20px; border-left: 6px solid var(--primary);
-            text-align: left;
-        }
-        .ai-status-panel .type-title { font-weight: 800; color: var(--primary); font-size: 1.3rem; margin-bottom: 8px; }
-        .ai-status-panel .type-desc { font-size: 1rem; color: #666; line-height: 1.6; }
-
-        .filter-section { display: flex; flex-direction: column; justify-content: center; }
-        
-        .toggle-group { display: flex; background: #eee; border-radius: 12px; padding: 4px; margin-bottom: 20px; }
-        .toggle-group button {
-            flex: 1; border: none; padding: 12px; border-radius: 10px;
-            font-weight: 700; cursor: pointer; transition: 0.3s; background: none;
-        }
-        .toggle-group button.active { background: white; color: var(--primary); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-
-        .price-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
-        .input-box { display: flex; flex-direction: column; }
-        .input-box label { font-size: 0.8rem; font-weight: 700; color: #888; margin-bottom: 5px; margin-left: 5px; }
-        .input-box input {
-            padding: 14px; border: 1.5px solid #eee; border-radius: 12px;
-            font-size: 1rem; outline: none; transition: 0.3s;
-        }
-        .input-box input:focus { border-color: var(--primary); }
-
-        .detail-accordion {
-            border: 1.5px solid #eee; border-radius: 15px; margin-bottom: 25px; overflow: hidden;
-        }
-        .accordion-header {
-            padding: 22px; background: #f9f9f9; cursor: pointer;
-            display: flex; justify-content: space-between; align-items: center; 
-            font-weight: 800; color: var(--dark); font-size: 1.1rem;
-        }
-        .accordion-body { padding: 25px; display: none; background: white; border-top: 1px solid #eee; }
-
-        .chip-group { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
-        .chip-group input { display: none; }
-        .chip-group label {
-            padding: 10px 18px; border: 1.5px solid #eee; border-radius: 50px;
-            font-size: 0.85rem; cursor: pointer; transition: 0.2s; background: white;
-        }
-        .chip-group input:checked + label {
-            background: var(--primary); color: white; border-color: var(--primary);
-        }
-
-        .run-btn {
-            width: 100%; padding: 22px; background: var(--primary); color: white;
-            border: none; border-radius: 18px; font-size: 1.25rem; font-weight: 800;
-            cursor: pointer; transition: 0.4s; box-shadow: 0 10px 20px rgba(108, 92, 231, 0.3);
-        }
-        .run-btn:hover { transform: translateY(-3px); background: #5649c0; }
-
-        /* --- [Page 2] 추천 결과 섹션 --- */
         .result-header { text-align: center; margin-bottom: 40px; }
         .result-header h2 { font-size: 2.2rem; font-weight: 900; margin-bottom: 10px; }
         .result-header p { color: #666; font-size: 1.1rem; }
 
         .podium-container {
-            display: flex; justify-content: center; align-items: flex-end;
-            gap: 20px; margin-bottom: 60px; padding: 0 20px;
+            display: flex; flex-direction: column; align-items: center;
+            gap: 30px; margin-bottom: 60px; padding: 0 20px;
         }
+        
         .p-card {
-            background: white; border-radius: 25px; width: 320px;
+            background: white; border-radius: 25px; 
+            width: 100%; max-width: 1200px; 
+            display: flex; flex-direction: row; 
             box-shadow: 0 15px 35px rgba(0,0,0,0.08); overflow: hidden;
-            position: relative; transition: 0.3s; cursor: pointer;
+            position: relative; transition: transform 0.3s; cursor: pointer;
+            border: 1px solid #eee;
         }
-        .p-card:hover { transform: translateY(-10px); }
-        .p-card.rank-1 {
-            width: 380px; border: 3px solid var(--gold); transform: scale(1.05);
-            z-index: 10; margin-bottom: 25px;
-        }
-        .rank-tag {
-            position: absolute; top: 15px; left: 15px; padding: 6px 15px;
-            background: rgba(0,0,0,0.7); color: white; border-radius: 50px;
-            font-weight: 800; z-index: 11; font-size: 0.9rem;
-        }
-        .rank-tag.gold { background: linear-gradient(45deg, #ffd700, #ffa502); color: #222; }
+        .p-card:hover { transform: translateY(-5px); border-color: var(--primary); box-shadow: 0 20px 40px rgba(0,0,0,0.12); }
+        
+        .p-card.rank-1 { border: 3px solid var(--gold); }
 
-        .p-img { width: 100%; height: 230px; object-fit: cover; background: #eee; }
-        .rank-1 .p-img { height: 300px; }
+        .rank-tag {
+            position: absolute; top: 20px; left: 20px; padding: 8px 20px;
+            background: rgba(0,0,0,0.8); color: white; border-radius: 50px;
+            font-weight: 900; z-index: 11; font-size: 1rem; letter-spacing: 1px;
+        }
+        .rank-tag.gold { background: linear-gradient(135deg, #ffd700, #f39c12); color: #111; }
+
+        /* 이미지 슬라이더 영역 */
+        .slider-container {
+            width: 450px; min-height: 450px; position: relative; 
+            overflow: hidden; flex-shrink: 0; background: #eee;
+        }
+        .slider-track { display: flex; height: 100%; transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); }
+        .slider-img { width: 450px; height: 100%; object-fit: cover; flex-shrink: 0; }
+        .slider-btn {
+            position: absolute; top: 50%; transform: translateY(-50%);
+            background: rgba(0,0,0,0.4); color: white; border: none;
+            width: 45px; height: 45px; border-radius: 50%;
+            cursor: pointer; z-index: 10; display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem; transition: 0.2s; backdrop-filter: blur(5px);
+        }
+        .slider-btn:hover { background: var(--primary); }
+        .slider-btn.prev { left: 15px; }
+        .slider-btn.next { right: 15px; }
+
+
+        .p-info { padding: 40px; display: flex; flex-direction: column; flex-grow: 1; justify-content: flex-start; }
+        .p-score { color: var(--primary); font-weight: 900; font-size: 1.6rem; margin-bottom: 8px; }
+        .p-price { font-size: 1.8rem; font-weight: 900; margin-bottom: 8px; color: #111; display: block; }
+        .p-addr { font-size: 1.05rem; color: #666; margin-bottom: 15px; font-weight: 500; }
         
-        .p-info { padding: 25px; }
-        .p-score { color: var(--primary); font-weight: 900; font-size: 1.4rem; margin-bottom: 8px; }
-        .p-price { font-size: 1.5rem; font-weight: 800; margin-bottom: 5px; display: block; }
-        .p-addr { font-size: 0.9rem; color: var(--gray); margin-bottom: 15px; }
-        
+        .detail-tags { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 25px; }
+        .d-tag {
+            background: #f1f2f6; color: #555; padding: 8px 14px;
+            border-radius: 10px; font-size: 0.95rem; font-weight: 700;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .d-tag i { color: var(--primary); font-size: 1.1rem; }
+        .d-tag.highlight { background: #eef2ff; color: #4facfe; }
+
         .ai-comment {
-            background: #f0f4ff; border-radius: 15px; padding: 15px;
-            font-size: 0.88rem; color: #444; line-height: 1.5; position: relative;
+            background: #f8f9fb; border-radius: 16px; padding: 25px; 
+            border-left: 5px solid var(--primary); font-size: 1rem; 
+            color: #444; line-height: 1.75; margin-top: auto; white-space: pre-wrap; 
         }
         .ai-comment::before {
-            content: "🤖 AI 분석"; display: block; font-weight: 800;
-            color: var(--primary); font-size: 0.75rem; margin-bottom: 5px;
+            content: "\f0eb  수석 큐레이터 심층 브리핑"; font-family: "Font Awesome 6 Free"; 
+            display: block; font-weight: 900; color: var(--primary); 
+            font-size: 0.95rem; margin-bottom: 12px;
         }
 
         .other-list { max-width: 900px; margin: 0 auto; }
         .list-card {
             display: flex; align-items: center; background: white; padding: 20px;
-            border-radius: 20px; margin-bottom: 15px; transition: 0.2s; cursor: pointer;
+            border-radius: 20px; margin-bottom: 15px; transition: 0.2s; cursor: pointer; border: 1px solid #eee;
         }
-        .list-card:hover { background: #fdfdfd; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+        .list-card:hover { background: #fdfdfd; box-shadow: 0 5px 15px rgba(0,0,0,0.05); border-color:var(--primary); }
         .l-img { width: 80px; height: 80px; border-radius: 12px; object-fit: cover; margin-right: 20px; }
         .l-content { flex: 1; }
         .l-price { font-weight: 800; font-size: 1.1rem; }
         .l-score { text-align: right; color: var(--primary); font-weight: 800; font-size: 1.1rem; }
 
-        /* --- 모달 (가중치 조절) --- */
-        .modal-overlay {
-            display: none; position: fixed; top:0; left:0; width:100%; height:100%;
-            background: rgba(0,0,0,0.7); z-index: 3000; justify-content: center; align-items: center;
+        .run-btn {
+            padding: 18px 40px; background: var(--dark); color: white;
+            border: none; border-radius: 16px; font-size: 1.1rem; font-weight: 800;
+            cursor: pointer; transition: 0.3s; box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
         }
-        /* 모달 박스 넓게 수정 */
-        .modal-box {
-            background: white;
-            width: 650px; /* 세로 슬라이더들을 가로로 나열하기 위해 확장 */
-            padding: 35px;
-            border-radius: 30px;
-            text-align: center;
-        }
+        .run-btn:hover { transform: translateY(-3px); background: var(--primary); box-shadow: 0 10px 20px rgba(79, 172, 254, 0.3); }
 
-        /* 슬라이더 컨테이너: 가로로 나열 */
-        #modal-sliders {
-            display: flex;
-            justify-content: space-around;
-            align-items: flex-end;
-            height: 300px; /* 세로 슬라이더 높이 */
-            margin: 40px 0;
+        .floating-nav {
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+            display: flex; align-items: center; gap: 15px; z-index: 5000;
+            background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px);
+            padding: 12px 25px; border-radius: 50px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15); border: 1px solid rgba(255,255,255,0.5);
         }
-
-        .slider-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 15px;
-            height: 100%;
+        .nav-btn {
+            border: none; padding: 14px 30px; border-radius: 30px;
+            font-weight: 800; cursor: pointer; transition: 0.3s;
+            display: flex; align-items: center; gap: 8px; font-size: 1rem;
         }
+        .btn-prev { background: #f1f2f6; color: #555; }
+        .btn-prev:hover { background: #dfe4ea; }
+        .btn-next { background: var(--dark); color: white; }
+        .btn-next:hover { background: var(--primary); transform: translateY(-2px); }
+        .step-indicator { font-size: 0.9rem; font-weight: 800; color: var(--primary); margin: 0 15px; letter-spacing: 1px; }
 
-        /* 세로 슬라이더 구현 */
-        .custom-range.weight-slider {
-            appearance: none;
-            -webkit-appearance: none;
-            width: 8px;
-            height: 200px; /* 슬라이더의 실제 '세로' 길이 */
-            background: #eee;
-            border-radius: 5px;
-            outline: none;
-            /* 핵심: 회전시켜서 세로로 만듦 */
-            writing-mode: bt-lr; /* IE/Edge */
-            appearance: slider-vertical; /* Webkit */
-        }
-
-        /* 슬라이더 위 텍스트 스타일 */
-        .slider-label {
-            font-weight: 800;
-            font-size: 0.9rem;
-            color: var(--dark);
-            margin-bottom: 5px;
-        }
-
-        .slider-value {
-            font-weight: 700;
-            color: var(--primary);
-            font-size: 0.85rem;
-        }
-
-        /* --- 내비게이션 도트 --- */
         .dot-nav {
             position: fixed; right: 40px; top: 50%; transform: translateY(-50%);
             display: flex; flex-direction: column; gap: 15px; z-index: 1000;
         }
-        .dot {
-            width: 12px; height: 12px; border-radius: 50%; background: #ccc;
-            cursor: pointer; transition: 0.3s;
-        }
+        .dot { width: 12px; height: 12px; border-radius: 50%; background: #ccc; cursor: pointer; transition: 0.3s; }
         .dot.active { background: var(--primary); height: 30px; border-radius: 10px; }
 
-        /* 로딩 애니메이션 */
         .loader-wrap {
             position: fixed; top:0; left:0; width:100%; height:100%; background: white;
             z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center;
@@ -324,25 +233,76 @@
             border-top: 5px solid var(--primary); border-radius: 50%;
             animation: spin 1s linear infinite; margin-bottom: 20px;
         }
-        /* 모든 슬라이더에 부드러운 이동 효과 부여 */
-        .weight-slider {
-            transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
-            cursor: pointer;
-        }
-
-        /* 사용자가 직접 잡고 움직이는 슬라이더는 즉각 반응해야 하므로 트랜지션 제거 */
-        /* 이 처리를 안 하면 내 손가락보다 슬라이더가 느리게 따라오는 답답함이 생깁니다 */
-        .weight-slider.interacting {
-            transition: none !important;
-        }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .filter-fab {
+            position: fixed; top: 110px; left: 20px; z-index: 6000;
+            background: #111; color: white; border: none; border-radius: 50px;
+            padding: 15px 25px; font-weight: 800; font-size: 1.05rem; font-family: 'Pretendard';
+            cursor: pointer; box-shadow: 0 10px 25px rgba(0,0,0,0.2); transition: 0.3s;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .filter-fab:hover { background: var(--primary); transform: translateY(-2px); }
+        
+        .filter-panel {
+            position: fixed; top: 110px; left: 20px; z-index: 5999;
+            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px);
+            border-radius: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+            border: 1px solid rgba(255,255,255,0.8);
+            width: 380px; padding: 0; 
+            max-height: 0; opacity: 0; overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+        .filter-panel.open {
+            max-height: 80vh; opacity: 1; padding: 30px; overflow-y: auto;
+            scrollbar-width: thin; scrollbar-color: #ccc transparent;
+        }
+        .filter-panel::-webkit-scrollbar { width: 6px; }
+        .filter-panel::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
+        
+        .fp-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+        .fp-header h3 { margin: 0; font-size: 1.3rem; font-weight: 900; color: #111; }
+        .fp-close { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #888; }
+        
+        .fp-group { margin-bottom: 25px; }
+        .fp-label { font-weight: 800; color: #333; margin-bottom: 10px; font-size: 0.95rem; display: block; }
+        
+        .fp-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .fp-btn {
+            background: #f1f2f6; border: 1px solid transparent; padding: 12px;
+            border-radius: 12px; font-weight: 700; color: #555; cursor: pointer; transition: 0.2s;
+            font-family: 'Pretendard'; font-size: 0.95rem;
+        }
+        .fp-btn.selected { background: #eef2ff; color: var(--primary); border-color: var(--primary); }
+        
+        .fp-inputs { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+        .fp-inputs input {
+            flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 10px;
+            font-family: 'Pretendard'; font-size: 0.95rem; width: 100%; box-sizing: border-box;
+        }
+        
+        .fp-actions { display: flex; gap: 10px; margin-top: 30px; }
+        .fp-btn-reset { flex: 1; background: #eee; color: #555; padding: 15px; border-radius: 14px; font-weight: 800; border: none; cursor: pointer; }
+        .fp-btn-search { flex: 2; background: #111; color: white; padding: 15px; border-radius: 14px; font-weight: 800; border: none; cursor: pointer; transition: 0.3s; }
+        .fp-btn-search:hover { background: var(--primary); }
+
+        @media (max-width: 900px) {
+            .grid-layout { grid-template-columns: 1fr; }
+            .llm-output-panel { padding: 30px 20px; }
+            .glass-panel { position: static; }
+            .p-card { flex-direction: column; }
+            .slider-container, .slider-img { width: 100%; height: 300px; min-height: 300px; }
+            .p-info { padding: 25px; }
+            .filter-fab { top: 80px; left: 10px; padding: 12px 20px; font-size: 0.95rem; }
+            .filter-panel { top: 80px; left: 10px; width: calc(100% - 20px); }
+        }
     </style>
 </head>
 <body>
 
 <div class="loader-wrap" id="loader">
     <div class="spinner"></div>
-    <p style="font-weight: 700; color: #555;">당신의 라이프스타일을 분석하고 있습니다...</p>
+    <p style="font-weight: 800; color: #111; font-size: 1.1rem;" id="loader-text">AI가 맞춤 리포트를 생성하고 있습니다...</p>
 </div>
 
 <div class="navbar">
@@ -367,90 +327,92 @@
     </div>
 </div>
 
+<button class="filter-fab" id="filterFab" onclick="toggleFilterPanel(true)">
+    <i class="fa-solid fa-sliders"></i> 상세 필터 수정
+</button>
+
+<div class="filter-panel" id="filterPanel">
+    <div class="fp-header">
+        <h3><i class="fa-solid fa-sliders"></i> 상세 조건 수정</h3>
+        <button class="fp-close" onclick="toggleFilterPanel(false)"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <div class="fp-group">
+        <label class="fp-label">계약 형태 및 예산(만원)</label>
+        <div class="fp-btns">
+            <button class="fp-btn" id="f-btn-monthly" onclick="selectFContract('monthly')">월세</button>
+            <button class="fp-btn" id="f-btn-jeonse" onclick="selectFContract('jeonse')">전세</button>
+        </div>
+        
+        <div id="f-monthly-area" style="display: none; margin-top: 15px;">
+            <label style="font-size:0.85rem; color:#666;">보증금 범위</label>
+            <div class="fp-inputs">
+                <input type="number" id="f_m_dep_min" placeholder="최소" min="0"> <span>~</span> <input type="number" id="f_m_dep_max" placeholder="최대" min="0">
+            </div>
+            <label style="font-size:0.85rem; color:#666; display:block; margin-top:10px;">월세 범위</label>
+            <div class="fp-inputs">
+                <input type="number" id="f_m_rent_min" placeholder="최소" min="0"> <span>~</span> <input type="number" id="f_m_rent_max" placeholder="최대" min="0">
+            </div>
+        </div>
+
+        <div id="f-jeonse-area" style="display: none; margin-top: 15px;">
+            <label style="font-size:0.85rem; color:#666;">전세금 범위</label>
+            <div class="fp-inputs">
+                <input type="number" id="f_j_dep_min" placeholder="최소" min="0"> <span>~</span> <input type="number" id="f_j_dep_max" placeholder="최대" min="0">
+            </div>
+        </div>
+    </div>
+
+    <div class="fp-group">
+        <label class="fp-label">방 개수 (중복 가능)</label>
+        <div class="fp-btns" style="grid-template-columns: 1fr 1fr 1fr;" id="f-room-group">
+            <button class="fp-btn" onclick="toggleFMulti(this)">1개</button>
+            <button class="fp-btn" onclick="toggleFMulti(this)">2개</button>
+            <button class="fp-btn" onclick="toggleFMulti(this)">3개 이상</button>
+        </div>
+    </div>
+
+    <div class="fp-group">
+        <label class="fp-label">옥탑/반지하 제외</label>
+        <div class="fp-btns" id="f-special-group">
+            <button class="fp-btn" onclick="toggleFSingle(this)">네, 상관없어요</button>
+            <button class="fp-btn" onclick="toggleFSingle(this)">아니요, 피하고 싶어요</button>
+        </div>
+    </div>
+
+    <div class="fp-group">
+        <label class="fp-label">주차 공간</label>
+        <div class="fp-btns" id="f-parking-group">
+            <button class="fp-btn" onclick="toggleFSingle(this)">네, 필요해요</button>
+            <button class="fp-btn" onclick="toggleFSingle(this)">아니요, 상관없어요</button>
+        </div>
+    </div>
+
+    <div class="fp-actions">
+        <button class="fp-btn-reset" onclick="resetFilters()">초기화</button>
+        <button class="fp-btn-search" onclick="applyFiltersAndSearch()">매물 재검색</button>
+    </div>
+</div>
+
 <div class="main-wrapper" id="mainWrapper">
     
     <section id="page-simulator">
-        <div class="glass-card">
-            <div class="simulator-layout">
-                <div class="left-col">
-                    <div class="chart-section">
-                        <button class="weight-cfg-btn" onclick="toggleModal(true)">
-                            <i class="fas fa-sliders-h"></i> 가중치 직접 조절
-                        </button>
+        <div class="report-wrapper">
+            <div class="summary-card">
+                <h2>{{ user_type }}</h2>
+                <p>{{ user_type_desc }}</p>
+            </div>
+
+            <div class="grid-layout">
+                <div class="glass-panel">
+                    <div style="font-size: 1.2rem; font-weight: 800; margin-bottom: 20px; text-align: center; color:#111;">설문 기반 선호도 분석</div>
+                    <div style="width: 100%; height: 350px; position:relative; margin-top: 15px;">
                         <canvas id="radarChart"></canvas>
                     </div>
                 </div>
 
-                <div class="right-col">
-                    <div class="filter-section">
-                        <div class="ai-status-panel">
-                            <div class="ai-type-tag" id="ai-type-title">데이터 분석 중...</div>
-                            <div class="ai-desc" id="ai-type-desc">선호도 지표를 바탕으로 최적의 주거 타입을 계산합니다.</div>
-                        </div>
-
-                        <div class="detail-accordion">
-                            <div class="accordion-header" onclick="toggleAccordion()">
-                                조건 설정 (계약, 가격, 연식 등) <i class="fas fa-chevron-down" id="acc-icon"></i>
-                            </div>
-                            <div class="accordion-body" id="acc-body">
-                                <p style="font-weight:700; font-size:0.85rem; margin-bottom:10px;">계약 형태</p>
-                                <div class="toggle-group">
-                                    <button id="t-monthly" class="active" onclick="switchContract('monthly')">월세</button>
-                                    <button id="t-jeonse" onclick="switchContract('jeonse')">전세</button>
-                                </div>
-
-                                <div id="monthly-inputs">
-                                    <div class="price-inputs">
-                                        <div class="input-box">
-                                            <label>보증금 최소 (만)</label>
-                                            <input type="number" id="min_dep" value="{{ survey.budget.min_dep }}">
-                                        </div>
-                                        <div class="input-box">
-                                            <label>보증금 최대 (만)</label>
-                                            <input type="number" id="max_dep" value="{{ survey.budget.max_dep }}">
-                                        </div>
-                                    </div>
-                                    <div class="price-inputs">
-                                        <div class="input-box">
-                                            <label>월세 최소 (만)</label>
-                                            <input type="number" id="min_rent" value="{{ survey.budget.min_rent }}">
-                                        </div>
-                                        <div class="input-box">
-                                            <label>월세 최대 (만)</label>
-                                            <input type="number" id="max_rent" value="{{ survey.budget.max_rent }}">
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div id="jeonse-inputs" style="display:none;">
-                                    <div class="price-inputs">
-                                        <div class="input-box">
-                                            <label>전세금 최소 (만)</label>
-                                            <input type="number" id="min_jeonse" value="{{ survey.budget.min_dep }}">
-                                        </div>
-                                        <div class="input-box">
-                                            <label>전세금 최대 (만)</label>
-                                            <input type="number" id="max_jeonse" value="{{ survey.budget.max_dep }}">
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <p style="font-weight:700; font-size:0.85rem; margin-bottom:10px;">방 개수</p>
-                                <div class="chip-group">
-                                    <input type="checkbox" id="rc1" class="f-room" value="1개"><label for="rc1">1룸</label>
-                                    <input type="checkbox" id="rc2" class="f-room" value="2개"><label for="rc2">2룸</label>
-                                    <input type="checkbox" id="rc3" class="f-room" value="3개 이상"><label for="rc3">3룸+</label>
-                                </div>
-
-                                <p style="font-weight:700; font-size:0.85rem; margin-bottom:10px;">건물 연식</p>
-                                <div class="chip-group">
-                                    <input type="checkbox" id="age1" class="f-age" value="신축"><label for="age1">5년 이내</label>
-                                    <input type="checkbox" id="age2" class="f-age" value="준신축"><label for="age2">10년 이내</label>
-                                    <input type="checkbox" id="age3" class="f-age" value="구축"><label for="age3">상관없음</label>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                <div class="llm-output-panel">
+                    {{ detailed_analysis | safe }}
                 </div>
             </div>
         </div>
@@ -458,44 +420,44 @@
 
     <section id="page-result">
         <div class="result-header">
-            <h2 id="user-nickname-display">{{ session.get('nickname', '회원') }}님의 분석 결과</h2>
-            <p id="total-count-text">조건에 부합하는 상위 10개의 매물을 찾았습니다.</p>
+            <h2 id="user-nickname-display">{{ session.get('nickname', '회원') }}님의 큐레이션 결과</h2>
+            <p id="total-count-text">분석 결과, 총 {{ total_count }}개의 매물이 탐색되었습니다.</p>
         </div>
+        
         <div class="podium-container" id="podium-area"></div>
+        
         <div class="glass-card">
-            <h3 style="margin-bottom:25px; font-weight:800;">🔍 함께 추천하는 매물</h3>
+            <h3 style="margin-bottom:25px; font-weight:800; color:#111;"><i class="fa-solid fa-list-ul"></i> 함께 추천하는 매물</h3>
             <div class="other-list" id="others-area"></div>
             <div style="text-align:center; margin-top:30px;">
-                <button class="run-btn" style="width:250px; background:#444;" onclick="location.href='/find'">
-                    지도에서 더 보기
-                </button>
+                <button class="run-btn" onclick="location.href='/find'">지도에서 더 많은 매물 보기</button>
             </div>
         </div>
     </section>
 
     <section id="page-guide">
         <div class="glass-card" style="text-align:center; padding:80px 40px;">
-            <i class="fas fa-check-circle" style="font-size:4rem; color:var(--primary); margin-bottom:30px;"></i>
-            <h2 style="font-size:2.5rem; font-weight:900;">완벽한 집을 찾으셨나요?</h2>
-            <p style="color:#666; font-size:1.2rem; margin-bottom:50px;">
-                선택하신 매물은 마이페이지 '찜한 목록'에서 다시 보실 수 있습니다.<br>
-                전문 컨설턴트의 도움이 필요하시면 언제든 문의주세요.
+            <i class="fa-solid fa-gem" style="font-size:4.5rem; color:var(--gold); margin-bottom:30px;"></i>
+            <h2 style="font-size:2.5rem; font-weight:900; margin-bottom:15px;">완벽한 공간을 찾으셨나요?</h2>
+            <p style="color:#666; font-size:1.15rem; margin-bottom:50px; line-height: 1.6;">
+                마음에 드는 매물은 하트를 눌러 찜해두시면,<br>마이페이지에서 언제든 다시 검토하실 수 있습니다.
             </p>
             <div style="display:flex; gap:20px; justify-content:center;">
-                <button class="run-btn" style="width:220px;" onclick="moveSlide(0)">다시 시뮬레이션</button>
-                <button class="run-btn" style="width:220px; background:#222;" onclick="location.href='/mypage'">마이페이지로</button>
+                <button class="run-btn" style="background:#eee; color:#111;" onclick="location.href='/survey'">설문 다시하기</button>
+                <button class="run-btn" onclick="location.href='/mypage'">마이페이지로 이동</button>
             </div>
         </div>
     </section>
 </div>
 
-<div class="modal-overlay" id="weightModal">
-    <div class="modal-box">
-        <h3>📊 라이프스타일 가중치</h3>
-        <p style="font-size:0.85rem; color:#888; margin-bottom:25px;">각 지표를 조절하면 AI가 실시간으로 주거 타입을 예측합니다. (합계 100%)</p>
-        <div id="modal-sliders"></div>
-        <button class="run-btn" style="margin-top:20px;" onclick="applyWeightModal()">반영하기</button>
-    </div>
+<div class="floating-nav">
+    <button id="float-prev" class="nav-btn btn-prev" onclick="handlePrev()" style="display: none;">
+        <i class="fas fa-chevron-left"></i> 이전
+    </button>
+    <div class="step-indicator" id="step-text">STEP 1 / 3</div>
+    <button id="float-next" class="nav-btn btn-next" onclick="handleNext()">
+        다음 <i class="fas fa-chevron-right"></i>
+    </button>
 </div>
 
 <div class="dot-nav">
@@ -505,282 +467,214 @@
 </div>
 
 <script>
-    /* --- 기초 데이터 세팅 --- */
-    const categoryMap = {
-        "traffic": "교통", "convenience": "편의", "green": "녹지",
-        "play": "놀이", "health": "건강", "living": "생활", "safety": "안전"
-    };
-    const categoryKeys = Object.keys(categoryMap);
-    const categoryLog = {{ survey.category_log | tojson }};
+    const chartLabels = {{ user_chart_labels | tojson }};
+    const chartData = {{ user_chart_data | tojson }};
+    let initialTop3 = {{ top_3 | tojson }};
+    let initialOthers = {{ others | tojson }};
     const surveyId = "{{ survey_id }}";
-    const CURRENT_SURVEY_ID = "{{ index }}".trim();
+
+    const initContract = "{{ survey.get('contract_type', '') }}";
+    const initBudget = {{ survey.get('budget', {}) | tojson }};
+    const initRoomCount = {{ survey.get('room_count', []) | tojson }};
+    const initSpecialRoom = "{{ survey.get('special_room', '') }}";
+    const initParking = "{{ survey.get('parking', '') }}";
 
     let myChart;
     let currentSlide = 0;
-    let currentContract = "{{ survey.contract_type }}" || "monthly";
-    
-    let isAdjusting = null; // 현재 조작 중인 슬라이더 인덱스
-    let debounceTimer; // 서버 통신용 타이머
-
-    // 초기 가중치 계산
-    function calculateInitialWeights(log) {
-        const counts = {};
-        categoryKeys.forEach(k => counts[k] = 0);
-        log.forEach(k => counts[k] = (counts[k] || 0) + 1);
-        const rawWeights = categoryKeys.map(k => (counts[k] + 1));
-        const sum = rawWeights.reduce((a, b) => a + b, 0);
-        return rawWeights.map(v => Math.round((v / sum) * 100));
-    }
-
-    let currentWeights = calculateInitialWeights(categoryLog);
+    let currentFContract = "";
 
     window.onload = () => {
-        initRadarChart();
-        initSliders();
-        switchContract(currentContract);
-        updateAIType(); // 초기 분석 실행
-        setTimeout(() => {
-            const loader = document.getElementById('loader');
-            if(loader) loader.style.display = 'none';
-        }, 800);
+        try {
+            initRadarChart();
+            renderResults([...initialTop3, ...initialOthers]);
+            initFilterPanel(); 
+        } catch (error) {
+            console.error("화면 렌더링 중 오류 발생:", error);
+        } finally {
+            hideLoader();
+        }
     };
 
-    /* --- 차트 및 슬라이더 초기 설정 --- */
+    function hideLoader() {
+        const loader = document.getElementById('loader');
+        if(loader) {
+            loader.style.opacity = '0';
+            setTimeout(() => loader.style.display = 'none', 300);
+        }
+    }
+
+    function showLoader(msg) {
+        const loader = document.getElementById('loader');
+        const txt = document.getElementById('loader-text');
+        if(loader && txt) {
+            txt.innerText = msg;
+            loader.style.display = 'flex';
+            setTimeout(() => loader.style.opacity = '1', 10);
+        }
+    }
+
+    function toggleFilterPanel(show) {
+        const panel = document.getElementById('filterPanel');
+        const fab = document.getElementById('filterFab');
+        if (show) {
+            panel.classList.add('open');
+            fab.style.opacity = '0';
+            fab.style.pointerEvents = 'none';
+        } else {
+            panel.classList.remove('open');
+            fab.style.opacity = '1';
+            fab.style.pointerEvents = 'auto';
+        }
+    }
+
+    function selectFContract(type) {
+        currentFContract = type;
+        document.getElementById('f-btn-monthly').classList.toggle('selected', type === 'monthly');
+        document.getElementById('f-btn-jeonse').classList.toggle('selected', type === 'jeonse');
+        document.getElementById('f-monthly-area').style.display = type === 'monthly' ? 'block' : 'none';
+        document.getElementById('f-jeonse-area').style.display = type === 'jeonse' ? 'block' : 'none';
+    }
+
+    function toggleFMulti(btn) { btn.classList.toggle('selected'); }
+    function toggleFSingle(btn) {
+        btn.parentElement.querySelectorAll('.fp-btn').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+    }
+
+    // 🔥 [핵심수정] 20억과 같은 임시 숫자는 무시하고 빈칸으로 예쁘게 바인딩합니다.
+    function initFilterPanel() {
+        if (initContract === 'monthly' || initContract === 'jeonse') {
+            selectFContract(initContract);
+            
+            const maxDep = initBudget.max_dep;
+            const maxRent = initBudget.max_rent;
+            const minDep = initBudget.min_dep;
+            const minRent = initBudget.min_rent;
+
+            if (initContract === 'monthly') {
+                document.getElementById('f_m_dep_min').value = (minDep == null) ? '' : minDep;
+                document.getElementById('f_m_dep_max').value = (maxDep == null || maxDep === 2000000000) ? '' : maxDep;
+                document.getElementById('f_m_rent_min').value = (minRent == null) ? '' : minRent;
+                document.getElementById('f_m_rent_max').value = (maxRent == null || maxRent === 10000000) ? '' : maxRent;
+            } else {
+                document.getElementById('f_j_dep_min').value = (minDep == null) ? '' : minDep;
+                document.getElementById('f_j_dep_max').value = (maxDep == null || maxDep === 2000000000) ? '' : maxDep;
+            }
+        }
+
+        document.querySelectorAll('#f-room-group .fp-btn').forEach(btn => {
+            if (initRoomCount.includes(btn.innerText)) btn.classList.add('selected');
+        });
+
+        document.querySelectorAll('#f-special-group .fp-btn').forEach(btn => {
+            if (btn.innerText === initSpecialRoom) btn.classList.add('selected');
+        });
+
+        document.querySelectorAll('#f-parking-group .fp-btn').forEach(btn => {
+            if (btn.innerText === initParking) btn.classList.add('selected');
+        });
+    }
+
+    function resetFilters() {
+        currentFContract = "";
+        document.querySelectorAll('.fp-btn').forEach(b => b.classList.remove('selected'));
+        document.querySelectorAll('.fp-inputs input').forEach(inp => inp.value = '');
+        document.getElementById('f-monthly-area').style.display = 'none';
+        document.getElementById('f-jeonse-area').style.display = 'none';
+    }
+
+    function applyFiltersAndSearch() {
+        const filters = { contract_type: currentFContract };
+        
+        if (currentFContract === 'monthly') {
+            filters.min_dep = document.getElementById('f_m_dep_min').value;
+            filters.max_dep = document.getElementById('f_m_dep_max').value;
+            filters.min_rent = document.getElementById('f_m_rent_min').value;
+            filters.max_rent = document.getElementById('f_m_rent_max').value;
+        } else if (currentFContract === 'jeonse') {
+            filters.min_dep = document.getElementById('f_j_dep_min').value;
+            filters.max_dep = document.getElementById('f_j_dep_max').value;
+        }
+
+        filters.room_count = Array.from(document.querySelectorAll('#f-room-group .selected')).map(b => b.innerText);
+        const specialBtn = document.querySelector('#f-special-group .selected');
+        filters.special_room = specialBtn ? specialBtn.innerText : "";
+        
+        const parkBtn = document.querySelector('#f-parking-group .selected');
+        filters.parking = parkBtn ? parkBtn.innerText : "";
+
+        toggleFilterPanel(false);
+        showLoader("수정된 조건으로 매물을 다시 큐레이션 중입니다...");
+
+        fetch('/survey/recalculate', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                survey_id: surveyId,
+                weights: chartData, 
+                filters: filters
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.status === 'success') {
+                renderResults(data.items);
+                document.getElementById('total-count-text').innerText = `필터 적용 후, 총 ${data.items.length}개의 매물이 탐색되었습니다.`;
+                moveSlide(1); 
+            } else {
+                alert("재검색 중 오류가 발생했습니다.");
+            }
+        })
+        .catch(e => console.error(e))
+        .finally(() => { hideLoader(); });
+    }
+
     function initRadarChart() {
         const ctx = document.getElementById('radarChart').getContext('2d');
         myChart = new Chart(ctx, {
             type: 'radar',
             data: {
-                labels: categoryKeys.map(k => categoryMap[k]),
+                labels: chartLabels,
                 datasets: [{
                     label: '나의 선호도 (%)',
-                    data: currentWeights,
-                    backgroundColor: 'rgba(108, 92, 231, 0.2)',
-                    borderColor: 'rgba(108, 92, 231, 1)',
+                    data: chartData,
+                    backgroundColor: 'rgba(79, 172, 254, 0.2)',
+                    borderColor: '#4facfe',
                     borderWidth: 3,
-                    pointBackgroundColor: 'rgba(108, 92, 231, 1)',
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: '#4facfe',
                     pointRadius: 4
                 }]
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: true,
-                scales: { r: { beginAtZero: true, max: 70, ticks: { display: false } } },
+                maintainAspectRatio: false,
+                layout: { padding: 25 },
+                scales: { 
+                    r: { 
+                        beginAtZero: true, 
+                        max: Math.max(...chartData) + 10,
+                        ticks: { display: false, stepSize: 20 },
+                        pointLabels: { font: { size: 14, weight: 'bold', family: 'Pretendard' }, color: '#111' },
+                    } 
+                },
                 plugins: { legend: { display: false } }
             }
         });
     }
 
-    function initSliders() {
-        const container = document.getElementById('modal-sliders');
-        if(!container) return;
-        container.innerHTML = categoryKeys.map((key, i) => {
-            const initialPos = weightToPosition(currentWeights[i]);
-            return `
-                <div class="slider-item">
-                    <div class="slider-label">${categoryMap[key]}</div>
-                    <div class="slider-value" id="val-${key}">${currentWeights[i]}%</div>
-                    <input type="range" class="custom-range weight-slider" 
-                        data-index="${i}" data-key="${key}" 
-                        value="${initialPos}" 
-                        min="0" max="100" 
-                        oninput="handleSliderInput(this)">
-                </div>
-            `;
-        }).join('');
-    }
-
-    /* --- 계산 유틸리티 --- */
-    function positionToWeight(pos) { return Math.round(Math.pow(pos, 2) / 100); }
-    function weightToPosition(weight) { return Math.round(Math.sqrt(weight * 100)); }
-
-    /* --- [수정됨] 가중치 실시간 분배 로직 --- */
-    function handleSliderInput(el) {
-        isAdjusting = parseInt(el.dataset.index);
-        const changedIdx = isAdjusting;
+    function movePropertySlide(id, direction, event) {
+        event.stopPropagation();
+        const track = document.getElementById(`track-${id}`);
+        let currentIdx = parseInt(track.getAttribute('data-idx'));
+        const totalSlides = parseInt(track.getAttribute('data-total'));
         
-        // 시각적 피드백
-        document.querySelectorAll('.weight-slider').forEach(s => s.classList.remove('interacting'));
-        el.classList.add('interacting');
-
-        let pos = parseInt(el.value);
-        let newWeight = positionToWeight(pos);
+        currentIdx += direction;
+        if (currentIdx < 0) currentIdx = totalSlides - 1;
+        if (currentIdx >= totalSlides) currentIdx = 0;
         
-        // 자석 효과 (끝부분 보정)
-        if (pos > 98) newWeight = 100;
-        if (pos < 2) newWeight = 0;
-
-        const oldWeight = currentWeights[changedIdx];
-        let diff = newWeight - oldWeight;
-        if (diff === 0) return;
-
-        currentWeights[changedIdx] = newWeight;
-        const otherIndices = currentWeights.map((_, i) => i).filter(i => i !== changedIdx);
-
-        // 나머지 항목에 가중치 분배
-        let remainingDiff = Math.abs(diff);
-        for (let i = 0; i < remainingDiff; i++) {
-            let targets = [];
-            if (diff > 0) { // 증가 시 나머지 감소
-                targets = otherIndices.filter(idx => currentWeights[idx] > 0);
-                if (targets.length === 0) break;
-                let weights = targets.map(idx => 100 - currentWeights[idx] + 10);
-                randomAdjust(targets, weights, -1);
-            } else { // 감소 시 나머지 증가
-                targets = otherIndices.filter(idx => currentWeights[idx] < 100);
-                if (targets.length === 0) break;
-                let weights = targets.map(idx => currentWeights[idx] + 10);
-                randomAdjust(targets, weights, 1);
-            }
-        }
-
-        // 100% 보정
-        let total = currentWeights.reduce((a, b) => a + b, 0);
-        if (total !== 100) {
-            const fix = 100 - total;
-            const targetIdx = otherIndices.reduce((a, b) => currentWeights[a] > currentWeights[b] ? a : b);
-            currentWeights[targetIdx] = Math.max(0, Math.min(100, currentWeights[targetIdx] + fix));
-        }
-
-        // 1. UI 즉시 업데이트 (차트/숫자)
-        updateUI();
-
-        // 2. 서버 통신 디바운싱 (조작 후 0.5초 뒤 1회만 실행)
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => {
-            updateAIType();
-        }, 500);
-    }
-
-    function randomAdjust(targets, weights, amount) {
-        let totalPower = weights.reduce((a, b) => a + b, 0);
-        let rand = Math.random() * totalPower;
-        let currentSum = 0;
-        for (let j = 0; j < targets.length; j++) {
-            currentSum += weights[j];
-            if (rand <= currentSum) {
-                currentWeights[targets[j]] += amount;
-                break;
-            }
-        }
-    }
-
-    function updateUI() {
-        categoryKeys.forEach((key, i) => {
-            const val = currentWeights[i];
-            const valEl = document.getElementById(`val-${key}`);
-            if (valEl) valEl.innerText = val + '%';
-            
-            // 사용자가 직접 만지는 슬라이더는 건드리지 않아야 '튀지' 않음
-            if (isAdjusting !== i) {
-                const slider = document.querySelector(`.weight-slider[data-key="${key}"]`);
-                if (slider) slider.value = weightToPosition(val);
-            }
-        });
-        if (myChart) {
-            myChart.data.datasets[0].data = [...currentWeights];
-            myChart.update('none'); 
-        }
-    }
-
-    /* --- 마우스 해제 이벤트 --- */
-    ['mouseup', 'touchend'].forEach(evt => {
-        document.addEventListener(evt, () => {
-            isAdjusting = null;
-            document.querySelectorAll('.weight-slider').forEach(s => s.classList.remove('interacting'));
-        });
-    });
-
-    /* --- 서버 통신 및 결과 반영 --- */
-    async function updateAIType() {
-        try {
-            const response = await fetch('/survey/recalculate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ weights: currentWeights, survey_id: CURRENT_SURVEY_ID })
-            });
-            const res = await response.json();
-            if (res.status === 'success') {
-                const titleEl = document.getElementById('ai-type-title') || document.querySelector('.ai-type-tag');
-                const descEl = document.getElementById('ai-type-desc') || document.querySelector('.ai-desc');
-                if (titleEl) titleEl.innerText = res.user_type;
-                if (descEl) descEl.innerText = res.user_type_desc;
-                updatePropertyUI(res.items);
-            }
-        } catch (e) { console.error("Recalculate error:", e); }
-    }
-
-    function updatePropertyUI(items) {
-        const container = document.getElementById('property-list-container');
-        if (!container) return;
-        if (!items || items.length === 0) {
-            container.innerHTML = '<div class="no-result">조건에 맞는 매물이 없습니다.</div>';
-            return;
-        }
-        container.innerHTML = items.map(item => `
-            <div class="house-card" onclick="location.href='/find?id=${item._id_str}'">
-                <div class="match-badge">${item.match_score}% 일치</div>
-                <div class="house-info">
-                    <h3>${item.name}</h3>
-                    <p class="address">${item.address}</p>
-                    <div class="tags">${item.tags.map(t => `<span class="tag">#${t}</span>`).join('')}</div>
-                </div>
-            </div>
-        `).join('');
-    }
-
-    /* --- 기타 내비게이션 및 필터 --- */
-    function moveSlide(idx) {
-        currentSlide = idx;
-        document.getElementById('mainWrapper').style.transform = `translateX(-${idx * 100}vw)`;
-        document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === idx));
-        document.getElementById('float-prev').style.display = (idx === 0) ? 'none' : 'flex';
-        document.getElementById('float-next').style.display = (idx === 2) ? 'none' : 'flex';
-        document.getElementById('step-text').innerText = `STEP ${idx + 1} / 3`;
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-
-    function handlePrev() { if (currentSlide > 0) moveSlide(currentSlide - 1); }
-    function handleNext() { (currentSlide === 0) ? startAnalysis() : moveSlide(currentSlide + 1); }
-
-    function switchContract(type) {
-        currentContract = type;
-        document.getElementById('t-monthly').classList.toggle('active', type === 'monthly');
-        document.getElementById('t-jeonse').classList.toggle('active', type === 'jeonse');
-        document.getElementById('monthly-inputs').style.display = (type === 'monthly') ? 'block' : 'none';
-        document.getElementById('jeonse-inputs').style.display = (type === 'jeonse') ? 'block' : 'none';
-    }
-
-    async function startAnalysis() {
-        const loader = document.getElementById('loader');
-        if(loader) loader.style.display = 'flex';
-        
-        const weightsObj = {};
-        categoryKeys.forEach((k, i) => weightsObj[k] = currentWeights[i]);
-
-        const filters = {
-            contract_type: currentContract,
-            min_dep: document.getElementById(currentContract === 'monthly' ? 'min_dep' : 'min_jeonse')?.value,
-            max_dep: document.getElementById(currentContract === 'monthly' ? 'max_dep' : 'max_jeonse')?.value,
-            min_rent: document.getElementById('min_rent')?.value,
-            max_rent: document.getElementById('max_rent')?.value,
-            room_count: Array.from(document.querySelectorAll('.f-room:checked')).map(el => el.value),
-            building_age: Array.from(document.querySelectorAll('.f-age:checked')).map(el => el.value)
-        };
-
-        try {
-            const res = await fetch('/survey/recalculate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ survey_id: surveyId, weights: weightsObj, filters: filters })
-            });
-            const data = await res.json();
-            if(data.status === 'success') {
-                renderResults(data.items);
-                moveSlide(1);
-            }
-        } catch(e) { console.error(e); } 
-        finally { if(loader) loader.style.display = 'none'; }
+        track.setAttribute('data-idx', currentIdx);
+        track.style.transform = `translateX(-${currentIdx * 100}%)`;
     }
 
     function renderResults(items) {
@@ -789,28 +683,64 @@
         if(!podiumArea) return;
 
         if(!items || items.length === 0) {
-            podiumArea.innerHTML = "<p style='text-align:center; width:100%; padding:50px;'>매물이 없습니다.</p>";
+            podiumArea.innerHTML = "<p style='text-align:center; width:100%; padding:50px; font-weight:700;'>조건에 맞는 매물이 없습니다.</p>";
             if(othersArea) othersArea.innerHTML = "";
             return;
         }
 
         const top3 = items.slice(0, 3);
         const others = items.slice(3);
-        const order = [1, 0, 2];
+        const order = [0, 1, 2]; 
         
         podiumArea.innerHTML = order.map(idx => {
             const item = top3[idx];
             if(!item) return "";
             const rank = idx + 1;
+            
+            let imagesHtml = '';
+            let imageCount = 1;
+            
+            if (item.images && item.images.length > 0) {
+                imagesHtml = item.images.map(img => `<img src="${img}" class="slider-img" onerror="this.src='/static/img/default_room.jpg'">`).join('');
+                imageCount = item.images.length;
+            } else {
+                imagesHtml = `<img src="${item.main_image}" class="slider-img" onerror="this.src='/static/img/default_room.jpg'">`;
+            }
+
+            let optionsPreview = '옵션 정보 없음';
+            if (item.options && item.options.length > 0) {
+                const optArray = Array.isArray(item.options) ? item.options : String(item.options).split(',');
+                optionsPreview = optArray.slice(0, 3).join(', ') + (optArray.length > 3 ? ' 외' : '');
+            }
+
             return `
                 <div class="p-card ${rank === 1 ? 'rank-1' : ''}" onclick="location.href='/find?id=${item._id_str}'">
                     <div class="rank-tag ${rank === 1 ? 'gold' : ''}">${rank}위</div>
-                    <img src="${item.main_image}" class="p-img" onerror="this.src='/static/img/default_room.jpg'">
+                    
+                    <div class="slider-container" onclick="event.stopPropagation();">
+                        <div class="slider-track" id="track-${item._id_str}" data-idx="0" data-total="${imageCount}">
+                            ${imagesHtml}
+                        </div>
+                        ${imageCount > 1 ? `
+                            <button class="slider-btn prev" onclick="movePropertySlide('${item._id_str}', -1, event)"><i class="fas fa-chevron-left"></i></button>
+                            <button class="slider-btn next" onclick="movePropertySlide('${item._id_str}', 1, event)"><i class="fas fa-chevron-right"></i></button>
+                        ` : ''}
+                    </div>
+
                     <div class="p-info">
                         <div class="p-score">${item.match_score}점</div>
                         <span class="p-price">${item.rent_type} ${item.price_display}</span>
                         <div class="p-addr">${item.address}</div>
-                        <div class="ai-comment">${item.ai_comment || '최적의 매물입니다!'}</div>
+                        
+                        <div class="detail-tags">
+                            <span class="d-tag"><i class="fa-solid fa-door-open"></i>${item.room_counts || '방 1개'}</span>
+                            <span class="d-tag"><i class="fa-solid fa-ruler-combined"></i>${item.size_m2}㎡</span>
+                            <span class="d-tag"><i class="fa-solid fa-building"></i>${item.floor || '층수 미상'}</span>
+                            <span class="d-tag"><i class="fa-solid fa-square-parking"></i>${item.hasParking || '주차 확인요망'}</span>
+                            <span class="d-tag highlight"><i class="fa-solid fa-couch"></i>${optionsPreview}</span>
+                        </div>
+
+                        <div class="ai-comment">${item.ai_comment || '고객님의 라이프스타일에 부합하는 최적의 매물입니다.'}</div>
                     </div>
                 </div>`;
         }).join('');
@@ -826,29 +756,22 @@
                     <div class="l-score">${item.match_score}점</div>
                 </div>`).join('');
         }
-        document.getElementById('total-count-text').innerText = `총 ${items.length}개의 매물을 발견했습니다.`;
     }
 
-    function toggleModal(show) { document.getElementById('weightModal').style.display = show ? 'flex' : 'none'; }
-    function applyWeightModal() { toggleModal(false); }
-    function toggleAccordion() {
-        const body = document.getElementById('acc-body');
-        const icon = document.getElementById('acc-icon');
-        const isOpen = body.style.display === 'block';
-        body.style.display = isOpen ? 'none' : 'block';
-        icon.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+    function moveSlide(idx) {
+        currentSlide = idx;
+        document.getElementById('mainWrapper').style.transform = `translateX(-${idx * 100}vw)`;
+        document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === idx));
+        
+        document.getElementById('float-prev').style.display = (idx === 0) ? 'none' : 'flex';
+        document.getElementById('float-next').style.display = (idx === 2) ? 'none' : 'flex';
+        document.getElementById('step-text').innerText = `STEP ${idx + 1} / 3`;
+        
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+
+    function handlePrev() { if (currentSlide > 0) moveSlide(currentSlide - 1); }
+    function handleNext() { if (currentSlide < 2) moveSlide(currentSlide + 1); }
 </script>
-<div class="floating-nav">
-    <button id="float-prev" class="nav-btn btn-prev" onclick="handlePrev()" style="display: none;">
-        <i class="fas fa-chevron-left"></i> 이전
-    </button>
-    
-    <div class="step-indicator" id="step-text">STEP 1 / 3</div>
-    
-    <button id="float-next" class="nav-btn btn-next" onclick="handleNext()">
-        다음 <i class="fas fa-chevron-right"></i>
-    </button>
-</div>
 </body>
 </html>
