@@ -140,10 +140,12 @@ def build_match_pipeline(match_query, nw, target_coords=None, limit=10, is_rando
         })
         # 5km 이내일 때 100점 ~ 0점으로 수렴하게 하되, 가까울수록 점수가 급격히 높게 설정
         dist_score_expr = {
-            "$cond": [
-                {"$lt": ["$distance_meters", 5000]}, 
-                {"$multiply": [{"$subtract": [1, {"$divide": ["$distance_meters", 5000]}]}, 100]},
-                0
+            "$multiply": [
+                {"$pow": [
+                    {"$max": [0, {"$subtract": [1, {"$divide": ["$distance_meters", 5000]}]}]}, 
+                    2 
+                ]},
+                100
             ]
         }
         final_score_expr = {
