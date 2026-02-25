@@ -174,7 +174,7 @@ def build_match_pipeline(match_query, nw, target_coords=None, limit=10, is_rando
                 "query": match_query
             }
         })
-        # 팀원 수정사항 적용: 거리별 점수 산정 로직 개선
+        # 팀원 수정사항: 거리별 점수 산정 로직 개선
         dist_score_expr = {"$divide": [{"$max": [0, {"$subtract": [5000, "$distance_meters"]}]}, 50]}
         final_score_expr = {
             "$add": [
@@ -193,7 +193,7 @@ def build_match_pipeline(match_query, nw, target_coords=None, limit=10, is_rando
     })
 
     if is_random:
-        # 팀원 수정사항 적용: 랜덤 추출 기준 점수 하향(50.0)
+        # 팀원 수정사항: 랜덤 추출 기준 점수 하향(50.0)
         pipeline.append({"$match": {"match_score": {"$gte": 50.0}}})
         pipeline.append({"$sample": {"size": limit}})
     else:
@@ -240,7 +240,6 @@ def apply_detail_filters(query, selected_survey):
         query["hasParking"] = {"$ne": "주차 불가능"}
 
     return query
-
 
 # ------------------------------------------------------------------
 # 라우트 핸들러
@@ -550,6 +549,7 @@ def survey_short(index):
 @survey_bp.route('/survey/short/<int:index>/more')
 def survey_short_more(index):
     if 'user_id' not in session: return jsonify({"status": "error"}), 401
+    
     surveys = list(db.survey_results.find({"user_id": session['user_id']}).sort("created_at", -1))
     if not surveys or index >= len(surveys): return jsonify({"status": "error"}), 400
 
@@ -564,21 +564,30 @@ def survey_short_more(index):
         query, 
         nw, 
         target_coords=selected_survey.get('target_coords'), 
-        limit=1000, 
+        limit=1000, # 전체 후보군을 넉넉히 확보
         is_random=True
     )
     
+    # 🔥 [중요] skip과 limit의 순서가 맞아야 페이징이 작동합니다.
     pipeline.extend([
         {"$skip": next_block * 12}, 
         {"$limit": 12}
     ])
     
     new_items = list(houses_col.aggregate(pipeline))
-    if not new_items: return jsonify({"status": "success", "items": [], "has_more": False})
+    
+    # 데이터가 없으면 종료 응답
+    if not new_items: 
+        return jsonify({"status": "success", "items": [], "has_more": False})
 
     session['short_block'] = next_block
     session.modified = True
-    return jsonify({"status": "success", "items": format_property_data(new_items), "has_more": True})
+    
+    return jsonify({
+        "status": "success", 
+        "items": format_property_data(new_items), 
+        "has_more": True
+    })
 
 def generate_sandbox_lifestyle_analysis(nw_weights, top2_keys):
     weight_pct = {category_map[k]: f"{v*100:.1f}%" for k, v in nw_weights.items()}
