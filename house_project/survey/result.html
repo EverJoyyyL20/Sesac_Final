@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="referrer" content="no-referrer">
-    <title>라이프스타일 매칭 결과 | ZIPMATCH</title>
+    <title>라이프스타일 매칭 결과 | 시뮬레이터</title>
     
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'/%3E%3Ccircle cx='12' cy='13' r='2' fill='%234facfe' stroke='%234facfe'/%3E%3C/svg%3E">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -47,61 +47,7 @@
             position: relative;
         }
 
-        /* --- [STEP 1] 프라이빗 리포트 --- */
-        .report-wrapper { max-width: 1300px; margin: 0 auto; padding: 0 20px; }
-
-        .summary-card {
-            background: linear-gradient(135deg, #111 0%, #222 100%);
-            color: #fff; padding: 45px; border-radius: 28px;
-            text-align: center; margin-bottom: 40px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
-        }
-        .summary-card h2 { font-size: 2.5rem; font-weight: 900; margin: 0 0 10px 0; color: var(--primary); }
-        .summary-card p { font-size: 1.25rem; margin: 0; color: #ccc; }
-
-        .grid-layout { display: grid; grid-template-columns: 380px 1fr; gap: 40px; align-items: start; }
-
-        .glass-panel {
-            background: #fff; border: 1px solid #edf1f5;
-            border-radius: 28px; padding: 40px;
-            box-shadow: 0 15px 40px rgba(0,0,0,0.04);
-            display: flex; flex-direction: column; justify-content: center;
-            position: sticky; top: 110px; 
-        }
-
-        .llm-output-panel {
-            background: #fff; border: 1px solid #edf1f5;
-            border-radius: 28px; padding: 50px;
-            box-shadow: 0 15px 40px rgba(0,0,0,0.04);
-        }
-
-        .report-header { margin-bottom: 40px; }
-        .report-header .title { font-size: 1.8rem; font-weight: 900; color: #111; margin-bottom: 15px; }
-        .report-header .summary { font-size: 1.1rem; line-height: 1.7; color: #555; background: #f8f9fb; padding: 25px; border-radius: 16px; border-left: 5px solid var(--primary); font-weight: 600; }
-
-        .section-title { font-size: 1.4rem; font-weight: 800; color: #111; margin: 45px 0 20px 0; display: flex; align-items: center; gap: 10px; border-bottom: 2px solid #f0f2f5; padding-bottom: 15px; }
-
-        .insight-card {
-            background: #fff; border: 1px solid #edf1f5; border-radius: 16px;
-            padding: 25px; margin-bottom: 15px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.02); transition: 0.3s;
-        }
-        .insight-card:hover { transform: translateY(-3px); box-shadow: 0 10px 25px rgba(0,0,0,0.06); border-color: var(--primary); }
-        .insight-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .insight-header .badge { background: #111; color: #fff; padding: 6px 14px; border-radius: 8px; font-weight: 800; font-size: 0.95rem; }
-        .insight-header .weight-text { font-size: 1.2rem; font-weight: 900; color: var(--primary); }
-        .insight-desc { font-size: 1.05rem; line-height: 1.6; color: #444; margin: 0; }
-
-        .curation-box {
-            background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
-            padding: 35px; border-radius: 20px; border: 1px solid #e2e8f0;
-        }
-        .curation-box .dong-name { font-size: 1.6rem; font-weight: 900; color: #111; margin: 0 0 10px 0; display: inline-block; box-shadow: inset 0 -12px 0 rgba(79, 172, 254, 0.3); }
-        .curation-box .dong-desc { font-size: 1.05rem; line-height: 1.7; color: #333; margin-bottom: 20px; font-weight: 600; }
-        .curation-box .dong-points { padding-left: 20px; margin: 0; }
-        .curation-box .dong-points li { margin-bottom: 10px; color: #555; line-height: 1.6; font-size: 1rem; }
-
-        /* --- [STEP 2] 풀사이즈 가로형 카드 리스트 --- */
+        /* --- 팀원 기반 Simulator 레이아웃 --- */
         .glass-card {
             background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(15px);
             border-radius: 30px; box-shadow: 0 20px 40px rgba(0,0,0,0.06);
@@ -109,52 +55,83 @@
             border: 1px solid rgba(255,255,255,0.3);
         }
 
+        .simulator-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: stretch; margin-bottom: 40px; }
+        .chart-section {
+            background: white; border-radius: 25px; padding: 30px;
+            text-align: center; position: relative; height: 100%;
+            display: flex; flex-direction: column; justify-content: center;
+            border: 1px solid #eee; box-shadow: 0 10px 30px rgba(0,0,0,0.04);
+        }
+        .weight-cfg-btn {
+            position: absolute; top: 20px; right: 20px;
+            background: var(--dark); color: white; border: none;
+            padding: 10px 18px; border-radius: 50px; cursor: pointer;
+            font-weight: 700; font-size: 0.85rem; z-index: 5; transition: 0.3s;
+        }
+        .weight-cfg-btn:hover { background: var(--primary); }
+
+        .ai-status-panel {
+            margin-bottom: 25px; padding: 25px; background: #f8f9fb;
+            border-radius: 20px; border-left: 6px solid var(--primary);
+            text-align: left;
+        }
+        .ai-status-panel .type-title { font-weight: 800; color: var(--primary); font-size: 1.3rem; margin-bottom: 8px; }
+        .ai-status-panel .type-desc { font-size: 1rem; color: #666; line-height: 1.6; }
+
+        .filter-section { display: flex; flex-direction: column; justify-content: center; }
+        
+        .toggle-group { display: flex; background: #eee; border-radius: 12px; padding: 4px; margin-bottom: 20px; }
+        .toggle-group button { flex: 1; border: none; padding: 12px; border-radius: 10px; font-weight: 700; cursor: pointer; transition: 0.3s; background: none; }
+        .toggle-group button.active { background: white; color: var(--primary); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+
+        .price-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+        .input-box { display: flex; flex-direction: column; }
+        .input-box label { font-size: 0.8rem; font-weight: 700; color: #888; margin-bottom: 5px; margin-left: 5px; }
+        .input-box input { padding: 14px; border: 1.5px solid #eee; border-radius: 12px; font-size: 1rem; outline: none; transition: 0.3s; }
+        .input-box input:focus { border-color: var(--primary); }
+
+        .detail-accordion { border: 1.5px solid #eee; border-radius: 15px; margin-bottom: 25px; overflow: hidden; }
+        .accordion-header { padding: 22px; background: #f9f9f9; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: 800; color: var(--dark); font-size: 1.1rem; }
+        .accordion-body { padding: 25px; display: none; background: white; border-top: 1px solid #eee; }
+
+        .chip-group { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+        .chip-group input { display: none; }
+        .chip-group label { padding: 10px 18px; border: 1.5px solid #eee; border-radius: 50px; font-size: 0.85rem; cursor: pointer; transition: 0.2s; background: white; }
+        .chip-group input:checked + label { background: var(--primary); color: white; border-color: var(--primary); }
+
+        /* 질문자님 추가: 프라이빗 리포트 텍스트 영역 */
+        .llm-output-panel { background: #fff; border: 1px solid #edf1f5; border-radius: 28px; padding: 40px; box-shadow: 0 15px 40px rgba(0,0,0,0.04); margin-bottom: 40px; }
+        .report-header { margin-bottom: 30px; }
+        .report-header .title { font-size: 1.5rem; font-weight: 900; color: #111; margin-bottom: 10px; }
+        .section-title { font-size: 1.2rem; font-weight: 800; color: #111; margin: 30px 0 15px 0; display: flex; align-items: center; gap: 10px; border-bottom: 2px solid #f0f2f5; padding-bottom: 10px; }
+        .insight-card { background: #fff; border: 1px solid #edf1f5; border-radius: 16px; padding: 20px; margin-bottom: 15px; transition: 0.3s; }
+        .insight-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .insight-header .badge { background: #111; color: #fff; padding: 6px 14px; border-radius: 8px; font-weight: 800; font-size: 0.9rem; }
+        .insight-header .weight-text { font-size: 1.1rem; font-weight: 900; color: var(--primary); }
+        .insight-desc { font-size: 1rem; line-height: 1.6; color: #444; margin: 0; }
+        .curation-box { background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%); padding: 30px; border-radius: 20px; border: 1px solid #e2e8f0; }
+
+        /* --- [Page 2] 추천 결과 및 질문자님 이미지 슬라이더 --- */
         .result-header { text-align: center; margin-bottom: 40px; }
         .result-header h2 { font-size: 2.2rem; font-weight: 900; margin-bottom: 10px; }
         .result-header p { color: #666; font-size: 1.1rem; }
 
-        .podium-container {
-            display: flex; flex-direction: column; align-items: center;
-            gap: 30px; margin-bottom: 60px; padding: 0 20px;
-        }
+        .podium-container { display: flex; flex-direction: column; align-items: center; gap: 30px; margin-bottom: 60px; padding: 0 20px; }
         
-        .p-card {
-            background: white; border-radius: 25px; 
-            width: 100%; max-width: 1200px; 
-            display: flex; flex-direction: row; 
-            box-shadow: 0 15px 35px rgba(0,0,0,0.08); overflow: hidden;
-            position: relative; transition: transform 0.3s; cursor: pointer;
-            border: 1px solid #eee;
-        }
+        .p-card { background: white; border-radius: 25px; width: 100%; max-width: 1200px; display: flex; flex-direction: row; box-shadow: 0 15px 35px rgba(0,0,0,0.08); overflow: hidden; position: relative; transition: transform 0.3s; cursor: pointer; border: 1px solid #eee; }
         .p-card:hover { transform: translateY(-5px); border-color: var(--primary); box-shadow: 0 20px 40px rgba(0,0,0,0.12); }
-        
         .p-card.rank-1 { border: 3px solid var(--gold); }
 
-        .rank-tag {
-            position: absolute; top: 20px; left: 20px; padding: 8px 20px;
-            background: rgba(0,0,0,0.8); color: white; border-radius: 50px;
-            font-weight: 900; z-index: 11; font-size: 1rem; letter-spacing: 1px;
-        }
+        .rank-tag { position: absolute; top: 20px; left: 20px; padding: 8px 20px; background: rgba(0,0,0,0.8); color: white; border-radius: 50px; font-weight: 900; z-index: 11; font-size: 1rem; letter-spacing: 1px; }
         .rank-tag.gold { background: linear-gradient(135deg, #ffd700, #f39c12); color: #111; }
 
-        /* 이미지 슬라이더 영역 */
-        .slider-container {
-            width: 450px; min-height: 450px; position: relative; 
-            overflow: hidden; flex-shrink: 0; background: #eee;
-        }
+        .slider-container { width: 450px; min-height: 450px; position: relative; overflow: hidden; flex-shrink: 0; background: #eee; }
         .slider-track { display: flex; height: 100%; transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); }
         .slider-img { width: 450px; height: 100%; object-fit: cover; flex-shrink: 0; }
-        .slider-btn {
-            position: absolute; top: 50%; transform: translateY(-50%);
-            background: rgba(0,0,0,0.4); color: white; border: none;
-            width: 45px; height: 45px; border-radius: 50%;
-            cursor: pointer; z-index: 10; display: flex; align-items: center; justify-content: center;
-            font-size: 1.2rem; transition: 0.2s; backdrop-filter: blur(5px);
-        }
+        .slider-btn { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.4); color: white; border: none; width: 45px; height: 45px; border-radius: 50%; cursor: pointer; z-index: 10; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; transition: 0.2s; backdrop-filter: blur(5px); }
         .slider-btn:hover { background: var(--primary); }
         .slider-btn.prev { left: 15px; }
         .slider-btn.next { right: 15px; }
-
 
         .p-info { padding: 40px; display: flex; flex-direction: column; flex-grow: 1; justify-content: flex-start; }
         .p-score { color: var(--primary); font-weight: 900; font-size: 1.6rem; margin-bottom: 8px; }
@@ -162,139 +139,55 @@
         .p-addr { font-size: 1.05rem; color: #666; margin-bottom: 15px; font-weight: 500; }
         
         .detail-tags { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 25px; }
-        .d-tag {
-            background: #f1f2f6; color: #555; padding: 8px 14px;
-            border-radius: 10px; font-size: 0.95rem; font-weight: 700;
-            display: flex; align-items: center; gap: 6px;
-        }
+        .d-tag { background: #f1f2f6; color: #555; padding: 8px 14px; border-radius: 10px; font-size: 0.95rem; font-weight: 700; display: flex; align-items: center; gap: 6px; }
         .d-tag i { color: var(--primary); font-size: 1.1rem; }
         .d-tag.highlight { background: #eef2ff; color: #4facfe; }
 
-        .ai-comment {
-            background: #f8f9fb; border-radius: 16px; padding: 25px; 
-            border-left: 5px solid var(--primary); font-size: 1rem; 
-            color: #444; line-height: 1.75; margin-top: auto; white-space: pre-wrap; 
-        }
-        .ai-comment::before {
-            content: "\f0eb  수석 큐레이터 심층 브리핑"; font-family: "Font Awesome 6 Free"; 
-            display: block; font-weight: 900; color: var(--primary); 
-            font-size: 0.95rem; margin-bottom: 12px;
-        }
+        .ai-comment { background: #f8f9fb; border-radius: 16px; padding: 25px; border-left: 5px solid var(--primary); font-size: 1rem; color: #444; line-height: 1.75; margin-top: auto; white-space: pre-wrap; }
+        .ai-comment::before { content: "\f0eb  수석 큐레이터 심층 브리핑"; font-family: "Font Awesome 6 Free"; display: block; font-weight: 900; color: var(--primary); font-size: 0.95rem; margin-bottom: 12px; }
 
         .other-list { max-width: 900px; margin: 0 auto; }
-        .list-card {
-            display: flex; align-items: center; background: white; padding: 20px;
-            border-radius: 20px; margin-bottom: 15px; transition: 0.2s; cursor: pointer; border: 1px solid #eee;
-        }
+        .list-card { display: flex; align-items: center; background: white; padding: 20px; border-radius: 20px; margin-bottom: 15px; transition: 0.2s; cursor: pointer; border: 1px solid #eee; }
         .list-card:hover { background: #fdfdfd; box-shadow: 0 5px 15px rgba(0,0,0,0.05); border-color:var(--primary); }
         .l-img { width: 80px; height: 80px; border-radius: 12px; object-fit: cover; margin-right: 20px; }
         .l-content { flex: 1; }
         .l-price { font-weight: 800; font-size: 1.1rem; }
         .l-score { text-align: right; color: var(--primary); font-weight: 800; font-size: 1.1rem; }
 
-        .run-btn {
-            padding: 18px 40px; background: var(--dark); color: white;
-            border: none; border-radius: 16px; font-size: 1.1rem; font-weight: 800;
-            cursor: pointer; transition: 0.3s; box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
-        }
+        /* --- 팀원 추가 네비게이션 및 모달 --- */
+        .run-btn { width: 100%; padding: 22px; background: var(--dark); color: white; border: none; border-radius: 18px; font-size: 1.25rem; font-weight: 800; cursor: pointer; transition: 0.4s; box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1); }
         .run-btn:hover { transform: translateY(-3px); background: var(--primary); box-shadow: 0 10px 20px rgba(79, 172, 254, 0.3); }
 
-        .floating-nav {
-            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
-            display: flex; align-items: center; gap: 15px; z-index: 5000;
-            background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px);
-            padding: 12px 25px; border-radius: 50px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.15); border: 1px solid rgba(255,255,255,0.5);
-        }
-        .nav-btn {
-            border: none; padding: 14px 30px; border-radius: 30px;
-            font-weight: 800; cursor: pointer; transition: 0.3s;
-            display: flex; align-items: center; gap: 8px; font-size: 1rem;
-        }
+        .floating-nav { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 15px; z-index: 5000; background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); padding: 12px 25px; border-radius: 50px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); border: 1px solid rgba(255,255,255,0.5); }
+        .nav-btn { border: none; padding: 14px 30px; border-radius: 30px; font-weight: 800; cursor: pointer; transition: 0.3s; display: flex; align-items: center; gap: 8px; font-size: 1rem; }
         .btn-prev { background: #f1f2f6; color: #555; }
         .btn-prev:hover { background: #dfe4ea; }
         .btn-next { background: var(--dark); color: white; }
         .btn-next:hover { background: var(--primary); transform: translateY(-2px); }
         .step-indicator { font-size: 0.9rem; font-weight: 800; color: var(--primary); margin: 0 15px; letter-spacing: 1px; }
 
-        .dot-nav {
-            position: fixed; right: 40px; top: 50%; transform: translateY(-50%);
-            display: flex; flex-direction: column; gap: 15px; z-index: 1000;
-        }
+        .modal-overlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.7); z-index: 6000; justify-content: center; align-items: center; }
+        .modal-box { background: white; width: 650px; padding: 35px; border-radius: 30px; text-align: center; }
+        #modal-sliders { display: flex; justify-content: space-around; align-items: flex-end; height: 300px; margin: 40px 0; }
+        .slider-item { display: flex; flex-direction: column; align-items: center; gap: 15px; height: 100%; }
+        .custom-range.weight-slider { -webkit-appearance: none; width: 8px; height: 200px; background: #eee; border-radius: 5px; outline: none; writing-mode: bt-lr; appearance: slider-vertical; transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1); cursor: pointer; }
+        .custom-range.weight-slider.interacting { transition: none !important; }
+        .slider-label { font-weight: 800; font-size: 0.9rem; color: var(--dark); margin-bottom: 5px; }
+        .slider-value { font-weight: 700; color: var(--primary); font-size: 0.85rem; }
+
+        .dot-nav { position: fixed; right: 40px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 15px; z-index: 1000; }
         .dot { width: 12px; height: 12px; border-radius: 50%; background: #ccc; cursor: pointer; transition: 0.3s; }
         .dot.active { background: var(--primary); height: 30px; border-radius: 10px; }
 
-        .loader-wrap {
-            position: fixed; top:0; left:0; width:100%; height:100%; background: white;
-            z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center;
-        }
-        .spinner {
-            width: 50px; height: 50px; border: 5px solid #f3f3f3;
-            border-top: 5px solid var(--primary); border-radius: 50%;
-            animation: spin 1s linear infinite; margin-bottom: 20px;
-        }
+        .loader-wrap { position: fixed; top:0; left:0; width:100%; height:100%; background: white; z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .spinner { width: 50px; height: 50px; border: 5px solid #f3f3f3; border-top: 5px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        
-        .filter-fab {
-            position: fixed; top: 110px; left: 20px; z-index: 6000;
-            background: #111; color: white; border: none; border-radius: 50px;
-            padding: 15px 25px; font-weight: 800; font-size: 1.05rem; font-family: 'Pretendard';
-            cursor: pointer; box-shadow: 0 10px 25px rgba(0,0,0,0.2); transition: 0.3s;
-            display: flex; align-items: center; gap: 10px;
-        }
-        .filter-fab:hover { background: var(--primary); transform: translateY(-2px); }
-        
-        .filter-panel {
-            position: fixed; top: 110px; left: 20px; z-index: 5999;
-            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px);
-            border-radius: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.15);
-            border: 1px solid rgba(255,255,255,0.8);
-            width: 380px; padding: 0; 
-            max-height: 0; opacity: 0; overflow: hidden;
-            transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-        }
-        .filter-panel.open {
-            max-height: 80vh; opacity: 1; padding: 30px; overflow-y: auto;
-            scrollbar-width: thin; scrollbar-color: #ccc transparent;
-        }
-        .filter-panel::-webkit-scrollbar { width: 6px; }
-        .filter-panel::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
-        
-        .fp-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
-        .fp-header h3 { margin: 0; font-size: 1.3rem; font-weight: 900; color: #111; }
-        .fp-close { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #888; }
-        
-        .fp-group { margin-bottom: 25px; }
-        .fp-label { font-weight: 800; color: #333; margin-bottom: 10px; font-size: 0.95rem; display: block; }
-        
-        .fp-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-        .fp-btn {
-            background: #f1f2f6; border: 1px solid transparent; padding: 12px;
-            border-radius: 12px; font-weight: 700; color: #555; cursor: pointer; transition: 0.2s;
-            font-family: 'Pretendard'; font-size: 0.95rem;
-        }
-        .fp-btn.selected { background: #eef2ff; color: var(--primary); border-color: var(--primary); }
-        
-        .fp-inputs { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
-        .fp-inputs input {
-            flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 10px;
-            font-family: 'Pretendard'; font-size: 0.95rem; width: 100%; box-sizing: border-box;
-        }
-        
-        .fp-actions { display: flex; gap: 10px; margin-top: 30px; }
-        .fp-btn-reset { flex: 1; background: #eee; color: #555; padding: 15px; border-radius: 14px; font-weight: 800; border: none; cursor: pointer; }
-        .fp-btn-search { flex: 2; background: #111; color: white; padding: 15px; border-radius: 14px; font-weight: 800; border: none; cursor: pointer; transition: 0.3s; }
-        .fp-btn-search:hover { background: var(--primary); }
 
         @media (max-width: 900px) {
-            .grid-layout { grid-template-columns: 1fr; }
-            .llm-output-panel { padding: 30px 20px; }
-            .glass-panel { position: static; }
+            .simulator-layout { grid-template-columns: 1fr; }
             .p-card { flex-direction: column; }
             .slider-container, .slider-img { width: 100%; height: 300px; min-height: 300px; }
             .p-info { padding: 25px; }
-            .filter-fab { top: 80px; left: 10px; padding: 12px 20px; font-size: 0.95rem; }
-            .filter-panel { top: 80px; left: 10px; width: calc(100% - 20px); }
         }
     </style>
 </head>
@@ -302,7 +195,7 @@
 
 <div class="loader-wrap" id="loader">
     <div class="spinner"></div>
-    <p style="font-weight: 800; color: #111; font-size: 1.1rem;" id="loader-text">AI가 맞춤 리포트를 생성하고 있습니다...</p>
+    <p style="font-weight: 700; color: #111; font-size: 1.1rem;">당신의 라이프스타일을 분석하고 있습니다...</p>
 </div>
 
 <div class="navbar">
@@ -327,93 +220,95 @@
     </div>
 </div>
 
-<button class="filter-fab" id="filterFab" onclick="toggleFilterPanel(true)">
-    <i class="fa-solid fa-sliders"></i> 상세 필터 수정
-</button>
-
-<div class="filter-panel" id="filterPanel">
-    <div class="fp-header">
-        <h3><i class="fa-solid fa-sliders"></i> 상세 조건 수정</h3>
-        <button class="fp-close" onclick="toggleFilterPanel(false)"><i class="fa-solid fa-xmark"></i></button>
-    </div>
-
-    <div class="fp-group">
-        <label class="fp-label">계약 형태 및 예산(만원)</label>
-        <div class="fp-btns">
-            <button class="fp-btn" id="f-btn-monthly" onclick="selectFContract('monthly')">월세</button>
-            <button class="fp-btn" id="f-btn-jeonse" onclick="selectFContract('jeonse')">전세</button>
-        </div>
-        
-        <div id="f-monthly-area" style="display: none; margin-top: 15px;">
-            <label style="font-size:0.85rem; color:#666;">보증금 범위</label>
-            <div class="fp-inputs">
-                <input type="number" id="f_m_dep_min" placeholder="최소" min="0"> <span>~</span> <input type="number" id="f_m_dep_max" placeholder="최대" min="0">
-            </div>
-            <label style="font-size:0.85rem; color:#666; display:block; margin-top:10px;">월세 범위</label>
-            <div class="fp-inputs">
-                <input type="number" id="f_m_rent_min" placeholder="최소" min="0"> <span>~</span> <input type="number" id="f_m_rent_max" placeholder="최대" min="0">
-            </div>
-        </div>
-
-        <div id="f-jeonse-area" style="display: none; margin-top: 15px;">
-            <label style="font-size:0.85rem; color:#666;">전세금 범위</label>
-            <div class="fp-inputs">
-                <input type="number" id="f_j_dep_min" placeholder="최소" min="0"> <span>~</span> <input type="number" id="f_j_dep_max" placeholder="최대" min="0">
-            </div>
-        </div>
-    </div>
-
-    <div class="fp-group">
-        <label class="fp-label">방 개수 (중복 가능)</label>
-        <div class="fp-btns" style="grid-template-columns: 1fr 1fr 1fr;" id="f-room-group">
-            <button class="fp-btn" onclick="toggleFMulti(this)">1개</button>
-            <button class="fp-btn" onclick="toggleFMulti(this)">2개</button>
-            <button class="fp-btn" onclick="toggleFMulti(this)">3개 이상</button>
-        </div>
-    </div>
-
-    <div class="fp-group">
-        <label class="fp-label">옥탑/반지하 제외</label>
-        <div class="fp-btns" id="f-special-group">
-            <button class="fp-btn" onclick="toggleFSingle(this)">네, 상관없어요</button>
-            <button class="fp-btn" onclick="toggleFSingle(this)">아니요, 피하고 싶어요</button>
-        </div>
-    </div>
-
-    <div class="fp-group">
-        <label class="fp-label">주차 공간</label>
-        <div class="fp-btns" id="f-parking-group">
-            <button class="fp-btn" onclick="toggleFSingle(this)">네, 필요해요</button>
-            <button class="fp-btn" onclick="toggleFSingle(this)">아니요, 상관없어요</button>
-        </div>
-    </div>
-
-    <div class="fp-actions">
-        <button class="fp-btn-reset" onclick="resetFilters()">초기화</button>
-        <button class="fp-btn-search" onclick="applyFiltersAndSearch()">매물 재검색</button>
-    </div>
-</div>
-
 <div class="main-wrapper" id="mainWrapper">
     
     <section id="page-simulator">
-        <div class="report-wrapper">
-            <div class="summary-card">
-                <h2>{{ user_type }}</h2>
-                <p>{{ user_type_desc }}</p>
-            </div>
-
-            <div class="grid-layout">
-                <div class="glass-panel">
-                    <div style="font-size: 1.2rem; font-weight: 800; margin-bottom: 20px; text-align: center; color:#111;">설문 기반 선호도 분석</div>
-                    <div style="width: 100%; height: 350px; position:relative; margin-top: 15px;">
+        <div class="glass-card">
+            <div class="simulator-layout">
+                <div class="left-col">
+                    <div class="chart-section">
+                        <button class="weight-cfg-btn" onclick="toggleModal(true)">
+                            <i class="fa-solid fa-sliders"></i> 가중치 직접 조절
+                        </button>
                         <canvas id="radarChart"></canvas>
                     </div>
                 </div>
 
-                <div class="llm-output-panel">
-                    {{ detailed_analysis | safe }}
+                <div class="right-col">
+                    <div class="filter-section">
+                        <div class="ai-status-panel">
+                            <div class="ai-type-tag" id="ai-type-title">{{ user_type }}</div>
+                            <div class="ai-desc" id="ai-type-desc">{{ user_type_desc }}</div>
+                        </div>
+
+                        <div class="detail-accordion">
+                            <div class="accordion-header" onclick="toggleAccordion()">
+                                상세 조건 수정 (계약, 연식 등) <i class="fa-solid fa-chevron-down" id="acc-icon"></i>
+                            </div>
+                            <div class="accordion-body" id="acc-body">
+                                <p style="font-weight:700; font-size:0.85rem; margin-bottom:10px;">계약 형태</p>
+                                <div class="toggle-group">
+                                    <button id="t-monthly" class="active" onclick="switchContract('monthly')">월세</button>
+                                    <button id="t-jeonse" onclick="switchContract('jeonse')">전세</button>
+                                </div>
+
+                                <div id="monthly-inputs">
+                                    <div class="price-inputs">
+                                        <div class="input-box">
+                                            <label>보증금 최소 (만)</label>
+                                            <input type="number" id="min_dep" value="{{ survey.budget.min_dep if survey.budget.min_dep != None else '' }}">
+                                        </div>
+                                        <div class="input-box">
+                                            <label>보증금 최대 (만)</label>
+                                            <input type="number" id="max_dep" value="{{ survey.budget.max_dep if survey.budget.max_dep != None else '' }}">
+                                        </div>
+                                    </div>
+                                    <div class="price-inputs">
+                                        <div class="input-box">
+                                            <label>월세 최소 (만)</label>
+                                            <input type="number" id="min_rent" value="{{ survey.budget.min_rent if survey.budget.min_rent != None else '' }}">
+                                        </div>
+                                        <div class="input-box">
+                                            <label>월세 최대 (만)</label>
+                                            <input type="number" id="max_rent" value="{{ survey.budget.max_rent if survey.budget.max_rent != None else '' }}">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div id="jeonse-inputs" style="display:none;">
+                                    <div class="price-inputs">
+                                        <div class="input-box">
+                                            <label>전세금 최소 (만)</label>
+                                            <input type="number" id="min_jeonse" value="{{ survey.budget.min_dep if survey.budget.min_dep != None else '' }}">
+                                        </div>
+                                        <div class="input-box">
+                                            <label>전세금 최대 (만)</label>
+                                            <input type="number" id="max_jeonse" value="{{ survey.budget.max_dep if survey.budget.max_dep != None else '' }}">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <p style="font-weight:700; font-size:0.85rem; margin-bottom:10px;">방 개수</p>
+                                <div class="chip-group" id="f-room-group">
+                                    <input type="checkbox" id="rc1" class="f-room" value="1개"><label for="rc1">1룸</label>
+                                    <input type="checkbox" id="rc2" class="f-room" value="2개"><label for="rc2">2룸</label>
+                                    <input type="checkbox" id="rc3" class="f-room" value="3개 이상"><label for="rc3">3룸+</label>
+                                </div>
+
+                                <p style="font-weight:700; font-size:0.85rem; margin-bottom:10px;">건물 연식</p>
+                                <div class="chip-group" id="f-age-group">
+                                    <input type="checkbox" id="age1" class="f-age" value="신축 (5년 이하)"><label for="age1">신축 (5년 이하)</label>
+                                    <input type="checkbox" id="age2" class="f-age" value="준신축 (5~10년)"><label for="age2">준신축 (10년 이하)</label>
+                                    <input type="checkbox" id="age3" class="f-age" value="구축 (10년 이상)"><label for="age3">구축 무관</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
+            </div>
+
+            <div class="llm-output-panel">
+                {{ detailed_analysis | safe }}
             </div>
         </div>
     </section>
@@ -430,7 +325,7 @@
             <h3 style="margin-bottom:25px; font-weight:800; color:#111;"><i class="fa-solid fa-list-ul"></i> 함께 추천하는 매물</h3>
             <div class="other-list" id="others-area"></div>
             <div style="text-align:center; margin-top:30px;">
-                <button class="run-btn" onclick="location.href='/find'">지도에서 더 많은 매물 보기</button>
+                <button class="run-btn" style="width:250px; background:#111;" onclick="location.href='/find'">지도에서 더 많은 매물 보기</button>
             </div>
         </div>
     </section>
@@ -443,11 +338,20 @@
                 마음에 드는 매물은 하트를 눌러 찜해두시면,<br>마이페이지에서 언제든 다시 검토하실 수 있습니다.
             </p>
             <div style="display:flex; gap:20px; justify-content:center;">
-                <button class="run-btn" style="background:#eee; color:#111;" onclick="location.href='/survey'">설문 다시하기</button>
-                <button class="run-btn" onclick="location.href='/mypage'">마이페이지로 이동</button>
+                <button class="run-btn" style="width:220px; background:#eee; color:#111;" onclick="moveSlide(0)">다시 시뮬레이션</button>
+                <button class="run-btn" style="width:220px;" onclick="location.href='/mypage'">마이페이지로 이동</button>
             </div>
         </div>
     </section>
+</div>
+
+<div class="modal-overlay" id="weightModal">
+    <div class="modal-box">
+        <h3>📊 라이프스타일 가중치</h3>
+        <p style="font-size:0.85rem; color:#888; margin-bottom:25px;">각 지표를 조절하면 AI가 실시간으로 주거 타입을 예측합니다. (합계 100%)</p>
+        <div id="modal-sliders"></div>
+        <button class="run-btn" style="margin-top:20px;" onclick="applyWeightModal()">반영하기</button>
+    </div>
 </div>
 
 <div class="floating-nav">
@@ -467,177 +371,65 @@
 </div>
 
 <script>
-    const chartLabels = {{ user_chart_labels | tojson }};
-    const chartData = {{ user_chart_data | tojson }};
+    const categoryMap = { "traffic": "교통", "convenience": "편의", "green": "녹지", "play": "놀이", "health": "건강", "living": "생활", "safety": "안전" };
+    const categoryKeys = Object.keys(categoryMap);
+    const categoryLog = {{ survey.category_log | tojson }};
+    const surveyId = "{{ survey_id }}";
+    
     let initialTop3 = {{ top_3 | tojson }};
     let initialOthers = {{ others | tojson }};
-    const surveyId = "{{ survey_id }}";
 
     const initContract = "{{ survey.get('contract_type', '') }}";
-    const initBudget = {{ survey.get('budget', {}) | tojson }};
     const initRoomCount = {{ survey.get('room_count', []) | tojson }};
-    const initSpecialRoom = "{{ survey.get('special_room', '') }}";
-    const initParking = "{{ survey.get('parking', '') }}";
+    const initBuildingAge = {{ survey.get('building_age', []) | tojson }};
 
     let myChart;
     let currentSlide = 0;
-    let currentFContract = "";
+    let currentContract = initContract || "monthly";
+    let isAdjusting = null; 
+    let debounceTimer; 
+
+    function calculateInitialWeights(log) {
+        if (!log || log.length === 0) return categoryKeys.map(() => Math.round(100/7));
+        const counts = {};
+        categoryKeys.forEach(k => counts[k] = 0);
+        log.forEach(k => counts[k] = (counts[k] || 0) + 1);
+        const rawWeights = categoryKeys.map(k => (counts[k] + 1));
+        const sum = rawWeights.reduce((a, b) => a + b, 0);
+        return rawWeights.map(v => Math.round((v / sum) * 100));
+    }
+    let currentWeights = calculateInitialWeights(categoryLog);
 
     window.onload = () => {
-        try {
-            initRadarChart();
-            renderResults([...initialTop3, ...initialOthers]);
-            initFilterPanel(); 
-        } catch (error) {
-            console.error("화면 렌더링 중 오류 발생:", error);
-        } finally {
-            hideLoader();
-        }
+        initRadarChart();
+        initSliders();
+        switchContract(currentContract);
+        initFiltersChecked();
+        renderResults([...initialTop3, ...initialOthers]); // 초기 데이터 렌더링
+        setTimeout(() => {
+            const loader = document.getElementById('loader');
+            if(loader) {
+                loader.style.opacity = '0';
+                setTimeout(() => loader.style.display = 'none', 300);
+            }
+        }, 800);
     };
 
-    function hideLoader() {
-        const loader = document.getElementById('loader');
-        if(loader) {
-            loader.style.opacity = '0';
-            setTimeout(() => loader.style.display = 'none', 300);
-        }
+    function initFiltersChecked() {
+        document.querySelectorAll('.f-room').forEach(chk => { if (initRoomCount.includes(chk.value)) chk.checked = true; });
+        document.querySelectorAll('.f-age').forEach(chk => { if (initBuildingAge.includes(chk.value)) chk.checked = true; });
     }
 
-    function showLoader(msg) {
-        const loader = document.getElementById('loader');
-        const txt = document.getElementById('loader-text');
-        if(loader && txt) {
-            txt.innerText = msg;
-            loader.style.display = 'flex';
-            setTimeout(() => loader.style.opacity = '1', 10);
-        }
-    }
-
-    function toggleFilterPanel(show) {
-        const panel = document.getElementById('filterPanel');
-        const fab = document.getElementById('filterFab');
-        if (show) {
-            panel.classList.add('open');
-            fab.style.opacity = '0';
-            fab.style.pointerEvents = 'none';
-        } else {
-            panel.classList.remove('open');
-            fab.style.opacity = '1';
-            fab.style.pointerEvents = 'auto';
-        }
-    }
-
-    function selectFContract(type) {
-        currentFContract = type;
-        document.getElementById('f-btn-monthly').classList.toggle('selected', type === 'monthly');
-        document.getElementById('f-btn-jeonse').classList.toggle('selected', type === 'jeonse');
-        document.getElementById('f-monthly-area').style.display = type === 'monthly' ? 'block' : 'none';
-        document.getElementById('f-jeonse-area').style.display = type === 'jeonse' ? 'block' : 'none';
-    }
-
-    function toggleFMulti(btn) { btn.classList.toggle('selected'); }
-    function toggleFSingle(btn) {
-        btn.parentElement.querySelectorAll('.fp-btn').forEach(b => b.classList.remove('selected'));
-        btn.classList.add('selected');
-    }
-
-    // 🔥 [핵심수정] 20억과 같은 임시 숫자는 무시하고 빈칸으로 예쁘게 바인딩합니다.
-    function initFilterPanel() {
-        if (initContract === 'monthly' || initContract === 'jeonse') {
-            selectFContract(initContract);
-            
-            const maxDep = initBudget.max_dep;
-            const maxRent = initBudget.max_rent;
-            const minDep = initBudget.min_dep;
-            const minRent = initBudget.min_rent;
-
-            if (initContract === 'monthly') {
-                document.getElementById('f_m_dep_min').value = (minDep == null) ? '' : minDep;
-                document.getElementById('f_m_dep_max').value = (maxDep == null || maxDep === 2000000000) ? '' : maxDep;
-                document.getElementById('f_m_rent_min').value = (minRent == null) ? '' : minRent;
-                document.getElementById('f_m_rent_max').value = (maxRent == null || maxRent === 10000000) ? '' : maxRent;
-            } else {
-                document.getElementById('f_j_dep_min').value = (minDep == null) ? '' : minDep;
-                document.getElementById('f_j_dep_max').value = (maxDep == null || maxDep === 2000000000) ? '' : maxDep;
-            }
-        }
-
-        document.querySelectorAll('#f-room-group .fp-btn').forEach(btn => {
-            if (initRoomCount.includes(btn.innerText)) btn.classList.add('selected');
-        });
-
-        document.querySelectorAll('#f-special-group .fp-btn').forEach(btn => {
-            if (btn.innerText === initSpecialRoom) btn.classList.add('selected');
-        });
-
-        document.querySelectorAll('#f-parking-group .fp-btn').forEach(btn => {
-            if (btn.innerText === initParking) btn.classList.add('selected');
-        });
-    }
-
-    function resetFilters() {
-        currentFContract = "";
-        document.querySelectorAll('.fp-btn').forEach(b => b.classList.remove('selected'));
-        document.querySelectorAll('.fp-inputs input').forEach(inp => inp.value = '');
-        document.getElementById('f-monthly-area').style.display = 'none';
-        document.getElementById('f-jeonse-area').style.display = 'none';
-    }
-
-    function applyFiltersAndSearch() {
-        const filters = { contract_type: currentFContract };
-        
-        if (currentFContract === 'monthly') {
-            filters.min_dep = document.getElementById('f_m_dep_min').value;
-            filters.max_dep = document.getElementById('f_m_dep_max').value;
-            filters.min_rent = document.getElementById('f_m_rent_min').value;
-            filters.max_rent = document.getElementById('f_m_rent_max').value;
-        } else if (currentFContract === 'jeonse') {
-            filters.min_dep = document.getElementById('f_j_dep_min').value;
-            filters.max_dep = document.getElementById('f_j_dep_max').value;
-        }
-
-        filters.room_count = Array.from(document.querySelectorAll('#f-room-group .selected')).map(b => b.innerText);
-        const specialBtn = document.querySelector('#f-special-group .selected');
-        filters.special_room = specialBtn ? specialBtn.innerText : "";
-        
-        const parkBtn = document.querySelector('#f-parking-group .selected');
-        filters.parking = parkBtn ? parkBtn.innerText : "";
-
-        toggleFilterPanel(false);
-        showLoader("수정된 조건으로 매물을 다시 큐레이션 중입니다...");
-
-        fetch('/survey/recalculate', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({
-                survey_id: surveyId,
-                weights: chartData, 
-                filters: filters
-            })
-        })
-        .then(res => res.json())
-        .then(data => {
-            if(data.status === 'success') {
-                renderResults(data.items);
-                document.getElementById('total-count-text').innerText = `필터 적용 후, 총 ${data.items.length}개의 매물이 탐색되었습니다.`;
-                moveSlide(1); 
-            } else {
-                alert("재검색 중 오류가 발생했습니다.");
-            }
-        })
-        .catch(e => console.error(e))
-        .finally(() => { hideLoader(); });
-    }
-
+    /* --- 차트 및 슬라이더 (팀원 로직) --- */
     function initRadarChart() {
         const ctx = document.getElementById('radarChart').getContext('2d');
         myChart = new Chart(ctx, {
             type: 'radar',
             data: {
-                labels: chartLabels,
+                labels: categoryKeys.map(k => categoryMap[k]),
                 datasets: [{
                     label: '나의 선호도 (%)',
-                    data: chartData,
+                    data: currentWeights,
                     backgroundColor: 'rgba(79, 172, 254, 0.2)',
                     borderColor: '#4facfe',
                     borderWidth: 3,
@@ -647,22 +439,119 @@
                 }]
             },
             options: {
-                responsive: true,
-                maintainAspectRatio: false,
+                responsive: true, maintainAspectRatio: false,
                 layout: { padding: 25 },
                 scales: { 
-                    r: { 
-                        beginAtZero: true, 
-                        max: Math.max(...chartData) + 10,
-                        ticks: { display: false, stepSize: 20 },
-                        pointLabels: { font: { size: 14, weight: 'bold', family: 'Pretendard' }, color: '#111' },
-                    } 
+                    r: { beginAtZero: true, max: Math.max(...currentWeights) + 10, ticks: { display: false, stepSize: 20 }, pointLabels: { font: { size: 14, weight: 'bold', family: 'Pretendard' }, color: '#111' } } 
                 },
                 plugins: { legend: { display: false } }
             }
         });
     }
 
+    function initSliders() {
+        const container = document.getElementById('modal-sliders');
+        if(!container) return;
+        container.innerHTML = categoryKeys.map((key, i) => {
+            const initialPos = weightToPosition(currentWeights[i]);
+            return `
+                <div class="slider-item">
+                    <div class="slider-label">${categoryMap[key]}</div>
+                    <div class="slider-value" id="val-${key}">${currentWeights[i]}%</div>
+                    <input type="range" class="custom-range weight-slider" data-index="${i}" data-key="${key}" value="${initialPos}" min="0" max="100" oninput="handleSliderInput(this)">
+                </div>
+            `;
+        }).join('');
+    }
+
+    function positionToWeight(pos) { return Math.round(Math.pow(pos, 2) / 100); }
+    function weightToPosition(weight) { return Math.round(Math.sqrt(weight * 100)); }
+
+    function handleSliderInput(el) {
+        isAdjusting = parseInt(el.dataset.index);
+        const changedIdx = isAdjusting;
+        
+        document.querySelectorAll('.weight-slider').forEach(s => s.classList.remove('interacting'));
+        el.classList.add('interacting');
+
+        let pos = parseInt(el.value);
+        let newWeight = positionToWeight(pos);
+        if (pos > 98) newWeight = 100;
+        if (pos < 2) newWeight = 0;
+
+        const oldWeight = currentWeights[changedIdx];
+        let diff = newWeight - oldWeight;
+        if (diff === 0) return;
+
+        currentWeights[changedIdx] = newWeight;
+        const otherIndices = currentWeights.map((_, i) => i).filter(i => i !== changedIdx);
+
+        let remainingDiff = Math.abs(diff);
+        for (let i = 0; i < remainingDiff; i++) {
+            let targets = [];
+            if (diff > 0) {
+                targets = otherIndices.filter(idx => currentWeights[idx] > 0);
+                if (targets.length === 0) break;
+                let weights = targets.map(idx => 100 - currentWeights[idx] + 10);
+                randomAdjust(targets, weights, -1);
+            } else {
+                targets = otherIndices.filter(idx => currentWeights[idx] < 100);
+                if (targets.length === 0) break;
+                let weights = targets.map(idx => currentWeights[idx] + 10);
+                randomAdjust(targets, weights, 1);
+            }
+        }
+
+        let total = currentWeights.reduce((a, b) => a + b, 0);
+        if (total !== 100) {
+            const fix = 100 - total;
+            const targetIdx = otherIndices.reduce((a, b) => currentWeights[a] > currentWeights[b] ? a : b);
+            currentWeights[targetIdx] = Math.max(0, Math.min(100, currentWeights[targetIdx] + fix));
+        }
+
+        updateUI();
+
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => { updateAIType(); }, 500);
+    }
+
+    function randomAdjust(targets, weights, amount) {
+        let totalPower = weights.reduce((a, b) => a + b, 0);
+        let rand = Math.random() * totalPower;
+        let currentSum = 0;
+        for (let j = 0; j < targets.length; j++) {
+            currentSum += weights[j];
+            if (rand <= currentSum) {
+                currentWeights[targets[j]] += amount;
+                break;
+            }
+        }
+    }
+
+    function updateUI() {
+        categoryKeys.forEach((key, i) => {
+            const val = currentWeights[i];
+            const valEl = document.getElementById(`val-${key}`);
+            if (valEl) valEl.innerText = val + '%';
+            if (isAdjusting !== i) {
+                const slider = document.querySelector(`.weight-slider[data-key="${key}"]`);
+                if (slider) slider.value = weightToPosition(val);
+            }
+        });
+        if (myChart) {
+            myChart.data.datasets[0].data = [...currentWeights];
+            myChart.update('none'); 
+        }
+    }
+
+    ['mouseup', 'touchend'].forEach(evt => {
+        document.addEventListener(evt, () => {
+            isAdjusting = null;
+            document.querySelectorAll('.weight-slider').forEach(s => s.classList.remove('interacting'));
+        });
+    });
+
+    /* --- 질문자님 UI 병합: 슬라이더 컨트롤러 및 고품질 카드 렌더링 --- */
     function movePropertySlide(id, direction, event) {
         event.stopPropagation();
         const track = document.getElementById(`track-${id}`);
@@ -690,7 +579,7 @@
 
         const top3 = items.slice(0, 3);
         const others = items.slice(3);
-        const order = [0, 1, 2]; 
+        const order = [0, 1, 2]; // 순차 정렬 복구
         
         podiumArea.innerHTML = order.map(idx => {
             const item = top3[idx];
@@ -758,20 +647,93 @@
         }
     }
 
+    async function updateAIType() {
+        try {
+            const response = await fetch('/survey/recalculate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ weights: currentWeights, survey_id: surveyId })
+            });
+            const res = await response.json();
+            if (res.status === 'success') {
+                document.getElementById('ai-type-title').innerText = res.user_type;
+                document.getElementById('ai-type-desc').innerText = res.user_type_desc;
+            }
+        } catch (e) { console.error("Recalculate error:", e); }
+    }
+
+    async function startAnalysis() {
+        const loader = document.getElementById('loader');
+        if(loader) {
+            loader.style.display = 'flex';
+            setTimeout(() => loader.style.opacity = '1', 10);
+        }
+        
+        const weightsObj = {};
+        categoryKeys.forEach((k, i) => weightsObj[k] = currentWeights[i]);
+
+        const filters = {
+            contract_type: currentContract,
+            min_dep: document.getElementById(currentContract === 'monthly' ? 'min_dep' : 'min_jeonse')?.value,
+            max_dep: document.getElementById(currentContract === 'monthly' ? 'max_dep' : 'max_jeonse')?.value,
+            min_rent: document.getElementById('min_rent')?.value,
+            max_rent: document.getElementById('max_rent')?.value,
+            room_count: Array.from(document.querySelectorAll('.f-room:checked')).map(el => el.value),
+            building_age: Array.from(document.querySelectorAll('.f-age:checked')).map(el => el.value)
+        };
+
+        try {
+            const res = await fetch('/survey/recalculate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ survey_id: surveyId, weights: weightsObj, filters: filters })
+            });
+            const data = await res.json();
+            if(data.status === 'success') {
+                renderResults(data.items);
+                document.getElementById('total-count-text').innerText = `수정된 조건으로, 총 ${data.items.length}개의 매물이 탐색되었습니다.`;
+                moveSlide(1);
+            }
+        } catch(e) { console.error(e); } 
+        finally { 
+            if(loader) {
+                loader.style.opacity = '0';
+                setTimeout(() => loader.style.display = 'none', 300);
+            }
+        }
+    }
+
+    /* --- 기타 내비게이션 및 UI 컨트롤 --- */
     function moveSlide(idx) {
         currentSlide = idx;
         document.getElementById('mainWrapper').style.transform = `translateX(-${idx * 100}vw)`;
         document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === idx));
-        
         document.getElementById('float-prev').style.display = (idx === 0) ? 'none' : 'flex';
         document.getElementById('float-next').style.display = (idx === 2) ? 'none' : 'flex';
         document.getElementById('step-text').innerText = `STEP ${idx + 1} / 3`;
-        
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     function handlePrev() { if (currentSlide > 0) moveSlide(currentSlide - 1); }
-    function handleNext() { if (currentSlide < 2) moveSlide(currentSlide + 1); }
+    function handleNext() { (currentSlide === 0) ? startAnalysis() : moveSlide(currentSlide + 1); }
+
+    function switchContract(type) {
+        currentContract = type;
+        document.getElementById('t-monthly').classList.toggle('active', type === 'monthly');
+        document.getElementById('t-jeonse').classList.toggle('active', type === 'jeonse');
+        document.getElementById('monthly-inputs').style.display = (type === 'monthly') ? 'block' : 'none';
+        document.getElementById('jeonse-inputs').style.display = (type === 'jeonse') ? 'block' : 'none';
+    }
+
+    function toggleModal(show) { document.getElementById('weightModal').style.display = show ? 'flex' : 'none'; }
+    function applyWeightModal() { toggleModal(false); }
+    function toggleAccordion() {
+        const body = document.getElementById('acc-body');
+        const icon = document.getElementById('acc-icon');
+        const isOpen = body.style.display === 'block';
+        body.style.display = isOpen ? 'none' : 'block';
+        icon.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+    }
 </script>
 </body>
 </html>

@@ -16,7 +16,12 @@
 
 <div class="navbar">
     <div class="nav-left">
-        <a href="{{ url_for('main.index') }}">메인페이지</a>
+        <a href="{{ url_for('main.index') }}" class="main-home-link">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 28px; height: 28px;">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                <circle cx="12" cy="13" r="2" fill="#4facfe" stroke="#4facfe"></circle>
+            </svg>
+        </a>
         <a href="{{ url_for('find.find') }}">매물찾기</a>
     </div>
     <div class="nav-links">
@@ -118,27 +123,32 @@
 
 <div id="propertyModal" class="modal">
     <div class="modal-content">
-        <h2>🏠 매물 상세 정보</h2>
-        
-        <div class="detail-slider-container" id="detailSlider">
-            <div class="detail-slider-wrapper" id="sliderWrapper">
-                <div class="detail-page" id="infoPage">
-                    <div id="modal-body-content"></div>
-                </div>
-                <div class="detail-page" id="chartPage">
-                    <h3 style="text-align:center; font-size: 16px; margin-bottom: 15px;">📊 매물 입지 분석</h3>
-                    <div style="height: 250px; width: 100%;">
-                        <canvas id="radarChart"></canvas>
-                    </div>
-                    <p style="text-align:center; color:#999; font-size:12px; margin-top:10px;">← 옆으로 밀어서 정보 보기</p>
-                </div>
-            </div>
+        <div class="detail-tabs">
+            <button class="tab-btn active" onclick="switchTab('info')">
+                매물 상세정보
+            </button>
+            <button class="tab-btn" onclick="switchTab('analysis')">
+                입지 분석
+            </button>
         </div>
 
-        <div class="slider-dots">
-            <span class="dot active" onclick="goToPage(0)"></span>
-            <span class="dot" onclick="goToPage(1)"></span>
+        <div class="tab-content">
+
+            <div id="infoTab" class="tab-panel active">
+                <div id="modal-body-content"></div>
+            </div>
+
+            <div id="analysisTab" class="tab-panel">
+                <h3 style="text-align:center; font-size:16px; margin-bottom:15px;">
+                    📊 매물 입지 분석
+                </h3>
+                <div style="height:250px; width:100%;">
+                    <canvas id="radarChart"></canvas>
+                </div>
+            </div>
+
         </div>
+
 
         <div class="modal-footer-btns">
             <button id="favoriteBtn" class="fav-btn" onclick="handleFavorite()">❤️ 찜하기</button>
@@ -349,7 +359,8 @@
     function openDetail(id) {
         fetch(`/api/property/${id}`).then(res => res.json()).then(prop => {
             window.currentSelectedProp = prop;
-            goToPage(0);
+            
+            switchTab('info');
 
             const favBtn = document.getElementById('favoriteBtn');
             favBtn.innerText = prop.is_favorite ? '💔 찜 취소' : '❤️ 찜하기';
@@ -386,12 +397,25 @@
         });
     }
 
-    function goToPage(index) {
-        const wrapper = document.getElementById('sliderWrapper');
-        const dots = document.querySelectorAll('.dot');
-        wrapper.style.transform = `translateX(-${index * 50}%)`;
-        dots.forEach((dot, i) => dot.classList.toggle('active', i === index));
+
+    function switchTab(tab) {
+
+    const infoTab = document.getElementById('infoTab');
+    const analysisTab = document.getElementById('analysisTab');
+    const buttons = document.querySelectorAll('.tab-btn');
+
+    buttons.forEach(btn => btn.classList.remove('active'));
+
+    if (tab === 'info') {
+        infoTab.classList.add('active');
+        analysisTab.classList.remove('active');
+        buttons[0].classList.add('active');
+    } else {
+        infoTab.classList.remove('active');
+        analysisTab.classList.add('active');
+        buttons[1].classList.add('active');
     }
+}
 
     function drawRadarChart(score) {
         const ctx = document.getElementById('radarChart').getContext('2d');
@@ -404,7 +428,7 @@
                 labels: ['교통', '편의', '자연', '놀이', '건강', '생활', '안전'],
                 datasets: [{ data: scoreData, backgroundColor: 'rgba(79, 172, 254, 0.3)', borderColor: '#4facfe', borderWidth: 2 }]
             },
-            options: { responsive: true, maintainAspectRatio: false, scales: { r: { min: 0, max: 100, ticks: { display: false } } }, plugins: { legend: { display: false } } }
+            options: { responsive: true, maintainAspectRatio: false,animation: false,  scales: { r: { min: 0, max: 100, ticks: { display: false } } }, plugins: { legend: { display: false } } }
         });
     }
 

@@ -11,9 +11,6 @@ import concurrent.futures
 
 load_dotenv(override=True)
 
-# ------------------------------------------------------------------
-# AI 및 초기 설정
-# ------------------------------------------------------------------
 api_key = os.getenv("OPENAI_API_KEY")
 
 try:
@@ -53,9 +50,6 @@ TYPE_MAP = {
     frozenset(["living", "safety"]): ("🏡 안정 중시형", "살기 편하고 걱정 없는 동네가 최고예요."),
 }
 
-# ------------------------------------------------------------------
-# DB 실제 데이터를 활용한 완벽한 프라이빗 브리핑 생성
-# ------------------------------------------------------------------
 def generate_recommendation_reason(user_id, nw, house_info):
     user_doc = db.user.find_one({"email": user_id})
     actual_weight = user_doc.get("Weight", nw) if user_doc else nw
@@ -174,7 +168,15 @@ def build_match_pipeline(match_query, nw, target_coords=None, limit=10, is_rando
                 "query": match_query
             }
         })
-        dist_score_expr = {"$divide": [{"$max": [0, {"$subtract": [5000, "$distance_meters"]}]}, 50]}
+        dist_score_expr = {
+            "$multiply": [
+                {"$pow": [
+                    {"$max": [0, {"$subtract": [1, {"$divide": ["$distance_meters", 5000]}]}]}, 
+                    2 
+                ]},
+                100
+            ]
+        }
         final_score_expr = {
             "$add": [
                 {"$multiply": [lifestyle_score_expr, 100, 0.7]},
@@ -239,10 +241,56 @@ def apply_detail_filters(query, selected_survey):
 
     return query
 
+def generate_sandbox_lifestyle_analysis(nw_weights, top2_keys):
+    weight_pct = {category_map[k]: f"{v*100:.1f}%" for k, v in nw_weights.items()}
+    top_names = [category_map[k] for k in top2_keys]
 
-# ------------------------------------------------------------------
-# 라우트 핸들러
-# ------------------------------------------------------------------
+    template = """
+    당신은 상위 1% VIP를 전담하는 프리미엄 공간 큐레이터이자 수석 라이프스타일 애널리스트입니다.
+    고객의 설문조사 결과(가중치)를 바탕으로, 기계적인 보고서가 아닌 '프라이빗 매거진' 스타일의 1:1 맞춤형 공간 큐레이션 브리핑을 작성해주세요.
+
+    [고객 데이터]
+    - 최우선 핵심 가치 2가지: {top_names}
+    - 7대 지표별 세부 가중치: {weight_pct}
+
+    [작성 가이드 및 HTML 구조]
+    반드시 아래 제공된 HTML 태그 구조를 그대로 사용하여 내용만 채워주세요. (CSS 클래스가 미리 세팅되어 있습니다.)
+
+    <div class="report-header">
+        <h2 class="title">고객님의 라이프스타일 페르소나</h2>
+        <p class="summary">
+            </p>
+    </div>
+
+    <div class="report-body">
+        <h3 class="section-title"><i class="fa-solid fa-magnifying-glass-chart"></i> 데이터로 읽어낸 3대 핵심 니즈</h3>
+        <div class="insight-card">
+            <div class="insight-header">
+                <span class="badge">1순위 지표명</span>
+                <span class="weight-text">00.0%</span>
+            </div>
+            <p class="insight-desc"></p>
+        </div>
+    </div>
+
+    <div class="report-footer">
+        <h3 class="section-title"><i class="fa-solid fa-location-dot"></i> 수석 큐레이터의 핀포인트 추천 지역</h3>
+        <div class="curation-box">
+            <h4 class="dong-name"></h4>
+            <p class="dong-desc"></p>
+            <ul class="dong-points">
+                <li>장점 1</li>
+            </ul>
+        </div>
+    </div>
+    """
+    prompt = PromptTemplate.from_template(template)
+    chain = prompt | llm
+    try:
+        response = chain.invoke({"top_names": ", ".join(top_names), "weight_pct": str(weight_pct)})
+        return response.content.replace("```html", "").replace("```", "").strip()
+    except Exception as e:
+        return "<p>라이프스타일 분석을 불러오는 중 오류가 발생했습니다.</p>"
 
 @survey_bp.route('/survey')
 def survey_page():
@@ -271,7 +319,7 @@ def save_survey():
     user_id = session['user_id']
     data = request.get_json() 
     
-    # 🔥 [수정] 빈칸으로 넘어온 경우 강제로 엄청난 숫자를 채우지 않고 None으로 깔끔하게 처리
+    # 질문자님 핵심 로직: 빈칸인 경우 강제로 0 넣지 않음
     budget_raw = data.get('budget', {})
     def parse_budget(val):
         try:
@@ -282,6 +330,7 @@ def save_survey():
     new_survey = {
         "user_id": user_id,
         "location": data.get('location', ""),
+        "location_type": data.get('location_type', "point"), # 팀원 추가 변수
         "target_coords": data.get('target_coords'),
         "contract_type": data.get('contract_type', ""),
         "budget": {
@@ -329,6 +378,7 @@ def survey_result(index):
     user_chart_labels = ['교통', '편의', '녹지', '놀이', '건강', '생활', '안전']
     user_chart_data = [round(nw.get(k, 0) * 100, 1) for k in chart_keys]
 
+    # 질문자님 추가 기능: 상세 분석 결과
     is_updated = False
     detailed_analysis = selected_survey.get('lifestyle_report')
     if not detailed_analysis:
@@ -350,11 +400,10 @@ def survey_result(index):
     min_dep, max_dep = budget.get('min_dep'), budget.get('max_dep')
     min_rent, max_rent = budget.get('min_rent'), budget.get('max_rent')
 
-    # 과거에 저장된 20억 데이터 호환성 보정
+    # 과거에 저장된 데이터 호환성 보정
     if max_dep == 2000000000: max_dep = None
     if max_rent == 10000000: max_rent = None
 
-    # 🔥 [수정] 값이 있을 때만 필터 조건에 넣도록 개선
     if target_rent_type == "전세":
         price_q = {}
         if min_dep is not None: price_q["$gte"] = min_dep
@@ -381,6 +430,7 @@ def survey_result(index):
     others = matched_properties[3:]
     saved_comments = selected_survey.get('ai_comments_v2', {})
 
+    # 질문자님 핵심 로직: ThreadPoolExecutor를 사용한 병렬 AI 코멘트 생성
     futures = {}
     with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
         for house in top_3:
@@ -502,6 +552,7 @@ def recalculate():
         pipeline = build_match_pipeline(query, nw_norm, target_coords=selected_survey.get('target_coords'), limit=12)
         matched_properties = format_property_data(list(houses_col.aggregate(pipeline)))
 
+        # 질문자님 핵심 로직: ThreadPoolExecutor 복구 (팀원 추가 로직을 병렬로 처리)
         futures_recalc = {}
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
             for house in matched_properties[:3]:
@@ -567,87 +618,3 @@ def survey_short_more(index):
     session['short_block'] = next_block
     session.modified = True
     return jsonify({"status": "success", "items": format_property_data(new_items), "has_more": True})
-
-def generate_sandbox_lifestyle_analysis(nw_weights, top2_keys):
-    weight_pct = {category_map[k]: f"{v*100:.1f}%" for k, v in nw_weights.items()}
-    top_names = [category_map[k] for k in top2_keys]
-
-    template = """
-    당신은 상위 1% VIP를 전담하는 프리미엄 공간 큐레이터이자 수석 라이프스타일 애널리스트입니다.
-    고객의 설문조사 결과(가중치)를 바탕으로, 기계적인 보고서가 아닌 '프라이빗 매거진' 스타일의 1:1 맞춤형 공간 큐레이션 브리핑을 작성해주세요.
-
-    [고객 데이터]
-    - 최우선 핵심 가치 2가지: {top_names}
-    - 7대 지표별 세부 가중치: {weight_pct}
-
-    [작성 가이드 및 HTML 구조]
-    반드시 아래 제공된 HTML 태그 구조를 그대로 사용하여 내용만 채워주세요. (CSS 클래스가 미리 세팅되어 있습니다.)
-
-    <div class="report-header">
-        <h2 class="title">고객님의 라이프스타일 페르소나</h2>
-        <p class="summary">
-            </p>
-    </div>
-
-    <div class="report-body">
-        <h3 class="section-title"><i class="fa-solid fa-magnifying-glass-chart"></i> 데이터로 읽어낸 3대 핵심 니즈</h3>
-        
-        <div class="insight-card">
-            <div class="insight-header">
-                <span class="badge">1순위 지표명 (예: 교통)</span>
-                <span class="weight-text">00.0%</span>
-            </div>
-            <p class="insight-desc">
-                </p>
-        </div>
-    </div>
-
-    <div class="report-footer">
-        <h3 class="section-title"><i class="fa-solid fa-location-dot"></i> 수석 큐레이터의 핀포인트 추천 지역</h3>
-        <div class="curation-box">
-            <h4 class="dong-name"></h4>
-            <p class="dong-desc">
-                </p>
-            <ul class="dong-points">
-                <li>장점 1</li>
-                <li>장점 2</li>
-                <li>장점 3</li>
-            </ul>
-        </div>
-    </div>
-
-    [말투 및 제약 조건]
-    - 톤앤매너: 5성급 호텔 컨시어지나 프라이빗 뱅커(PB)처럼 극도로 정중하고, 세련되며, 신뢰감 있는 전문가의 말투를 사용하세요. (~입니다, ~하시군요)
-    - 🔥 치명적 제약: 당신의 응답은 웹페이지의 HTML 안에 바로 삽입됩니다. 따라서 답변의 맨 처음과 맨 끝에 ```html, ``` 같은 마크다운 코드블럭 기호나 부연 설명을 절대 붙이지 마세요. 오직 순수한 HTML 텍스트만 출력해야 합니다.
-    """
-    
-    prompt = PromptTemplate.from_template(template)
-    chain = prompt | llm
-    
-    try:
-        response = chain.invoke({
-            "top_names": ", ".join(top_names),
-            "weight_pct": str(weight_pct)
-        })
-        clean_html = response.content.replace("```html", "").replace("```", "").strip()
-        return clean_html
-    except Exception as e:
-        print(f"Sandbox LLM Analysis Error: {e}")
-        return "<p>라이프스타일 분석을 불러오는 중 오류가 발생했습니다.</p>"
-
-@survey_bp.route('/survey/prompt_test/<int:index>')
-def survey_prompt_sandbox(index):
-    if 'user_id' not in session: return redirect(url_for('login'))
-    user_id = session['user_id']
-    surveys = list(db.survey_results.find({"user_id": user_id}).sort("created_at", -1))
-    if not surveys or index >= len(surveys): return "설문 결과가 없습니다.", 404
-    selected_survey = surveys[index]
-    nw = get_user_normalized_weights(selected_survey.get('category_log', []))
-    sorted_nw = sorted(nw.items(), key=lambda x: x[1], reverse=True)
-    top2_keys = [sorted_nw[0][0], sorted_nw[1][0]]
-    user_type, user_type_desc = TYPE_MAP.get(frozenset(top2_keys), ("✨ 맞춤형 라이프", "당신만의 특별한 매물을 찾고 있어요."))
-    chart_keys = ['traffic', 'convenience', 'green', 'play', 'health', 'living', 'safety']
-    user_chart_labels = ['교통', '편의', '녹지', '놀이', '건강', '생활', '안전']
-    user_chart_data = [round(nw.get(k, 0) * 100, 1) for k in chart_keys]
-    detailed_analysis = generate_sandbox_lifestyle_analysis(nw, top2_keys)
-    return render_template('prompt_test.html', user_type=user_type, user_type_desc=user_type_desc, detailed_analysis=detailed_analysis, user_chart_labels=user_chart_labels, user_chart_data=user_chart_data)
