@@ -165,7 +165,7 @@ def build_match_pipeline(match_query, nw, target_coords=None, limit=10, is_rando
     })
 
     if is_random:
-        pipeline.append({"$match": {"match_score": {"$gte": 70.0}}})
+        pipeline.append({"$match": {"match_score": {"$gte": 50.0}}})
         pipeline.append({"$sample": {"size": limit}})
     else:
         pipeline.append({"$sort": {"match_score": -1}})
@@ -484,6 +484,7 @@ def survey_short(index):
 @survey_bp.route('/survey/short/<int:index>/more')
 def survey_short_more(index):
     if 'user_id' not in session: return jsonify({"status": "error"}), 401
+    
     surveys = list(db.survey_results.find({"user_id": session['user_id']}).sort("created_at", -1))
     if not surveys or index >= len(surveys): return jsonify({"status": "error"}), 400
 
@@ -492,12 +493,34 @@ def survey_short_more(index):
     query = apply_detail_filters({}, selected_survey)
 
     next_block = session.get('short_block', 0) + 1
-    pipeline = build_match_pipeline(query, nw, target_coords=selected_survey.get('target_coords'), limit=100)
-    pipeline.extend([{"$skip": next_block * 12}, {"$limit": 12}])
+    
+    # 🔥 [수정] limit을 제거하거나 충분히 크게(예: 1000) 설정하여 
+    # 데이터가 100개에서 잘리지 않도록 합니다.
+    pipeline = build_match_pipeline(
+        query, 
+        nw, 
+        target_coords=selected_survey.get('target_coords'), 
+        limit=1000, # 전체 후보군을 넉넉히 확보
+        is_random=True
+    )
+    
+    # 🔥 [중요] skip과 limit의 순서가 맞아야 페이징이 작동합니다.
+    pipeline.extend([
+        {"$skip": next_block * 12}, 
+        {"$limit": 12}
+    ])
     
     new_items = list(houses_col.aggregate(pipeline))
-    if not new_items: return jsonify({"status": "success", "items": [], "has_more": False})
+    
+    # 데이터가 없으면 종료 응답
+    if not new_items: 
+        return jsonify({"status": "success", "items": [], "has_more": False})
 
     session['short_block'] = next_block
     session.modified = True
-    return jsonify({"status": "success", "items": format_property_data(new_items), "has_more": True})
+    
+    return jsonify({
+        "status": "success", 
+        "items": format_property_data(new_items), 
+        "has_more": True
+    })
