@@ -243,21 +243,25 @@
     async function fetchMore() {
         if (isFetching) return;
         isFetching = true;
-        currentIndex += 1; 
+
+        // ❌ currentIndex += 1;  <-- 이 줄을 반드시 삭제하세요!
+        // currentIndex는 설문지의 고유 ID이므로 페이지를 넘길 때 증가시키면 안 됩니다.
 
         try {
+            // 고정된 currentIndex를 사용하여 서버의 세션(short_block) 기반 페이징 호출
             const response = await fetch(`/survey/short/${currentIndex}/more`);
             const data = await response.json();
             
-            if (data.status === 'success' && data.items.length > 0) {
+            if (data.status === 'success' && data.items && data.items.length > 0) {
                 data.items.forEach(item => {
-                    // 중복 체크
+                    // 중복 체크 로직 (유지)
                     if (document.querySelector(`[data-id="${item._id_str}"]`)) return;
 
                     const section = document.createElement('section');
                     section.className = 'prop-section';
                     section.setAttribute('data-id', item._id_str);
                     
+                    // 이미지 및 내용 구성 (기존 로직 유지)
                     const imgsHtml = item.images.map(img => `
                         <div class="swiper-slide"><img src="${img}" class="slide-img"></div>
                     `).join('');
@@ -294,11 +298,13 @@
                     initChart(newChartId, item.chart_data);
                 });
             } else {
+                // 더 이상 데이터가 없을 때만 관찰 중단
                 sentinel.innerText = "모든 추천 매물을 확인했습니다.";
                 observer.unobserve(sentinel);
             }
         } catch (e) { 
-            console.error("데이터 로드 실패:", e); 
+            console.error("데이터 로드 실패:", e);
+            sentinel.innerText = "로딩 중 오류가 발생했습니다.";
         } finally { 
             isFetching = false; 
         }
