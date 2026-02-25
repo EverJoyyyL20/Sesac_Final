@@ -138,8 +138,14 @@ def build_match_pipeline(match_query, nw, target_coords=None, limit=10, is_rando
                 "query": match_query
             }
         })
-        # 5km 이내 가산점
-        dist_score_expr = {"$divide": [{"$max": [0, {"$subtract": [5000, "$distance_meters"]}]}, 50]}
+        # 5km 이내일 때 100점 ~ 0점으로 수렴하게 하되, 가까울수록 점수가 급격히 높게 설정
+        dist_score_expr = {
+            "$cond": [
+                {"$lt": ["$distance_meters", 5000]}, 
+                {"$multiply": [{"$subtract": [1, {"$divide": ["$distance_meters", 5000]}]}, 100]},
+                0
+            ]
+        }
         final_score_expr = {
             "$add": [
                 {"$multiply": [lifestyle_score_expr, 100, 0.7]},
@@ -247,9 +253,9 @@ def save_survey():
         "contract_type": data.get('contract_type', ""),
         "budget": {
             "min_dep": int(budget_raw.get('min_dep', 0) or 0),
-            "max_dep": int(budget_raw.get('max_dep', 0) or 2000000000), # 최대값 없을 시 크게 잡음
+            "max_dep": int(budget_raw.get('max_dep', 0) or 0), # 최대값 없을 시 크게 잡음
             "min_rent": int(budget_raw.get('min_rent', 0) or 0),
-            "max_rent": int(budget_raw.get('max_rent', 0) or 10000000)
+            "max_rent": int(budget_raw.get('max_rent', 0) or 0)
         },
         "building_type": data.get('building_type', []),
         "building_age": data.get('building_age', []),
@@ -418,12 +424,12 @@ def recalculate():
             if target_rent_type: query['rent_type'] = target_rent_type
             
             min_dep = int(client_filters.get('min_dep') or 0)
-            max_dep = int(client_filters.get('max_dep') or 2000000000)
+            max_dep = int(client_filters.get('max_dep') or 0)
             if target_rent_type == "전세":
                 query['price'] = {"$gte": min_dep, "$lte": max_dep}
             else:
                 query['deposit'] = {"$gte": min_dep, "$lte": max_dep}
-                query['price'] = {"$gte": int(client_filters.get('min_rent') or 0), "$lte": int(client_filters.get('max_rent') or 10000000)}
+                query['price'] = {"$gte": int(client_filters.get('min_rent') or 0), "$lte": int(client_filters.get('max_rent') or 0)}
         else:
             query = apply_detail_filters({}, selected_survey)
 
