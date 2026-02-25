@@ -9,9 +9,6 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/survey.css') }}">
     <style>
-        /* 🔥 [수정] common.css의 디자인을 방해하던 .navbar 관련 스타일 삭제 */
-
-        /* [설문 카드 애니메이션] */
         #loading-screen { display: none; text-align: center; padding: 50px 20px; }
         .q-card { display: none; }
         .q-card.active { display: block; animation: fadeIn 0.5s ease; }
@@ -26,7 +23,6 @@
         .back-btn { background: #eee; color: #666; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; transition: 0.3s; padding: 10px; }
         .back-btn:hover { background: #e0e0e0; }
 
-        /* [지도 관련 스타일] */
         #map-selection-area { display: none; margin-top: 20px; width: 100%; }
         #map-container { width: 100%; height: 350px; border-radius: 15px; border: 1px solid #ddd; margin: 15px 0; position: relative; overflow: hidden; }
         #map { width: 100%; height: 100%; }
@@ -43,8 +39,6 @@
             font-size: 0.9rem; cursor: pointer; margin-top: 10px; transition: color 0.3s;
         }
         .skip-btn:hover { color: #888; }
-        
-        /* 상세 조건용 그룹 여백 */
         .detail-q-group { margin-bottom: 25px; text-align: left; }
     </style>
 </head>
@@ -80,43 +74,28 @@
 
     <form id="survey-form">
         <div class="q-card active" id="step-0">
-            <h2>🏠 어디 근처의 매물을 찾으시나요?</h2>
-            <p class="hint-text">원하는 검색 방식을 선택해주세요.</p>
+            <h2>🏠 학교나 직장 근처의 매물을 찾으시나요?</h2>
+            <p class="hint-text">원하는 동네 근처를 지정할 수 있습니다!</p>
             
             <div class="options-group" id="location-ask-group">
-                <button type="button" class="opt-btn" onclick="toggleSearchMethod('map')">📍 지도로 직접 지정</button>
-                <button type="button" class="opt-btn" onclick="toggleSearchMethod('address')">🔍 동네 이름으로 찾기</button>
-                <button type="button" class="opt-btn" style="grid-column: span 2;" onclick="skipStep0()">상관없어요</button>
+                <button type="button" class="opt-btn" onclick="showMapSection(true)">네, 지역을 정하고 싶어요</button>
+                <button type="button" class="opt-btn" onclick="skipStep0()">아니요, 상관없어요</button>
             </div>
 
-            <div id="method-map" class="conditional-area" style="display:none; background:none; padding:0;">
+            <div id="map-selection-area" style="display:none; margin-top:20px; width:100%;">
                 <div class="search-box">
-                    <input type="text" id="map-search-input" onkeypress="handleSearchKey(event)" placeholder="상세 주소를 정확히 입력해주세요. 예: 서울 강남구 역삼동 123-45">
+                    <input type="text" id="map-search-input" placeholder="정확한 주소를 입력하세요!" onkeypress="handleSearchKey(event)">
                     <button type="button" class="confirm-btn" onclick="searchAddress()" style="width: 80px;">검색</button>
                 </div>
-                
                 <div id="map-container">
                     <div id="map"></div>
                     <div class="map-center-pin">📍</div>
                 </div>
-
-                <input type="hidden" id="pref_location" value="">
-
-                <div id="current-addr" class="address-display">지도를 움직여 위치를 잡아주세요.</div>
-            </div>
-
-            <div id="method-address" class="conditional-area" style="display:none;">
-                <p class="sub-q">원하는 지역명을 입력해주세요.</p>
-                <div class="search-box">
-                    <input type="text" id="region-search-input" placeholder="예: 역삼동, 마포구">
-                </div>
-                <p class="hint-text">해당 동네 전체를 기준으로 분석합니다.</p>
-            </div>
-
-            <div id="step0-next-area" style="display:none; margin-top: 20px;">
-                <div class="next-btn-container" style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
-                    <button type="button" class="confirm-btn" onclick="confirmLocation()">이 위치로 확정</button>
-                    <button type="button" class="skip-btn" onclick="resetStep0()">뒤로 가기</button>
+                <div id="current-addr" class="address-display">지도를 움직여 원하는 곳에 핀을 맞춰주세요.</div>
+                <input type="hidden" id="pref_location">
+                <div class="next-btn-container" style="display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: 15px;">
+                    <button type="button" class="confirm-btn" onclick="confirmLocation()">이 위치 근처로 찾기</button>
+                    <button type="button" class="skip-btn" onclick="location.reload()">취소하고 돌아가기</button>
                 </div>
             </div>
         </div>
@@ -250,7 +229,7 @@
         location: "", 
         target_coords: { lat: 0, lng: 0 },
         contract_type: "", 
-        budget: { min_dep: 0, max_dep: 0, min_rent: 0, max_rent: 0 },
+        budget: { min_dep: null, max_dep: null, min_rent: null, max_rent: null },
         building_type: [],
         building_age: [],
         room_count: [],
@@ -314,7 +293,13 @@
     }
 
     function handleSearchKey(e) { if (e.key === 'Enter') searchAddress(); }
-    function confirmLocation() { if(!document.getElementById('pref_location').value) return alert("위치를 선택해주세요."); nextStep(1); }
+    
+    function confirmLocation() { 
+        if(!document.getElementById('pref_location').value) return alert("위치를 선택해주세요."); 
+        surveyResults.location_type = "point";
+        nextStep(1); 
+    }
+    
     function skipStep0() { surveyResults.location = "상관없음"; nextStep(1); }
 
     function updateUI() {
@@ -349,16 +334,18 @@
         document.getElementById('jeonse-area').style.display = (type === 'jeonse') ? 'block' : 'none';
     }
 
+    // 질문자님 핵심 로직: 예산을 기입하지 않아도 강제로 0으로 잡히지 않도록 Null 처리
     function validateStep1() {
         if (!surveyResults.contract_type) { alert("계약 형태를 선택해주세요!"); return; }
+        
         if (surveyResults.contract_type === 'monthly') {
-            surveyResults.budget.min_dep = document.getElementById('m_dep_min').value || 0;
-            surveyResults.budget.max_dep = document.getElementById('m_dep_max').value || 0;
-            surveyResults.budget.min_rent = document.getElementById('m_rent_min').value || 0;
-            surveyResults.budget.max_rent = document.getElementById('m_rent_max').value || 0;
+            surveyResults.budget.min_dep = document.getElementById('m_dep_min').value;
+            surveyResults.budget.max_dep = document.getElementById('m_dep_max').value;
+            surveyResults.budget.min_rent = document.getElementById('m_rent_min').value;
+            surveyResults.budget.max_rent = document.getElementById('m_rent_max').value;
         } else {
-            surveyResults.budget.min_dep = document.getElementById('j_dep_min').value || 0;
-            surveyResults.budget.max_dep = document.getElementById('j_dep_max').value || 0;
+            surveyResults.budget.min_dep = document.getElementById('j_dep_min').value;
+            surveyResults.budget.max_dep = document.getElementById('j_dep_max').value;
         }
         nextStep(2); 
     }
@@ -444,52 +431,6 @@
     }
 
     function preventNegative(input) { if (input.value < 0) input.value = 0; }
-
-
-    let currentMethod = ""; // 'map' 또는 'address'
-
-function toggleSearchMethod(method) {
-    currentMethod = method;
-    document.getElementById('location-ask-group').style.display = 'none';
-    document.getElementById('step0-next-area').style.display = 'block';
-
-    if (method === 'map') {
-        document.getElementById('method-map').style.display = 'block';
-        document.getElementById('method-address').style.display = 'none';
-        // 지도 로드 로직
-        setTimeout(() => {
-            if (!map) initMap();
-            else naver.maps.Event.trigger(map, 'resize');
-        }, 200);
-    } else {
-        document.getElementById('method-map').style.display = 'none';
-        document.getElementById('method-address').style.display = 'block';
-    }
-}
-
-function resetStep0() {
-    document.getElementById('location-ask-group').style.display = 'grid';
-    document.getElementById('method-map').style.display = 'none';
-    document.getElementById('method-address').style.display = 'none';
-    document.getElementById('step0-next-area').style.display = 'none';
-    currentMethod = "";
-}
-
-// confirmLocation 함수 수정
-function confirmLocation() {
-    if (currentMethod === 'map') {
-        const addr = document.getElementById('pref_location').value;
-        if (!addr) return alert("지도를 움직여 위치를 선택해주세요.");
-        surveyResults.location_type = "point"; // 특정 지점 기준
-    } else {
-        const region = document.getElementById('region-search-input').value;
-        if (!region || region.length < 2) return alert("동네 이름을 정확히 입력해주세요.");
-        surveyResults.location = region;
-        surveyResults.location_type = "region"; // 행정구역 기준
-        surveyResults.target_coords = { lat: 0, lng: 0 }; // 동네 검색 시 좌표는 0으로 처리하거나 대표값 사용
-    }
-    nextStep(1);
-}
 </script>
 </body>
 </html>
