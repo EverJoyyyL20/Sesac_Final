@@ -1,7 +1,7 @@
 /* auth.css */
 .page-wrapper {
-    display: flex; justify-content: center; align-items: center;
-    background-color: transparent; padding: 60px 20px; min-height: calc(100vh - 70px);
+    display: flex; justify-content: center; align-items: flex-start;
+    background-color: transparent; padding: 60px 20px; min-height: calc(100vh - 70px); min-height: 100vh; box-sizing: border-box;
 }
 
 .login-box, .register-box, .delete-box {
@@ -65,6 +65,7 @@
 
 
 .naver-btn {
+    margin-top: 10px; /* 구글 버튼과의 간격 확보 */
     width: 100%;
     border: none;
     background: none;
@@ -75,6 +76,6 @@
 .naver-btn img {
     width: 100%;
     height: 52px;
-    border-radius: 10px;
+    border-radius: 16px; /* 구글 곡률과 동일하게 */
     display: block;
 }
