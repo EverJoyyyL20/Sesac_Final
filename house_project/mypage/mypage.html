@@ -87,7 +87,7 @@
                                     </p>
                                     
                                     <p style="font-size: 14px; color: #555; margin: 8px 0; font-weight: 500;">
-                                        💰 {{ s.budget }}
+                                        💰 {% if s.budget and 'None' not in s.budget %}{{ s.budget }}{% else %}가격 미설정{% endif %}
                                     </p>
                                     
                                     <div class="survey-tags" style="margin-top: 12px; display: flex; flex-wrap: wrap; gap: 6px;">
@@ -316,6 +316,10 @@
             let html = '<div style="display: grid; grid-template-columns: 1fr; gap: 15px; margin-top:10px;">';
             {% if surveys %}
                 {% for s in surveys %}
+                // Jinja2에서 넘어온 값을 안전하게 처리
+                var rawBudget = "{{ s.budget }}";
+                var displayBudget = (rawBudget.indexOf('None') !== -1 || !rawBudget || rawBudget === "") ? "가격 미설정" : rawBudget;   
+                
                 html += `
                     <div class="survey-item-card" style="text-align:left; display:flex; align-items:center; padding:15px; gap:10px;">
                         <input type="checkbox" class="edit-checkbox modal-check" data-id="{{ s._id }}">
