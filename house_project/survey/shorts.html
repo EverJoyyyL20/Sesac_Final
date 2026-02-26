@@ -153,7 +153,7 @@
                     <div class="spec-grid">
                         <div class="spec-item">📏 {{ item.size_m2 }}㎡</div>
                         <div class="spec-item">🏢 {{ item.floor }}층</div>
-                        <div class="spec-item">🚗 {{ '주차가능' if item.hasParking == 'Y' else '주차불가' }}</div>
+                        <div class="spec-item">🚗 {{ '주차 가능' if item.hasParking == '주차 가능' else '주차 불가능' }}</div>
                         <div class="spec-item">🛠 {{ item.year_built[:4] if item.year_built else '-' }}년</div>
                     </div>
                 </div>
@@ -283,7 +283,7 @@
                                     <div class="spec-grid">
                                         <div class="spec-item">📏 ${item.size_m2}㎡</div>
                                         <div class="spec-item">🏢 ${item.floor}층</div>
-                                        <div class="spec-item">🚗 ${item.hasParking === 'Y' ? '주차가능' : '주차불가'}</div>
+                                        <div class="spec-item">🚗 ${item.hasParking === '주차 가능' ? '주차 가능' : '주차 불가능'}</div>
                                         <div class="spec-item">🛠 ${item.year_built ? item.year_built.substring(0,4) : '-'}년</div>
                                     </div>
                                 </div>
