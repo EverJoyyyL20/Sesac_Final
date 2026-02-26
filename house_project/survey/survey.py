@@ -301,7 +301,7 @@ def save_survey():
     }
 
     surveys = list(db.survey_results.find({"user_id": user_id}).sort("created_at", -1))
-    if len(surveys) >= 3:
+    if len(surveys) >= 10:
         db.survey_results.delete_one({"_id": surveys[-1]['_id']})
 
     db.survey_results.insert_one(new_survey)

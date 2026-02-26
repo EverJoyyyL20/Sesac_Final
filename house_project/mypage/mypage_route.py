@@ -41,7 +41,7 @@ def mypage():
         session.clear()
         return redirect(url_for('auth.login'))
 
-    raw_surveys = list(db.survey_results.find({"user_id": user_email}).sort("created_at", -1))
+    raw_surveys = list(db.survey_results.find({"user_id": user_email}).sort("created_at", -1).limit(10)) # 혹시 모를 안전장치 최근 10개 불러오기
     surveys = []
     
     for s in raw_surveys:
