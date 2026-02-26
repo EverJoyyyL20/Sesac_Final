@@ -51,27 +51,41 @@
             justify-content: center;
         }
 
-        .swiper { width: 100%; height: 100vh; }
-
+        /* 1. 슬라이드 기본 구조 */
         .swiper-slide {
-            display: flex; align-items: center; justify-content: center;
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
             transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-            filter: grayscale(0.8) brightness(0.3);
-            transform: scale(0.85);
+            background: transparent; /* 배경색 제거 */
         }
 
-        .swiper-slide-active {
+        /* 2. 이미지 스타일 복구 (둥근 모서리 및 크기) */
+        .swiper-slide .slide-img {
+            width: var(--main-slide-width);
+            height: 85vh;
+            object-fit: cover; /* 이미지가 비율에 맞게 꽉 차도록 */
+            border-radius: var(--border-radius); /* 둥근 직사각형 복구 */
+            box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+            
+            /* 비활성 상태 효과 */
+            filter: grayscale(0.8) brightness(0.3);
+            transform: scale(0.85);
+            transition: all 0.5s ease;
+        }
+
+        /* 3. 활성화된 슬라이드 효과 */
+        .swiper-slide-active .slide-img {
             filter: grayscale(0) brightness(1);
             transform: scale(1);
         }
 
-        .slide-img {
-            width: var(--main-slide-width);
-            height: 85vh;
-            object-fit: cover;
-            border-radius: var(--border-radius);
-            box-shadow: 0 20px 60px rgba(0,0,0,0.6);
-            pointer-events: none;
+        /* 4. 잔상을 만드는 스와이퍼 자체 그림자 레이어 강제 제거 */
+        .swiper-slide-shadow, 
+        .swiper-slide-shadow-left, 
+        .swiper-slide-shadow-right,
+        .swiper-slide-shadow-contents {
+            display: none !important;
         }
 
         /* 정보 레이어 */
@@ -213,7 +227,6 @@
         });
     }
 
-    // 스와이퍼 초기화
     function initSwiper(target) {
         return new Swiper(target, {
             slidesPerView: 1, 
@@ -222,9 +235,16 @@
             nested: true,
             effect: 'creative',
             creativeEffect: {
-                prev: { shadow: true, translate: [0, 0, -400] },
-                next: { translate: ['100%', 0, 0] },
+                prev: { 
+                    shadow: false, // 잔상의 원인인 자동 그림자 끄기
+                    translate: [0, 0, -400], // 뒤로 물러나는 느낌
+                },
+                next: { 
+                    translate: ['100%', 0, 0], // 옆에서 들어오는 느낌
+                },
             },
+            // 스와이프 속도가 너무 빠르다면 조절 (기본 300ms)
+            speed: 500, 
         });
     }
 
