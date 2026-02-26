@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI 맞춤 추천 쇼츠</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'/%3E%3Ccircle cx='12' cy='13' r='2' fill='%234facfe' stroke='%234facfe'/%3E%3C/svg%3E">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -13,6 +14,7 @@
             --main-slide-width: 420px; 
             --border-radius: 25px;
             --accent-color: #4facfe;
+            --heart-color: #ff4b2b;
         }
 
         @media (max-width: 500px) {
@@ -21,133 +23,172 @@
 
         body, html {
             margin: 0; padding: 0; height: 100%;
-            background: radial-gradient(circle, #4a4a4a 0%, #1a1a1a 100%);
+            background: #121212;
             display: flex; justify-content: center;
             font-family: 'Pretendard', -apple-system, sans-serif;
-            overflow: hidden;
-            color: #fff;
+            overflow: hidden; color: #fff;
         }
 
-        /* 전체 스크롤 컨테이너 */
+        /* 1. 가이드 레이어 */
+        #user-guide {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.9); z-index: 3000;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: opacity 0.6s ease; backdrop-filter: blur(10px);
+        }
+        #user-guide.fade-out { opacity: 0; pointer-events: none; }
+        .btn-close-guide {
+            position: absolute; top: 30px; right: 30px;
+            background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white; padding: 10px 20px; border-radius: 50px; cursor: pointer;
+            font-size: 0.9rem; z-index: 3001;
+        }
+        .guide-content { text-align: center; animation: fadeInUp 1s ease-out; }
+        .hand-anim { font-size: 3.5rem; margin-bottom: 20px; animation: handGesture 2.5s infinite; }
+        .guide-main-text { 
+            font-size: 1.5rem; font-weight: 800; line-height: 1.4; margin-bottom: 10px;
+            background: linear-gradient(to right, #fff, var(--accent-color));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .guide-sub-text { font-size: 0.9rem; color: rgba(255,255,255,0.5); }
+
+        @keyframes handGesture {
+            0%, 100% { transform: translateY(15px); opacity: 0; }
+            20% { opacity: 1; }
+            50% { transform: translateY(-15px) translateX(0); }
+            70% { transform: translateY(0) translateX(-20px); }
+            85% { transform: translateY(0) translateX(20px); opacity: 1; }
+        }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* 2. 쇼츠 레이아웃 */
         .shorts-wrapper {
-            width: 100vw;
-            height: 100vh;
-            overflow-y: scroll;
-            scroll-snap-type: y mandatory;
-            scrollbar-width: none; /* Firefox */
-            position: relative;
+            width: 100vw; height: 100vh; overflow-y: scroll;
+            scroll-snap-type: y mandatory; scrollbar-width: none; position: relative;
         }
-        .shorts-wrapper::-webkit-scrollbar { display: none; } /* Chrome, Safari */
+        .shorts-wrapper::-webkit-scrollbar { display: none; }
 
-        /* 매물 섹션 (한 페이지 전체) */
         .prop-section {
-            width: 100%;
-            height: 100vh;
-            scroll-snap-align: start;
-            scroll-snap-stop: always;
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            width: 100%; height: 100vh; scroll-snap-align: start; scroll-snap-stop: always;
+            position: relative; display: flex; align-items: center; justify-content: center;
+            overflow: hidden;
         }
 
-        /* 1. 슬라이드 기본 구조 */
-        .swiper-slide {
-            display: flex; 
-            align-items: center; 
-            justify-content: center;
-            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-            background: transparent; /* 배경색 제거 */
-        }
-
-        /* 2. 이미지 스타일 복구 (둥근 모서리 및 크기) */
+        .swiper { width: 100%; height: 100%; }
+        .swiper-slide { display: flex; align-items: center; justify-content: center; background: transparent; }
         .swiper-slide .slide-img {
-            width: var(--main-slide-width);
-            height: 85vh;
-            object-fit: cover; /* 이미지가 비율에 맞게 꽉 차도록 */
-            border-radius: var(--border-radius); /* 둥근 직사각형 복구 */
-            box-shadow: 0 20px 60px rgba(0,0,0,0.6);
-            
-            /* 비활성 상태 효과 */
-            filter: grayscale(0.8) brightness(0.3);
-            transform: scale(0.85);
-            transition: all 0.5s ease;
+            width: var(--main-slide-width); height: 85vh; object-fit: cover;
+            border-radius: var(--border-radius); filter: grayscale(0.8) brightness(0.3);
+            transform: scale(0.85); transition: all 0.5s ease;
+        }
+        .swiper-slide-active .slide-img { filter: grayscale(0) brightness(1); transform: scale(1); }
+
+        /* 더블탭 하트 애니메이션 */
+        .double-tap-heart {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0);
+            font-size: 80px; color: var(--heart-color); z-index: 200; pointer-events: none;
+            text-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+        .double-tap-heart.animate { animation: heartPop 0.8s ease-out; }
+        @keyframes heartPop {
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+            50% { transform: translate(-50%, -50%) scale(1.5); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1.2); opacity: 0; }
         }
 
-        /* 3. 활성화된 슬라이드 효과 */
-        .swiper-slide-active .slide-img {
-            filter: grayscale(0) brightness(1);
-            transform: scale(1);
+        .btn-full-view {
+            position: absolute; top: 10vh; right: calc(50% - (var(--main-slide-width) / 2) + 20px);
+            z-index: 110; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2); color: white;
+            padding: 10px 16px; border-radius: 50px; font-size: 0.8rem; font-weight: 600;
+            cursor: pointer; display: flex; align-items: center; gap: 8px;
         }
 
-        /* 4. 잔상을 만드는 스와이퍼 자체 그림자 레이어 강제 제거 */
-        .swiper-slide-shadow, 
-        .swiper-slide-shadow-left, 
-        .swiper-slide-shadow-right,
-        .swiper-slide-shadow-contents {
-            display: none !important;
-        }
-
-        /* 정보 레이어 */
+        /* 3. 정보 오버레이 */
         .info-overlay {
-            position: absolute;
-            bottom: 5vh;
-            width: calc(var(--main-slide-width) - 40px);
-            z-index: 100;
-            padding: 24px;
-            background: rgba(25, 25, 25, 0.8);
-            backdrop-filter: blur(25px);
-            -webkit-backdrop-filter: blur(25px);
-            border-radius: 28px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            position: absolute; bottom: 3vh; width: calc(var(--main-slide-width) - 40px);
+            z-index: 100; padding: 20px; background: rgba(20, 20, 20, 0.9);
+            backdrop-filter: blur(35px); border-radius: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.12); box-shadow: 0 15px 45px rgba(0,0,0,0.6);
+            transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            transform: translateY(0); 
+            will-change: transform;
         }
+        .info-overlay.collapsed { transform: translateY(calc(100% - 105px)); }
+
+        .toggle-guide { 
+            text-align: center; font-size: 0.75rem; font-weight: 800; 
+            color: var(--accent-color); margin-bottom: 12px; cursor: pointer;
+        }
+
+        /* 찜 버튼 스타일 */
+        .like-btn {
+            position: absolute; top: 20px; right: 20px;
+            background: rgba(255, 255, 255, 0.1); border-radius: 50%;
+            width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem; border: 1px solid rgba(255, 255, 255, 0.2);
+            cursor: pointer; transition: 0.2s; z-index: 105; color: #fff;
+        }
+        .like-btn i.fa-solid { color: var(--heart-color); }
 
         .info-flex-container { 
-            display: flex; align-items: center; justify-content: space-between; 
-            margin-bottom: 15px; gap: 12px;
+            display: flex; align-items: flex-start; justify-content: space-between; 
+            margin-bottom: 15px; gap: 10px;
         }
-
-        .info-left { flex: 1; min-width: 0; }
-        .info-right { width: 130px; height: 130px; flex-shrink: 0; }
+        .info-left { flex: 1; }
+        .info-right { width: 120px; height: 120px; flex-shrink: 0; }
 
         .match-badge {
-            display: inline-block;
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            padding: 5px 12px; border-radius: 50px;
-            font-size: 0.75rem; font-weight: 800; margin-bottom: 8px;
-            color: #000;
+            display: inline-block; background: linear-gradient(135deg, #4facfe, #00f2fe);
+            padding: 4px 12px; border-radius: 50px; font-size: 0.75rem; font-weight: 800; color: #000; margin-bottom: 6px;
         }
-        .price-text { font-size: 1.7rem; font-weight: 900; margin: 0; letter-spacing: -0.5px; }
-        .addr-text { font-size: 0.85rem; color: #bbb; margin: 5px 0 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .price-text { font-size: 1.6rem; font-weight: 900; margin: 0; width: 85%; }
+        .addr-text { font-size: 0.85rem; color: #bbb; margin: 5px 0 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        
+        .spec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 15px; }
+        .spec-item { background: rgba(255, 255, 255, 0.08); padding: 8px; border-radius: 12px; font-size: 0.75rem; text-align: center; }
+        
+        .btn-detail { 
+            width: 100%; padding: 16px; border: none; border-radius: 18px; 
+            background: #fff; color: #000; font-weight: 800; font-size: 1rem;
+            cursor: pointer; transition: 0.2s;
+        }
 
-        .spec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-        .spec-item {
-            background: rgba(255, 255, 255, 0.08);
-            padding: 8px; border-radius: 10px; font-size: 0.7rem; text-align: center;
-            border: 1px solid rgba(255, 255, 255, 0.05);
+        #image-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; z-index: 4000; display: none; align-items: center; justify-content: center;
         }
+        #image-modal img { max-width: 100%; max-height: 100%; object-fit: contain; }
+        #image-modal .close-modal { position: absolute; top: 30px; right: 30px; font-size: 2.5rem; color: white; cursor: pointer; }
 
-        .btn-detail {
-            width: 100%; padding: 16px; border: none; border-radius: 16px;
-            background: #fff; color: #000; font-weight: 800; font-size: 1rem; 
-            cursor: pointer; transition: transform 0.2s;
-            margin-top: 10px;
-        }
-        .btn-detail:active { transform: scale(0.97); }
-
-        #sentinel { 
-            height: 100px; width: 100%; 
-            display: flex; align-items: center; justify-content: center;
-            color: rgba(255,255,255,0.3); font-size: 0.8rem;
-        }
+        #sentinel { height: 150px; width: 100%; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.3); font-size: 0.85rem; }
     </style>
 </head>
 <body>
 
+<div id="user-guide">
+    <button class="btn-close-guide" onclick="removeGuide()">닫기</button>
+    <div class="guide-content">
+        <div class="hand-anim">👆</div>
+        <div class="guide-main-text">넘기고, 두 번 터치하세요</div>
+        <div class="guide-sub-text">위아래로 스크롤하고, 마음에 들면 더블 탭!</div>
+    </div>
+</div>
+
+<div id="image-modal">
+    <span class="close-modal" onclick="closeImageModal()">&times;</span>
+    <img id="modal-img" src="" alt="전체 이미지">
+</div>
+
 <div class="shorts-wrapper" id="shortsWrapper">
     {% for item in recommendations %}
-    <section class="prop-section" data-id="{{ item._id_str }}">
+    <section class="prop-section" data-id="{{ item._id_str }}" ondblclick="handleDoubleTap(this)">
+        <div class="double-tap-heart">❤️</div>
+        
+        <button class="btn-full-view" onclick="openImageModal(this)">
+            <span>🔍</span> 이미지 원본보기
+        </button>
+
         <div class="swiper mySwiper">
             <div class="swiper-wrapper">
                 {% for img in item.images %}
@@ -159,6 +200,14 @@
         </div>
 
         <div class="info-overlay">
+            <button class="like-btn" id="fav-{{ item._id_str }}" onclick="handleFavorite('{{ item._id_str }}', event)">
+                {% if item.is_liked %}
+                    <i class="fa-solid fa-heart"></i>
+                {% else %}
+                    <i class="fa-regular fa-heart"></i>
+                {% endif %}
+            </button>
+            <div class="toggle-guide" onclick="toggleInfo(this.parentElement, event)">▼ 상세 정보 닫기</div>
             <div class="info-flex-container">
                 <div class="info-left">
                     <span class="match-badge">AI 매칭 {{ item.match_score }}점</span>
@@ -179,122 +228,147 @@
         </div>
     </section>
     {% endfor %}
-    <div id="sentinel">추천 매물을 불러오는 중...</div>
+    <div id="sentinel">추천 매물을 더 불러오고 있어요...</div>
 </div>
 
 <script>
-    // 차트 초기화 함수
+    // 0. 가이드 및 모달 기능
+    function removeGuide() {
+        const guide = document.getElementById('user-guide');
+        if(guide) { guide.classList.add('fade-out'); setTimeout(() => guide.remove(), 600); }
+    }
+
+    function toggleInfo(overlay, event) {
+        if (event.target.closest('.btn-detail') || event.target.closest('.like-btn')) return;
+        overlay.classList.toggle('collapsed');
+        const guideText = overlay.querySelector('.toggle-guide');
+        guideText.innerText = overlay.classList.contains('collapsed') ? '▲ 상세 정보 펼치기' : '▼ 상세 정보 닫기';
+    }
+
+    function openImageModal(btn) {
+        const section = btn.closest('.prop-section');
+        const activeImg = section.querySelector('.swiper-slide-active .slide-img');
+        if (activeImg) {
+            document.getElementById('modal-img').src = activeImg.src;
+            document.getElementById('image-modal').style.display = 'flex';
+        }
+    }
+
+    function closeImageModal() { document.getElementById('image-modal').style.display = 'none'; }
+
+    // 1. 찜하기 로직 연동
+    async function handleFavorite(propId, event) {
+        if (event) event.stopPropagation(); 
+        
+        try {
+            const response = await fetch('/api/favorite', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ property_id: propId })
+            });
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                const favBtn = document.getElementById(`fav-${propId}`);
+                if(favBtn) {
+                    favBtn.innerHTML = data.action === 'added' ? '<i class="fa-solid fa-heart"></i>' : '<i class="fa-regular fa-heart"></i>';
+                }
+            } else {
+                alert(data.message);
+            }
+        } catch (e) { console.error("Favorite Error:", e); }
+    }
+
+    // 2. 더블탭 찜하기 애니메이션
+    function handleDoubleTap(section) {
+        const propId = section.getAttribute('data-id');
+        const heartAnim = section.querySelector('.double-tap-heart');
+        
+        heartAnim.classList.remove('animate');
+        void heartAnim.offsetWidth; 
+        heartAnim.classList.add('animate');
+
+        const favBtn = document.getElementById(`fav-${propId}`);
+        // 빈 하트일 때만 찜하기 실행
+        if (favBtn && favBtn.querySelector('.fa-regular')) {
+            handleFavorite(propId);
+        }
+    }
+
+    // 3. 차트 초기화
     function initChart(id, data) {
         const ctx = document.getElementById(id);
         if (!ctx) return;
-
-        // 데이터 보정: 0~1 사이 값이면 100을 곱해 0~100 스케일로 변경
         const processedData = data.map(v => (v <= 1 && v > 0) ? Math.round(v * 100) : v);
-
         new Chart(ctx, {
             type: 'radar',
             data: {
-                // 7가지 항목으로 라벨 수정
                 labels: ['교통', '편의', '녹지', '놀이', '건강', '생활', '안전'], 
                 datasets: [{
-                    data: processedData, 
-                    backgroundColor: 'rgba(79, 172, 254, 0.4)',
-                    borderColor: '#4facfe',
-                    borderWidth: 2,
-                    pointRadius: 0
+                    data: processedData, backgroundColor: 'rgba(79, 172, 254, 0.4)',
+                    borderColor: '#4facfe', borderWidth: 2, pointRadius: 0
                 }]
             },
             options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                scales: {
-                    r: {
-                        min: 0, 
-                        max: 100, // 최대치를 100으로 고정
-                        ticks: { display: false },
-                        grid: { color: 'rgba(255, 255, 255, 0.15)' }, 
-                        angleLines: { color: 'rgba(255, 255, 255, 0.15)' },
-                        pointLabels: { 
-                            display: true, 
-                            color: '#ffffff', 
-                            font: { size: 9, weight: '600' }
-                        }
-                    }
-                },
+                responsive: true, maintainAspectRatio: true,
+                scales: { r: { min: 0, max: 100, ticks: { display: false }, grid: { color: 'rgba(255, 255, 255, 0.15)' }, angleLines: { color: 'rgba(255, 255, 255, 0.15)' }, pointLabels: { display: true, color: '#ffffff', font: { size: 9, weight: '600' } } } },
                 plugins: { legend: { display: false } },
                 animation: { duration: 800 }
             }
         });
     }
 
+    // 4. 스와이퍼 초기화
     function initSwiper(target) {
         return new Swiper(target, {
-            slidesPerView: 1, 
-            centeredSlides: true,
-            grabCursor: true,
-            nested: true,
-            effect: 'creative',
-            creativeEffect: {
-                prev: { 
-                    shadow: false, // 잔상의 원인인 자동 그림자 끄기
-                    translate: [0, 0, -400], // 뒤로 물러나는 느낌
-                },
-                next: { 
-                    translate: ['100%', 0, 0], // 옆에서 들어오는 느낌
-                },
-            },
-            // 스와이프 속도가 너무 빠르다면 조절 (기본 300ms)
+            slidesPerView: 1, centeredSlides: true, grabCursor: true, nested: true,
+            effect: 'creative', creativeEffect: { prev: { shadow: false, translate: [0, 0, -400] }, next: { translate: ['100%', 0, 0] } },
             speed: 500, 
         });
     }
 
-    // 초기 로드 시 실행
+    // 초기 로딩
     document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(removeGuide, 3500);
         document.querySelectorAll('.mySwiper').forEach(s => initSwiper(s));
         {% for item in recommendations %}
             initChart('chart-{{ item._id_str }}', {{ item.chart_data | tojson }});
         {% endfor %}
     });
 
-    let currentIndex = {{ current_index }};
+    // 5. 무한 스크롤 (Fetch API)
     let isFetching = false;
     const wrapper = document.getElementById('shortsWrapper');
     const sentinel = document.getElementById('sentinel');
 
-    // 무한 스크롤 데이터 페칭
     async function fetchMore() {
         if (isFetching) return;
         isFetching = true;
-
-        // ❌ currentIndex += 1;  <-- 이 줄을 반드시 삭제하세요!
-        // currentIndex는 설문지의 고유 ID이므로 페이지를 넘길 때 증가시키면 안 됩니다.
-
         try {
-            // 고정된 currentIndex를 사용하여 서버의 세션(short_block) 기반 페이징 호출
-            const response = await fetch(`/survey/short/${currentIndex}/more`);
+            const response = await fetch('/survey/short/more');
             const data = await response.json();
             
             if (data.status === 'success' && data.items && data.items.length > 0) {
                 data.items.forEach(item => {
-                    // 중복 체크 로직 (유지)
                     if (document.querySelector(`[data-id="${item._id_str}"]`)) return;
-
+                    
                     const section = document.createElement('section');
                     section.className = 'prop-section';
                     section.setAttribute('data-id', item._id_str);
+                    section.setAttribute('ondblclick', 'handleDoubleTap(this)');
                     
-                    // 이미지 및 내용 구성 (기존 로직 유지)
-                    const imgsHtml = item.images.map(img => `
-                        <div class="swiper-slide"><img src="${img}" class="slide-img"></div>
-                    `).join('');
-
+                    const imgsHtml = item.images.map(img => `<div class="swiper-slide"><img src="${img}" class="slide-img"></div>`).join('');
                     const newChartId = `chart-${item._id_str}-${Date.now()}`;
-
+                    
                     section.innerHTML = `
-                        <div class="swiper mySwiper">
-                            <div class="swiper-wrapper">${imgsHtml}</div>
-                        </div>
+                        <div class="double-tap-heart">❤️</div>
+                        <button class="btn-full-view" onclick="openImageModal(this)"><span>🔍</span> 이미지 원본보기</button>
+                        <div class="swiper mySwiper"><div class="swiper-wrapper">${imgsHtml}</div></div>
                         <div class="info-overlay">
+                            <button class="like-btn" onclick="handleFavorite('${item._id_str}', event)" id="fav-${item._id_str}">
+                                ${item.is_liked ? '<i class="fa-solid fa-heart"></i>' : '<i class="fa-regular fa-heart"></i>'}
+                            </button>
+                            <div class="toggle-guide" onclick="toggleInfo(this.parentElement, event)">▼ 상세 정보 닫기</div>
                             <div class="info-flex-container">
                                 <div class="info-left">
                                     <span class="match-badge">AI 매칭 ${item.match_score}점</span>
@@ -307,36 +381,28 @@
                                         <div class="spec-item">🛠 ${item.year_built ? item.year_built.substring(0,4) : '-'}년</div>
                                     </div>
                                 </div>
-                                <div class="info-right">
-                                    <canvas id="${newChartId}"></canvas>
-                                </div>
+                                <div class="info-right"><canvas id="${newChartId}"></canvas></div>
                             </div>
                             <button class="btn-detail" onclick="location.href='/find?id=${item._id_str}'">매물 상세 보기</button>
                         </div>
                     `;
-                    
                     wrapper.insertBefore(section, sentinel);
                     initSwiper(section.querySelector('.mySwiper'));
                     initChart(newChartId, item.chart_data);
                 });
             } else {
-                // 더 이상 데이터가 없을 때만 관찰 중단
                 sentinel.innerText = "모든 추천 매물을 확인했습니다.";
                 observer.unobserve(sentinel);
             }
         } catch (e) { 
-            console.error("데이터 로드 실패:", e);
-            sentinel.innerText = "로딩 중 오류가 발생했습니다.";
-        } finally { 
-            isFetching = false; 
-        }
+            console.error(e);
+            sentinel.innerText = "로딩 중 오류 발생"; 
+        } finally { isFetching = false; }
     }
 
-    // 감시자 설정
     const observer = new IntersectionObserver((entries) => {
         if (entries[0].isIntersecting) fetchMore();
     }, { root: wrapper, threshold: 0.1 });
-
     observer.observe(sentinel);
 </script>
 

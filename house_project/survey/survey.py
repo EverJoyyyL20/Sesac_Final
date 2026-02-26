@@ -91,7 +91,7 @@ def generate_recommendation_reason(user_id, nw, house_info):
                 cat = doc.get('category', '')
                 cat_kr = category_map.get(cat, cat)
                 if name: nearby_infra_names.append(f"{name}({cat_kr})")
-        except Exception as e:
+        except Exception:
             pass
 
     infra_str = ", ".join(list(set(nearby_infra_names))) if nearby_infra_names else "훌륭한 지역 상권 및 인프라"
@@ -120,13 +120,13 @@ def generate_recommendation_reason(user_id, nw, house_info):
     try:
         response = chain.invoke({
             "top_interests": ", ".join(top_interests),
-            "address": house_info['address'],
-            "price": house_info['price_display'],
+            "address": house_info.get('address', '정보 없음'),
+            "price": house_info.get('price_display', '정보 없음'),
             "all_scores": ", ".join(all_scores),
             "infra_str": infra_str
         })
         return response.content.replace("```", "").strip()
-    except Exception as e:
+    except Exception:
         return "고객님의 라이프스타일 지표와 주변 인프라를 종합적으로 분석한 결과, 가장 추천해 드리는 맞춤형 매물입니다."
 
 def get_user_normalized_weights(category_log, custom_weights=None):
@@ -141,7 +141,7 @@ def get_user_normalized_weights(category_log, custom_weights=None):
     w_sum = sum(user_weights.values())
     return {k: v / w_sum for k, v in user_weights.items()}
 
-def format_property_data(houses):
+def format_property_data(houses, user_liked_ids=None):
     for h in houses:
         h['_id_str'] = str(h['_id'])
         rt, p = h.get('rent_type'), h.get('price', 0)
@@ -155,14 +155,17 @@ def format_property_data(houses):
         h['main_image'] = processed_imgs[0]
         
         scores = h.get('category_scores', {})
-        h['chart_data'] = [round(scores.get(c, 0) * 100, 1) for c in ['traffic', 'convenience', 'green', 'play', 'health', 'living', 'safety']]
+        h['chart_data'] = [round(float(scores.get(c, 0)) * 100, 1) for c in ['traffic', 'convenience', 'green', 'play', 'health', 'living', 'safety']]
+        h['is_liked'] = False
+        if user_liked_ids and h['_id_str'] in user_liked_ids:
+            h['is_liked'] = True
     return houses
 
 def build_match_pipeline(match_query, nw, target_coords=None, limit=10, is_random=False):
     pipeline = []
     lifestyle_score_expr = {"$add": [{"$multiply": [{"$ifNull": [f"$category_scores.{c}", 0]}, nw[c]]} for c in nw]}
 
-    if target_coords and 'lng' in target_coords and 'lat' in target_coords and float(target_coords['lat']) != 0:
+    if target_coords and 'lng' in target_coords and 'lat' in target_coords and float(target_coords.get('lat', 0)) != 0:
         pipeline.append({
             "$geoNear": {
                 "near": {
@@ -174,7 +177,6 @@ def build_match_pipeline(match_query, nw, target_coords=None, limit=10, is_rando
                 "query": match_query
             }
         })
-        # 팀원 수정사항: 거리별 점수 산정 로직 개선
         dist_score_expr = {"$divide": [{"$max": [0, {"$subtract": [5000, "$distance_meters"]}]}, 50]}
         final_score_expr = {
             "$add": [
@@ -193,7 +195,6 @@ def build_match_pipeline(match_query, nw, target_coords=None, limit=10, is_rando
     })
 
     if is_random:
-        # 팀원 수정사항: 랜덤 추출 기준 점수 하향(50.0)
         pipeline.append({"$match": {"match_score": {"$gte": 50.0}}})
         pipeline.append({"$sample": {"size": limit}})
     else:
@@ -233,7 +234,7 @@ def apply_detail_filters(query, selected_survey):
 
     s_room = selected_survey.get('special_room', "")
     if "피하고 싶어요" in s_room:
-        query["floor"] = {"$not": {"$regex": "반지하|([0-9]+)\\s*[/중]\\s*\\1(?:[^0-9]|$)"}}
+        query.setdefault("$and", []).append({"floor": {"$not": {"$regex": "반지하|([0-9]+)\\s*[/중]\\s*\\1(?:[^0-9]|$)"}}})
 
     park = selected_survey.get('parking', "")
     if "필요해요" in park:
@@ -272,12 +273,12 @@ def save_survey():
     user_id = session['user_id']
     data = request.get_json() 
     
-    # 질문자님 핵심 로직: 빈칸인 경우 강제로 0을 넣지 않음
     budget_raw = data.get('budget', {})
     def parse_budget(val):
         try:
             if val is None or str(val).strip() == "": return None
-            return int(val)
+            # 소수점 문자열 대응 (ex: "100.0")
+            return int(float(val))
         except: return None
     
     new_survey = {
@@ -314,6 +315,9 @@ def survey_result(index):
     
     user_id = session['user_id']
     surveys = list(db.survey_results.find({"user_id": user_id}).sort("created_at", -1))
+
+    user_likes = db.likes.find({"user_id": user_id})
+    user_liked_ids = [str(like['house_id']) for like in user_likes]
     
     if not surveys or index >= len(surveys):
         return redirect('/mypage')
@@ -340,7 +344,7 @@ def survey_result(index):
     query = {}
     target_coords = selected_survey.get('target_coords')
     loc = selected_survey.get('location')
-    if not target_coords or target_coords.get('lat') == 0:
+    if not target_coords or float(target_coords.get('lat', 0)) == 0:
         if loc and loc != "상관없음": query['address'] = {"$regex": loc}
     
     c_type = selected_survey.get('contract_type')
@@ -351,8 +355,8 @@ def survey_result(index):
     min_dep, max_dep = budget.get('min_dep'), budget.get('max_dep')
     min_rent, max_rent = budget.get('min_rent'), budget.get('max_rent')
 
-    if max_dep == 2000000000: max_dep = None
-    if max_rent == 10000000: max_rent = None
+    if max_dep == 0: max_dep = None
+    if max_rent == 0: max_rent = None
 
     if target_rent_type == "전세":
         price_q = {}
@@ -374,7 +378,7 @@ def survey_result(index):
 
     total_count = houses_col.count_documents(query)
     pipeline = build_match_pipeline(query, nw, target_coords=target_coords, limit=10)
-    matched_properties = format_property_data(list(houses_col.aggregate(pipeline)))
+    matched_properties = format_property_data(list(houses_col.aggregate(pipeline)), user_liked_ids)
 
     top_3 = matched_properties[:3]
     others = matched_properties[3:]
@@ -392,10 +396,13 @@ def survey_result(index):
         for house in top_3:
             h_id = house['_id_str']
             if h_id in futures:
-                new_comment = futures[h_id].result()
-                house['ai_comment'] = new_comment
-                saved_comments[h_id] = new_comment
-                is_updated = True
+                try:
+                    new_comment = futures[h_id].result(timeout=10)
+                    house['ai_comment'] = new_comment
+                    saved_comments[h_id] = new_comment
+                    is_updated = True
+                except Exception:
+                    house['ai_comment'] = "분석 중입니다..."
 
     if is_updated:
         db.survey_results.update_one({"_id": survey_id}, {"$set": {"ai_comments_v2": saved_comments}})
@@ -458,12 +465,10 @@ def recalculate():
             return jsonify({"status": "error", "message": "Survey not found"}), 404
 
         total_w = sum(nw.values())
-        if total_w > 0:
-            nw_norm = {k: v/total_w for k, v in nw.items()}
-        else:
-            nw_norm = {k: 1/7 for k in keys}
+        nw_norm = {k: v/total_w for k, v in nw.items()} if total_w > 0 else {k: 1/7 for k in keys}
 
         client_filters = data.get('filters', {})
+        query = {}
         if client_filters:
             query = apply_detail_filters({}, client_filters)
             c_type = client_filters.get('contract_type')
@@ -472,7 +477,7 @@ def recalculate():
             
             def parse_filter_val(val):
                 if val is None or str(val).strip() == "": return None
-                try: return int(val)
+                try: return int(float(val))
                 except: return None
 
             min_dep = parse_filter_val(client_filters.get('min_dep'))
@@ -509,7 +514,10 @@ def recalculate():
             
             for house in matched_properties[:3]:
                 h_id = house['_id_str']
-                house['ai_comment'] = futures_recalc[h_id].result()
+                try:
+                    house['ai_comment'] = futures_recalc[h_id].result(timeout=10)
+                except:
+                    house['ai_comment'] = "추천 이유를 생성하지 못했습니다."
 
         sorted_nw = sorted(nw_norm.items(), key=lambda x: x[1], reverse=True)
         top2_keys = frozenset([sorted_nw[0][0], sorted_nw[1][0]])
@@ -527,67 +535,107 @@ def recalculate():
         print(traceback.format_exc()) 
         return jsonify({"status": "error", "message": str(e)}), 500
 
-@survey_bp.route('/survey/short/<int:index>')
-def survey_short(index):
-    if 'user_id' not in session: return redirect(url_for('auth.login'))
-    surveys = list(db.survey_results.find({"user_id": session['user_id']}).sort("created_at", -1))
-    if not surveys or index >= len(surveys): return redirect('/mypage')
+@survey_bp.route('/survey/short')
+def survey_short():
+    # 1. 로그인 여부 확인 (에러 대신 None 처리)
+    user_id = session.get('user_id')
     
-    selected_survey = surveys[index]
-    nw = get_user_normalized_weights(selected_survey.get('category_log', []))
-    query = apply_detail_filters({}, selected_survey) 
+    latest_survey = None
+    if user_id:
+        latest_survey = db.survey_results.find_one(
+            {"user_id": user_id}, 
+            sort=[("created_at", -1)]
+        )
+    
+    # 2. 가중치 및 쿼리 설정 (비로그인 시 기본값)
+    if not latest_survey:
+        # 비로그인 유저를 위한 균등 가중치 (또는 운영진 추천 가중치)
+        nw = {k: 1/7 for k in category_map.keys()}
+        query = {}  # 특정 필터 없이 전체 매물 대상
+        target_coords = None
+        is_latest = False
+    else:
+        nw = get_user_normalized_weights(latest_survey.get('category_log', []))
+        query = apply_detail_filters({}, latest_survey)
+        target_coords = latest_survey.get('target_coords')
+        is_latest = True
 
-    pipeline = build_match_pipeline(query, nw, target_coords=selected_survey.get('target_coords'), limit=50)
+    # 3. 매칭 파이프라인 (추천 점수 상위 50개 중 랜덤 12개)
+    pipeline = build_match_pipeline(query, nw, target_coords=target_coords, limit=50)
     pipeline.append({"$sample": {"size": 12}})
     
     recommendations = format_property_data(list(houses_col.aggregate(pipeline)))
+    
     session['short_block'] = 0
-    session.modified = True
+    return render_template('shorts.html', 
+                           recommendations=recommendations, 
+                           is_latest=is_latest)
 
-    return render_template('shorts.html', recommendations=recommendations, current_index=index)
-
-@survey_bp.route('/survey/short/<int:index>/more')
-def survey_short_more(index):
-    if 'user_id' not in session: return jsonify({"status": "error"}), 401
+@survey_bp.route('/survey/short/more')
+def survey_short_more():
+    # 1. 로그인 여부 확인 (비로그인 시 user_id는 None)
+    user_id = session.get('user_id')
     
-    surveys = list(db.survey_results.find({"user_id": session['user_id']}).sort("created_at", -1))
-    if not surveys or index >= len(surveys): return jsonify({"status": "error"}), 400
+    # 2. 설문 데이터 가져오기 (비로그인 시 None)
+    latest_survey = None
+    if user_id:
+        latest_survey = db.survey_results.find_one(
+            {"user_id": user_id}, 
+            sort=[("created_at", -1)]
+        )
 
-    selected_survey = surveys[index]
-    nw = get_user_normalized_weights(selected_survey.get('category_log', []))
-    query = apply_detail_filters({}, selected_survey)
+    # 3. 가중치 및 쿼리 조건 설정
+    if not latest_survey:
+        # 비로그인 유저: 기본 가중치 및 전체 매물 대상
+        nw = {k: 1/7 for k in category_map.keys()}
+        query = {}
+        target_coords = None
+    else:
+        # 로그인 유저: 최근 설문 기반 필터 및 가중치 적용
+        nw = get_user_normalized_weights(latest_survey.get('category_log', []))
+        query = apply_detail_filters({}, latest_survey)
+        target_coords = latest_survey.get('target_coords')
 
-    next_block = session.get('short_block', 0) + 1
+    # 4. 페이지네이션(블록) 관리
+    # 세션에서 현재 몇 번째 블록인지 가져와서 1 증가시킴
+    current_block = session.get('short_block', 0)
+    next_block = current_block + 1
     
-    # 팀원 수정사항 적용: 무한 스크롤 limit 버그 수정
+    # 5. 매칭 파이프라인 구축 (랜덤 샘플링 방식)
+    # limit=1000은 전체 후보군을 넓게 잡기 위함입니다.
     pipeline = build_match_pipeline(
         query, 
         nw, 
-        target_coords=selected_survey.get('target_coords'), 
-        limit=1000, # 전체 후보군을 넉넉히 확보
+        target_coords=target_coords, 
+        limit=1000, 
         is_random=True
     )
     
-    # 🔥 [중요] skip과 limit의 순서가 맞아야 페이징이 작동합니다.
+    # 6. 건너뛰기($skip)와 가져오기($limit) 추가
+    # 한 번에 12개씩 가져온다고 가정
+    items_per_page = 12
     pipeline.extend([
-        {"$skip": next_block * 12}, 
-        {"$limit": 12}
+        {"$skip": next_block * items_per_page}, 
+        {"$limit": items_per_page}
     ])
     
+    # 7. DB 실행 및 데이터 포맷팅
     new_items = list(houses_col.aggregate(pipeline))
     
-    # 데이터가 없으면 종료 응답
     if not new_items: 
         return jsonify({"status": "success", "items": [], "has_more": False})
 
+    # 8. 세션 갱신 (다음 스크롤을 위해 현재 블록 번호 저장)
     session['short_block'] = next_block
-    session.modified = True
+    session.modified = True # 세션 변경사항 강제 저장
     
+    # 9. JSON 데이터 반환 (클라이언트 JS에서 받아서 화면에 추가)
     return jsonify({
         "status": "success", 
         "items": format_property_data(new_items), 
         "has_more": True
     })
+
 
 def generate_sandbox_lifestyle_analysis(nw_weights, top2_keys):
     weight_pct = {category_map[k]: f"{v*100:.1f}%" for k, v in nw_weights.items()}
@@ -602,12 +650,13 @@ def generate_sandbox_lifestyle_analysis(nw_weights, top2_keys):
     - 7대 지표별 세부 가중치: {weight_pct}
 
     [작성 가이드 및 HTML 구조]
-    반드시 아래 제공된 HTML 태그 구조를 그대로 사용하여 내용만 채워주세요. (CSS 클래스가 미리 세팅되어 있습니다.)
+    반드시 아래 제공된 HTML 태그 구조를 그대로 사용하여 내용만 채워주세요.
 
     <div class="report-header">
         <h2 class="title">고객님의 라이프스타일 페르소나</h2>
         <p class="summary">
-            </p>
+            내용 입력
+        </p>
     </div>
 
     <div class="report-body">
@@ -615,20 +664,22 @@ def generate_sandbox_lifestyle_analysis(nw_weights, top2_keys):
         
         <div class="insight-card">
             <div class="insight-header">
-                <span class="badge">1순위 지표명 (예: 교통)</span>
+                <span class="badge">지표명</span>
                 <span class="weight-text">00.0%</span>
             </div>
             <p class="insight-desc">
-                </p>
+                내용 입력
+            </p>
         </div>
     </div>
 
     <div class="report-footer">
         <h3 class="section-title"><i class="fa-solid fa-location-dot"></i> 수석 큐레이터의 핀포인트 추천 지역</h3>
         <div class="curation-box">
-            <h4 class="dong-name"></h4>
+            <h4 class="dong-name">추천 동네 이름</h4>
             <p class="dong-desc">
-                </p>
+                이유 설명
+            </p>
             <ul class="dong-points">
                 <li>장점 1</li>
                 <li>장점 2</li>
@@ -638,8 +689,8 @@ def generate_sandbox_lifestyle_analysis(nw_weights, top2_keys):
     </div>
 
     [말투 및 제약 조건]
-    - 톤앤매너: 5성급 호텔 컨시어지나 프라이빗 뱅커(PB)처럼 극도로 정중하고, 세련되며, 신뢰감 있는 전문가의 말투를 사용하세요. (~입니다, ~하시군요)
-    - 🔥 치명적 제약: 당신의 응답은 웹페이지의 HTML 안에 바로 삽입됩니다. 따라서 답변의 맨 처음과 맨 끝에 ```html, ``` 같은 마크다운 코드블럭 기호나 부연 설명을 절대 붙이지 마세요. 오직 순수한 HTML 텍스트만 출력해야 합니다.
+    - 톤앤매너: 5성급 호텔 컨시어지나 프라이빗 뱅커(PB)처럼 극도로 정중하고, 세련되며, 신뢰감 있는 전문가의 말투를 사용하세요.
+    - 🔥 답변의 처음과 끝에 ```html 또는 ``` 마크다운을 절대 붙이지 마세요. 순수 HTML만 출력하세요.
     """
     
     prompt = PromptTemplate.from_template(template)
@@ -658,17 +709,41 @@ def generate_sandbox_lifestyle_analysis(nw_weights, top2_keys):
 
 @survey_bp.route('/survey/prompt_test/<int:index>')
 def survey_prompt_sandbox(index):
-    if 'user_id' not in session: return redirect(url_for('auth.login'))
+    if 'user_id' not in session: 
+        return redirect(url_for('auth.login'))
+    
     user_id = session['user_id']
     surveys = list(db.survey_results.find({"user_id": user_id}).sort("created_at", -1))
-    if not surveys or index >= len(surveys): return "설문 결과가 없습니다.", 404
+    
+    if not surveys or index >= len(surveys): 
+        return "설문 결과가 없습니다.", 404
+    
     selected_survey = surveys[index]
+    survey_id = selected_survey['_id']
+    
     nw = get_user_normalized_weights(selected_survey.get('category_log', []))
     sorted_nw = sorted(nw.items(), key=lambda x: x[1], reverse=True)
     top2_keys = [sorted_nw[0][0], sorted_nw[1][0]]
+    
     user_type, user_type_desc = TYPE_MAP.get(frozenset(top2_keys), ("✨ 맞춤형 라이프", "당신만의 특별한 매물을 찾고 있어요."))
+    
     chart_keys = ['traffic', 'convenience', 'green', 'play', 'health', 'living', 'safety']
     user_chart_labels = ['교통', '편의', '녹지', '놀이', '건강', '생활', '안전']
     user_chart_data = [round(nw.get(k, 0) * 100, 1) for k in chart_keys]
-    detailed_analysis = generate_sandbox_lifestyle_analysis(nw, top2_keys)
-    return render_template('prompt_test.html', user_type=user_type, user_type_desc=user_type_desc, detailed_analysis=detailed_analysis, user_chart_labels=user_chart_labels, user_chart_data=user_chart_data)
+
+    detailed_analysis = selected_survey.get('lifestyle_report')
+    if not detailed_analysis:
+        detailed_analysis = generate_sandbox_lifestyle_analysis(nw, top2_keys)
+        db.survey_results.update_one({"_id": survey_id}, {"$set": {"lifestyle_report": detailed_analysis}})
+
+    return render_template(
+        'prompt_test.html', 
+        user_type=user_type, 
+        user_type_desc=user_type_desc, 
+        detailed_analysis=detailed_analysis, 
+        user_chart_labels=user_chart_labels, 
+        user_chart_data=user_chart_data,
+        chart_keys=chart_keys,
+        index=index,
+        survey_id=str(survey_id)
+    )
