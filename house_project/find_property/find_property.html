@@ -5,12 +5,127 @@
     <meta name="referrer" content="no-referrer">
     <title>서울 부동산 매물 탐색</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'/%3E%3Ccircle cx='12' cy='13' r='2' fill='%234facfe' stroke='%234facfe'/%3E%3C/svg%3E">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/find_property.css') }}">
     
     <script type="text/javascript" src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId={{ client_id }}&submodules=geocoder"></script>
     <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        /* ========================================================
+           🔥 AI 챗봇 컨시어지 플로팅 창 스타일
+           ======================================================== */
+        .ai-chat-fab {
+            position: fixed; right: 30px; bottom: 30px; z-index: 5000;
+            background: #ffffff; color: #111; border: 1px solid #edf1f5; 
+            border-radius: 50px; padding: 18px 32px; 
+            font-weight: 800; font-size: 1.15rem; 
+            font-family: 'Pretendard'; cursor: pointer; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1); 
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            display: flex; align-items: center; gap: 12px;
+        }
+        .ai-chat-fab:hover { 
+            border-color: #4facfe; color: #4facfe; 
+            transform: translateY(-4px); 
+            box-shadow: 0 15px 35px rgba(79, 172, 254, 0.2); 
+        }
+        .ai-chat-fab svg { transition: 0.3s; }
+        .ai-chat-fab:hover svg { transform: scale(1.1) rotate(5deg); }
+
+        .ai-chat-panel {
+            position: fixed; right: 30px; bottom: 100px;
+            width: 420px; height: 680px; max-height: calc(100vh - 130px);
+            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.15); z-index: 6000;
+            display: flex; flex-direction: column;
+            border-radius: 28px; 
+            border: 1px solid rgba(255,255,255,0.8);
+            overflow: hidden;
+            
+            opacity: 0;
+            transform: scale(0.8) translateY(30px);
+            transform-origin: bottom right; 
+            pointer-events: none;
+            visibility: hidden;
+            transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        .ai-chat-panel.open { 
+            opacity: 1;
+            transform: scale(1) translateY(0);
+            pointer-events: auto;
+            visibility: visible;
+        }
+
+        .chat-header {
+            padding: 25px 30px; border-bottom: 1px solid #eee;
+            display: flex; justify-content: space-between; align-items: center;
+            background: white; flex-shrink: 0;
+        }
+        .chat-header h3 { margin: 0; font-size: 1.25rem; color: #111; font-weight: 900; display: flex; align-items: center; gap: 10px; }
+        .chat-header h3 svg { width: 22px; height: 22px; color: #4facfe; }
+        
+        .close-chat { 
+            background: #f4f5f7; border: none; font-size: 1.2rem; cursor: pointer; color: #888; 
+            width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            transition: 0.2s; 
+        }
+        .close-chat:hover { background: #fee; color: #ff4d4f; transform: rotate(90deg); }
+
+        .chat-body {
+            flex: 1; padding: 30px 25px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px;
+            background: #f8f9fb;
+        }
+        .chat-body::-webkit-scrollbar { width: 6px; }
+        .chat-body::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
+
+        .message { display: flex; max-width: 85%; }
+        .message.bot { align-self: flex-start; }
+        .message.user { align-self: flex-end; flex-direction: row-reverse; }
+        
+        .bubble {
+            padding: 14px 18px; border-radius: 20px; font-size: 0.95rem; line-height: 1.6; word-break: break-all;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+        }
+        .bot .bubble { background: #fff; color: #333; border-bottom-left-radius: 5px; border: 1px solid #eee; }
+        .user .bubble { background: #111; color: #fff; border-bottom-right-radius: 5px; }
+
+        .chat-footer {
+            padding: 20px 25px; border-top: 1px solid #eee; display: flex; gap: 10px; background: #fff; flex-shrink: 0;
+            align-items: center;
+        }
+        .chat-footer input {
+            flex: 1; padding: 16px 20px; border: 1.5px solid #e0e0e0; border-radius: 50px;
+            font-size: 1rem; font-family: 'Pretendard'; outline: none; transition: 0.3s;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.02); background: #fafbfc;
+        }
+        .chat-footer input:focus { border-color: #4facfe; background: #fff; }
+        
+        .chat-footer button {
+            width: 50px; height: 50px; border-radius: 50%; border: none;
+            background: #111; color: white; cursor: pointer; transition: 0.3s;
+            display: flex; align-items: center; justify-content: center; font-size: 1.2rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1); flex-shrink: 0;
+        }
+        .chat-footer button:hover { background: #4facfe; transform: translateY(-2px); }
+
+        .typing-indicator { display: flex; gap: 6px; padding: 5px; align-items: center; height: 20px; }
+        .typing-indicator span {
+            width: 8px; height: 8px; background: #bbb; border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+        .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+
+        @media (max-width: 900px) {
+            .ai-chat-panel { width: calc(100vw - 40px); right: 20px; bottom: 90px; height: calc(100vh - 120px); }
+            .ai-chat-fab { bottom: 20px; right: 20px; padding: 15px 25px; font-size: 1.05rem; }
+        }
+    </style>
 </head>
 <body>
 
@@ -47,7 +162,6 @@
         </div>
         
         <div id="filter-content">
-            
             <div class="address-search-container">
                 <label>📍 주소로 검색 (반경 설정)</label>
                 <input type="text" id="search-address" placeholder="주소를 입력하려면 클릭하세요" readonly onclick="execDaumPostcode()">
@@ -124,32 +238,16 @@
 <div id="propertyModal" class="modal">
     <div class="modal-content">
         <div class="detail-tabs">
-            <button class="tab-btn active" onclick="switchTab('info')">
-                매물 상세정보
-            </button>
-            <button class="tab-btn" onclick="switchTab('analysis')">
-                입지 분석
-            </button>
+            <button class="tab-btn active" onclick="switchTab('info')">매물 상세정보</button>
+            <button class="tab-btn" onclick="switchTab('analysis')">입지 분석</button>
         </div>
-
         <div class="tab-content">
-
-            <div id="infoTab" class="tab-panel active">
-                <div id="modal-body-content"></div>
-            </div>
-
+            <div id="infoTab" class="tab-panel active"><div id="modal-body-content"></div></div>
             <div id="analysisTab" class="tab-panel">
-                <h3 style="text-align:center; font-size:16px; margin-bottom:15px;">
-                    📊 매물 입지 분석
-                </h3>
-                <div style="height:250px; width:100%;">
-                    <canvas id="radarChart"></canvas>
-                </div>
+                <h3 style="text-align:center; font-size:16px; margin-bottom:15px;">📊 매물 입지 분석</h3>
+                <div style="height:250px; width:100%;"><canvas id="radarChart"></canvas></div>
             </div>
-
         </div>
-
-
         <div class="modal-footer-btns">
             <button id="favoriteBtn" class="fav-btn" onclick="handleFavorite()">❤️ 찜하기</button>
             <button id="closeModalBtn" class="close-btn" onclick="closeModal()">닫기</button>
@@ -157,7 +255,213 @@
     </div>
 </div>
 
+<button class="ai-chat-fab" id="chatFabBtn" onclick="toggleChatPanel(true)">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#4facfe" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect width="18" height="14" x="3" y="7" rx="4" ry="4"></rect>
+        <path d="M12 7V3"></path>
+        <circle cx="12" cy="3" r="1.5"></circle>
+        <circle cx="9" cy="13" r="1.5" fill="#4facfe"></circle>
+        <circle cx="15" cy="13" r="1.5" fill="#4facfe"></circle>
+        <path d="M10 17h4"></path>
+    </svg>
+    AI 챗봇 검색
+</button>
+
+<div class="ai-chat-panel" id="aiChatPanel">
+    <div class="chat-header">
+        <h3>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="18" height="14" x="3" y="7" rx="4" ry="4"></rect>
+                <path d="M12 7V3"></path>
+                <circle cx="12" cy="3" r="1.5"></circle>
+                <circle cx="9" cy="13" r="1.5" fill="currentColor"></circle>
+                <circle cx="15" cy="13" r="1.5" fill="currentColor"></circle>
+                <path d="M10 17h4"></path>
+            </svg>
+            매물찾기 챗봇 AI
+        </h3>
+        <button class="close-chat" onclick="toggleChatPanel(false)"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    
+    <div class="chat-body" id="chatBody">
+        <div class="message bot">
+            <div class="bubble">
+                안녕하세요! 번거로운 필터 설정 대신, 원하시는 매물 조건을 편하게 말씀해주세요.<br><br>
+                💡 <strong>이렇게 물어보세요!</strong><br>
+                "강남구 역삼동에 보증금 5천, 월세 60만원 이하 투룸 찾아줘. 주차 가능해야 해!"
+            </div>
+        </div>
+    </div>
+    
+    <div class="chat-footer">
+        <input type="text" id="chatInput" placeholder="메시지를 입력하세요..." onkeypress="handleChatKey(event)">
+        <button onclick="sendChatMessage()"><i class="fa-solid fa-arrow-up"></i></button>
+    </div>
+</div>
+
 <script>
+    /* ========================================================
+       🔥 AI 챗봇 프론트엔드 로직 (카메라 고정 & 단일 매물 포커스 완벽 적용)
+       ======================================================== */
+    
+    let currentConditions = {}; 
+    let currentChatItems = []; // 챗봇 검색으로 찾아낸 전체 매물 원본
+    let lockedChatItems = [];  // 🔥 현재 지도에 '잠금(Lock)' 해둘 매물 배열 (전체 or 딱 1개)
+    let isChatbotMapLock = false; // 🔥 지도 이동/확대 시 필터 API 호출 방지(락) 플래그
+
+    function toggleChatPanel(show) {
+        const panel = document.getElementById('aiChatPanel');
+        const fab = document.getElementById('chatFabBtn');
+        
+        if(show) {
+            panel.classList.add('open');
+            fab.style.transform = 'scale(0) translateY(20px)';
+            fab.style.opacity = '0';
+            setTimeout(() => fab.style.pointerEvents = 'none', 300);
+
+            // 🔥 창을 열 때, 챗봇이 추천해둔 매물이 있다면 다시 지도 잠금을 걸어 복구
+            if (currentChatItems && currentChatItems.length > 0) {
+                lockedChatItems = currentChatItems; 
+                isChatbotMapLock = true;
+                updateMarkers();
+            }
+        } else {
+            panel.classList.remove('open');
+            fab.style.pointerEvents = 'auto';
+            fab.style.transform = 'scale(1) translateY(0)';
+            fab.style.opacity = '1';
+
+            // 🔥 창을 닫을 때, 지도 잠금을 풀고 왼쪽 메뉴 필터로 복귀 (기존 매물 부활)
+            isChatbotMapLock = false;
+            updateMarkers();
+        }
+    }
+
+    function handleChatKey(e) {
+        if(e.key === 'Enter') sendChatMessage();
+    }
+
+    function appendMessage(sender, text) {
+        const body = document.getElementById('chatBody');
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `message ${sender}`;
+        msgDiv.innerHTML = `<div class="bubble">${text}</div>`;
+        body.appendChild(msgDiv);
+        body.scrollTop = body.scrollHeight; 
+    }
+
+    function appendTypingIndicator() {
+        const body = document.getElementById('chatBody');
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `message bot typing`;
+        msgDiv.id = 'typingIndicator';
+        msgDiv.innerHTML = `<div class="bubble"><div class="typing-indicator"><span></span><span></span><span></span></div></div>`;
+        body.appendChild(msgDiv);
+        body.scrollTop = body.scrollHeight;
+    }
+
+    function removeTypingIndicator() {
+        const ind = document.getElementById('typingIndicator');
+        if(ind) ind.remove();
+    }
+
+    function resetChat() {
+        currentConditions = {};
+        currentChatItems = [];
+        lockedChatItems = [];
+        isChatbotMapLock = false; // 리셋 시 잠금 해제
+        
+        const body = document.getElementById('chatBody');
+        body.innerHTML = `
+            <div class="message bot">
+                <div class="bubble">
+                    안녕하세요! 번거로운 필터 설정 대신, 원하시는 매물 조건을 편하게 말씀해주세요.<br><br>
+                    💡 <strong>이렇게 물어보세요!</strong><br>
+                    "강남구 역삼동에 보증금 5천, 월세 60만원 이하 투룸 찾아줘. 주차 가능해야 해!"
+                </div>
+            </div>
+        `;
+        document.getElementById('status-text').innerText = "새로운 대화를 시작했습니다. 매물 조건을 입력해주세요!";
+        
+        // 락을 푼 상태로 updateMarkers 호출하여 전체 지도 복구
+        updateMarkers(); 
+    }
+
+    // 🔥 [NEW] 챗봇의 "상세정보 보기" 버튼을 눌렀을 때 해당 매물만 지도에 띄우는 함수
+    function focusPropertyFromChat(id) {
+        const prop = currentChatItems.find(item => item._id === id);
+        if (prop && prop.location && prop.location.coordinates) {
+            // 지도 고정 배열에 해당 매물 '딱 1개'만 넣고 락을 유지합니다.
+            lockedChatItems = [prop]; 
+            isChatbotMapLock = true;
+            
+            // 카메라를 해당 매물 위치로 줌인
+            // (이동이 끝나면 idle 이벤트가 발생하여 updateMarkers가 실행되고, 딱 1개만 그려집니다)
+            const pos = new naver.maps.LatLng(prop.location.coordinates[1], prop.location.coordinates[0]);
+            map.morph(pos, 16); 
+        }
+        
+        // 정보창 열기
+        openDetail(id);
+    }
+
+    async function sendChatMessage() {
+        const input = document.getElementById('chatInput');
+        const text = input.value.trim();
+        if(!text) return;
+
+        appendMessage('user', text);
+        input.value = '';
+        appendTypingIndicator();
+
+        try {
+            const res = await fetch('/api/chat_search', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ query: text, current_state: currentConditions }) 
+            });
+            const data = await res.json();
+            
+            removeTypingIndicator();
+            appendMessage('bot', data.reply);
+
+            if (data.updated_state) {
+                currentConditions = data.updated_state;
+            }
+            
+            if(data.status === 'success' && data.items && data.items.length > 0) {
+                currentChatItems = data.items;
+                lockedChatItems = data.items; // 검색 직후에는 전체 매물 고정
+                isChatbotMapLock = true; // 지도 잠금 ON
+                
+                // 첫 번째 매물로 카메라 이동 (마찬가지로 이동 끝나면 updateMarkers 실행됨)
+                const first = data.items[0];
+                if(first.location && first.location.coordinates) {
+                    const pos = new naver.maps.LatLng(first.location.coordinates[1], first.location.coordinates[0]);
+                    map.setCenter(pos);
+                    map.setZoom(15); 
+                } else {
+                    updateMarkers();
+                }
+            }
+
+            if(data.show_reset) {
+                const resetDiv = document.createElement('div');
+                resetDiv.style.textAlign = 'center';
+                resetDiv.style.marginTop = '15px';
+                resetDiv.innerHTML = `<button onclick="resetChat()" style="background:#fff; border:2px solid #111; color:#111; padding:12px 24px; border-radius:50px; font-weight:900; font-size:1rem; cursor:pointer; transition:0.3s; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">🔄 새로운 대화로 다시 찾기</button>`;
+                document.getElementById('chatBody').appendChild(resetDiv);
+                document.getElementById('chatBody').scrollTop = document.getElementById('chatBody').scrollHeight;
+            }
+
+        } catch(e) {
+            removeTypingIndicator();
+            appendMessage('bot', '서버 통신 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.');
+        }
+    }
+    /* ======================================================== */
+
+    // 기존 지도 및 마커 로직 유지
     let map, markers = [], lastRequestId = 0, currentOpenIw = null;
     let searchCenter = null, centerMarker = null;
     let myRadarChart = null;
@@ -258,6 +562,23 @@
         const zoom = map.getZoom();
         const bounds = map.getBounds();
         const requestId = ++lastRequestId;
+
+        // 🔥 [NEW 핵심 로직] 챗봇 모드 잠금(Lock) 시, 서버 API 호출 중단 및 챗봇 매물만 화면에 유지
+        if (isChatbotMapLock && lockedChatItems.length > 0) {
+            markers.forEach(m => m.setMap(null));
+            markers = [];
+
+            // 줌 레벨과 무관하게, 현재 화면 안에 있는 챗봇 매물들만 추려냅니다
+            const visibleData = lockedChatItems.filter(item => {
+                if(!item.location || !item.location.coordinates) return false;
+                const position = new naver.maps.LatLng(item.location.coordinates[1], item.location.coordinates[0]);
+                return bounds.hasLatLng(position);
+            });
+
+            renderProperties(visibleData);
+            document.getElementById('status-text').innerText = `🤖 챗봇 매물 고정: 화면에 ${visibleData.length}건 표시 중`;
+            return; // 여기서 함수 완전 종료 (API 호출 스킵!)
+        }
 
         const selectedRooms = Array.from(document.querySelectorAll('.room-btn.active')).map(b => b.dataset.val).join(',');
 
@@ -414,7 +735,6 @@
         });
     }
 
-    // 옵션 박스 열고 닫는 함수
     function toggleOptionBox() {
         const box = document.getElementById('optionBox');
         const btn = document.querySelector('.btn-option-view');
@@ -429,23 +749,22 @@
     }
 
     function switchTab(tab) {
+        const infoTab = document.getElementById('infoTab');
+        const analysisTab = document.getElementById('analysisTab');
+        const buttons = document.querySelectorAll('.tab-btn');
 
-    const infoTab = document.getElementById('infoTab');
-    const analysisTab = document.getElementById('analysisTab');
-    const buttons = document.querySelectorAll('.tab-btn');
+        buttons.forEach(btn => btn.classList.remove('active'));
 
-    buttons.forEach(btn => btn.classList.remove('active'));
-
-    if (tab === 'info') {
-        infoTab.classList.add('active');
-        analysisTab.classList.remove('active');
-        buttons[0].classList.add('active');
-    } else {
-        infoTab.classList.remove('active');
-        analysisTab.classList.add('active');
-        buttons[1].classList.add('active');
+        if (tab === 'info') {
+            infoTab.classList.add('active');
+            analysisTab.classList.remove('active');
+            buttons[0].classList.add('active');
+        } else {
+            infoTab.classList.remove('active');
+            analysisTab.classList.add('active');
+            buttons[1].classList.add('active');
+        }
     }
-}
 
     function drawRadarChart(score) {
         const ctx = document.getElementById('radarChart').getContext('2d');
