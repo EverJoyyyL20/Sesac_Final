@@ -92,6 +92,23 @@ body, html {
     background-color: rgba(255, 255, 255, 0.1);
 }
 
+/* 상단바 쇼츠 버튼 */
+.nav-link-standard {
+    font-size: 0.95rem; 
+    font-weight: 500;   
+    text-decoration: none;
+    color: rgba(255, 255, 255, 0.7); /* 은은한 흰색 */     
+    margin: 0 5px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.nav-link-standard:hover {
+    color: #fff;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
 /* 닉네임 강조 */
 .welcome-text {
     font-size: 1rem;
