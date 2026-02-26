@@ -21,8 +21,8 @@ google = oauth.register(
 
 naver = oauth.register(
     name='naver',
-    client_id=os.getenv("NAVER_CLIENT_ID"),
-    client_secret=os.getenv("NAVER_CLIENT_SECRET"),
+    client_id=os.getenv("NAVER_CLIENT_LID"),
+    client_secret=os.getenv("NAVER_CLIENT_LSECRET"),
     access_token_url='https://nid.naver.com/oauth2.0/token',
     authorize_url='https://nid.naver.com/oauth2.0/authorize',
     api_base_url='https://openapi.naver.com/',
