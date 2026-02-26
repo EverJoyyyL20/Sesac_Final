@@ -242,25 +242,30 @@ def kakao_callback():
         if not email:
             return "이메일 정보를 가져올 수 없습니다.", 400
 
+        session.clear()
         # 4️⃣ MongoDB에서 사용자 확인
         user = users_col.find_one({"email": email})
 
         if not user:
-            users_col.insert_one({
-                "email": email,
-                "created_at": datetime.utcnow(),
-                "login_type": "kakao"
-            })
-            print("신규 회원 저장 완료")
-
-            # 🔥 방금 저장했으니 다시 가져오기
-            user = users_col.find_one({"email": email})
-
+            temp_nickname = generate_temp_nickname()
+            user_document = {
+                'email': email,
+                'PW': None,
+                'nickname': temp_nickname,
+                'introduction': '',
+                'Bookmark': [],
+                'Profile_IMG': 'default.png',
+                'Weight': {'traffic':0, 'convenience':0, 'green':0, 'play':0, 'health':0, 'living':0, 'safety':0},
+                'is_social': True
+            }
+            users_col.insert_one(user_document)
+            user = user_document
+            session['needs_setup'] = True
         else:
             print("기존 회원 로그인")
 
         # ✅ 여기만 수정
-        session.clear()
+    
         session['user_id'] = user['email']
         session['nickname'] = user.get('nickname', '카카오회원')
 
