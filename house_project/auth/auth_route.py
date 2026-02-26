@@ -17,6 +17,19 @@ google = oauth.register(
     client_kwargs={'scope': 'openid email profile'}
 )
 
+
+
+naver = oauth.register(
+    name='naver',
+    client_id=os.getenv("NAVER_CLIENT_ID"),
+    client_secret=os.getenv("NAVER_CLIENT_SECRET"),
+    access_token_url='https://nid.naver.com/oauth2.0/token',
+    authorize_url='https://nid.naver.com/oauth2.0/authorize',
+    api_base_url='https://openapi.naver.com/',
+    client_kwargs={'scope': 'email profile'},
+)
+
+
 def generate_temp_nickname():
     """중복 없는 임시 닉네임 생성 (예: 새싹12345)"""
     while True:
@@ -140,6 +153,58 @@ def google_authorize():
         session['needs_setup'] = True
     
     return redirect(url_for('main.index'))
+
+# --- 네이버 로그인 콜백함수----
+@auth_bp.route('/login/naver/callback')
+def naver_callback():
+    try:
+        token = naver.authorize_access_token()
+    except Exception as e:
+        print(f"네이버 로그인 오류: {e}")
+        return "<script>alert('로그인이 취소되었습니다.'); location.href='/login';</script>"
+
+    resp = naver.get('v1/nid/me')
+    user_info = resp.json()
+
+    naver_account = user_info.get("response", {})
+    email = naver_account.get("email")
+
+    if not email:
+        return "<script>alert('이메일 제공에 동의해야 로그인 가능합니다.'); location.href='/login';</script>"
+
+    user = users_col.find_one({'email': email})
+
+    if not user:
+        temp_nickname = generate_temp_nickname()
+        user_document = {
+            'email': email,
+            'PW': None,
+            'nickname': temp_nickname,
+            'introduction': '',
+            'Bookmark': [],
+            'Profile_IMG': naver_account.get('profile_image', 'default.png'),
+            'Weight': {'traffic':0, 'convenience':0, 'green':0, 'play':0, 'health':0, 'living':0, 'safety':0},
+            'is_social': True
+        }
+        users_col.insert_one(user_document)
+        user = user_document
+        session['needs_setup'] = True
+
+    session.clear()
+    session['user_id'] = user['email']
+    session['nickname'] = user['nickname']
+
+    if not user.get('introduction') and not user.get('is_setup_done'):
+        session['needs_setup'] = True
+
+    return redirect(url_for('main.index'))
+
+# --- 네이버 로그인----
+
+@auth_bp.route('/login/naver')
+def naver_login():
+    redirect_uri = url_for('auth.naver_callback', _external=True)
+    return naver.authorize_redirect(redirect_uri)
 
 # --- [로그아웃] ---
 @auth_bp.route('/logout')
