@@ -79,3 +79,20 @@
     border-radius: 16px; /* 구글 곡률과 동일하게 */
     display: block;
 }
+
+
+
+.kakao-btn {
+    width: 100%;
+    border: none;
+    background: none;
+    padding: 0;
+    cursor: pointer;
+}
+
+.kakao-btn img {
+    width: 100%;
+    height: 52px;
+    border-radius: 10px;
+    display: block;
+}
