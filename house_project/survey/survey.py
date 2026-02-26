@@ -310,7 +310,7 @@ def save_survey():
 @survey_bp.route('/survey/result/<int:index>')
 def survey_result(index):
     if 'user_id' not in session:
-        return redirect(url_for('login'))
+        return redirect(url_for('auth.login'))
     
     user_id = session['user_id']
     surveys = list(db.survey_results.find({"user_id": user_id}).sort("created_at", -1))
@@ -529,7 +529,7 @@ def recalculate():
 
 @survey_bp.route('/survey/short/<int:index>')
 def survey_short(index):
-    if 'user_id' not in session: return redirect(url_for('login'))
+    if 'user_id' not in session: return redirect(url_for('auth.login'))
     surveys = list(db.survey_results.find({"user_id": session['user_id']}).sort("created_at", -1))
     if not surveys or index >= len(surveys): return redirect('/mypage')
     
@@ -658,7 +658,7 @@ def generate_sandbox_lifestyle_analysis(nw_weights, top2_keys):
 
 @survey_bp.route('/survey/prompt_test/<int:index>')
 def survey_prompt_sandbox(index):
-    if 'user_id' not in session: return redirect(url_for('login'))
+    if 'user_id' not in session: return redirect(url_for('auth.login'))
     user_id = session['user_id']
     surveys = list(db.survey_results.find({"user_id": user_id}).sort("created_at", -1))
     if not surveys or index >= len(surveys): return "설문 결과가 없습니다.", 404
