@@ -4,7 +4,7 @@ import string
 from flask import Blueprint, render_template, request, redirect, url_for, session, jsonify
 from database import users_col, oauth  # database.py에서 가져옴
 from werkzeug.security import generate_password_hash, check_password_hash
-
+import datetime
 auth_bp = Blueprint('auth', __name__, template_folder='.')
 
 # 1. OAuth 설정 (Google)
@@ -12,12 +12,10 @@ auth_bp = Blueprint('auth', __name__, template_folder='.')
 google = oauth.register(
     name='google',
     client_id=os.getenv("GOOGLE_CLIENT_ID"),
-    client_secret=os.getenv("GOOGLE_CLIENT_SECRET"),
+    client_secret=None,
     server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
     client_kwargs={'scope': 'openid email profile'}
 )
-
-
 
 naver = oauth.register(
     name='naver',
@@ -28,7 +26,17 @@ naver = oauth.register(
     api_base_url='https://openapi.naver.com/',
     client_kwargs={'scope': 'email profile'},
 )
-
+kakao = oauth.register(
+    name='kakao',
+    client_id=os.getenv("KAKAO_REST_API"),
+    client_secret=None,
+    access_token_url='https://kauth.kakao.com/oauth/token',
+    authorize_url='https://kauth.kakao.com/oauth/authorize',
+    api_base_url='https://kapi.kakao.com/',
+    client_kwargs={
+        'scope': 'account_email'
+    }
+)
 
 def generate_temp_nickname():
     """중복 없는 임시 닉네임 생성 (예: 새싹12345)"""
@@ -206,6 +214,62 @@ def naver_login():
     redirect_uri = url_for('auth.naver_callback', _external=True)
     return naver.authorize_redirect(redirect_uri)
 
+
+
+#---- 카카오 로그인
+@auth_bp.route('/login/kakao')
+def kakao_login():
+    redirect_url=url_for('auth.kakao_callback',_external=True)
+    print("🔥 redirect_url:", url_for('auth.kakao_callback', _external=True))
+    return kakao.authorize_redirect(redirect_url)
+
+
+#--- 카카오 콜백 함수
+@auth_bp.route('/kakao/callback')
+def kakao_callback():
+    try:
+        # 1️⃣ access token 받기
+        token = kakao.authorize_access_token()
+
+        # 2️⃣ 사용자 정보 요청
+        resp = kakao.get('v2/user/me')
+        user_info = resp.json()
+
+        # 3️⃣ 이메일 추출
+        email = user_info.get('kakao_account', {}).get('email')
+        print("🔥 user_info 전체:", user_info)
+
+        if not email:
+            return "이메일 정보를 가져올 수 없습니다.", 400
+
+        # 4️⃣ MongoDB에서 사용자 확인
+        user = users_col.find_one({"email": email})
+
+        if not user:
+            users_col.insert_one({
+                "email": email,
+                "created_at": datetime.utcnow(),
+                "login_type": "kakao"
+            })
+            print("신규 회원 저장 완료")
+
+            # 🔥 방금 저장했으니 다시 가져오기
+            user = users_col.find_one({"email": email})
+
+        else:
+            print("기존 회원 로그인")
+
+        # ✅ 여기만 수정
+        session.clear()
+        session['user_id'] = user['email']
+        session['nickname'] = user.get('nickname', '카카오회원')
+
+        return redirect(url_for('main.index'))
+
+    except Exception as e:
+        print("카카오 로그인 에러:", e)
+        return "카카오 로그인 실패", 400
+    
 # --- [로그아웃] ---
 @auth_bp.route('/logout')
 def logout():

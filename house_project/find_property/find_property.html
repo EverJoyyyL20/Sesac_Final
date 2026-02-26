@@ -5,7 +5,6 @@
     <meta name="referrer" content="no-referrer">
     <title>서울 부동산 매물 탐색</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'/%3E%3Ccircle cx='12' cy='13' r='2' fill='%234facfe' stroke='%234facfe'/%3E%3C/svg%3E">
-    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/find_property.css') }}">
@@ -16,7 +15,7 @@
 
     <style>
         /* ========================================================
-           🔥 AI 챗봇 컨시어지 플로팅 창 스타일
+           🔥 [챗봇 병합] AI 챗봇 컨시어지 플로팅 창 스타일 추가
            ======================================================== */
         .ai-chat-fab {
             position: fixed; right: 30px; bottom: 30px; z-index: 5000;
@@ -162,6 +161,7 @@
         </div>
         
         <div id="filter-content">
+            
             <div class="address-search-container">
                 <label>📍 주소로 검색 (반경 설정)</label>
                 <input type="text" id="search-address" placeholder="주소를 입력하려면 클릭하세요" readonly onclick="execDaumPostcode()">
@@ -215,6 +215,14 @@
             </div>
 
             <div class="f-section">
+                <label>옵션 여부</label>
+                <div class="f-row">
+                    <button type="button" class="option-filter-btn room-btn" data-val="있음" onclick="toggleOptionFilter(this)">포함</button>
+                    <button type="button" class="option-filter-btn room-btn" data-val="없음" onclick="toggleOptionFilter(this)">제외</button>
+                </div>
+            </div>
+
+            <div class="f-section">
                 <label>면적 (㎡)</label>
                 <div class="f-row">
                     <input type="number" id="min-size" placeholder="최소" min="0" oninput="validateNonNegative(this); updateMarkers()">
@@ -238,16 +246,28 @@
 <div id="propertyModal" class="modal">
     <div class="modal-content">
         <div class="detail-tabs">
-            <button class="tab-btn active" onclick="switchTab('info')">매물 상세정보</button>
-            <button class="tab-btn" onclick="switchTab('analysis')">입지 분석</button>
+            <button class="tab-btn active" onclick="switchTab('info')">
+                매물 상세정보
+            </button>
+            <button class="tab-btn" onclick="switchTab('analysis')">
+                입지 분석
+            </button>
         </div>
+
         <div class="tab-content">
-            <div id="infoTab" class="tab-panel active"><div id="modal-body-content"></div></div>
+            <div id="infoTab" class="tab-panel active">
+                <div id="modal-body-content"></div>
+            </div>
             <div id="analysisTab" class="tab-panel">
-                <h3 style="text-align:center; font-size:16px; margin-bottom:15px;">📊 매물 입지 분석</h3>
-                <div style="height:250px; width:100%;"><canvas id="radarChart"></canvas></div>
+                <h3 style="text-align:center; font-size:16px; margin-bottom:15px;">
+                    📊 매물 입지 분석
+                </h3>
+                <div style="height:250px; width:100%;">
+                    <canvas id="radarChart"></canvas>
+                </div>
             </div>
         </div>
+
         <div class="modal-footer-btns">
             <button id="favoriteBtn" class="fav-btn" onclick="handleFavorite()">❤️ 찜하기</button>
             <button id="closeModalBtn" class="close-btn" onclick="closeModal()">닫기</button>
@@ -301,13 +321,12 @@
 
 <script>
     /* ========================================================
-       🔥 AI 챗봇 프론트엔드 로직 (카메라 고정 & 단일 매물 포커스 완벽 적용)
+       🔥 [챗봇 병합] AI 챗봇 프론트엔드 상태 & 함수 
        ======================================================== */
-    
     let currentConditions = {}; 
-    let currentChatItems = []; // 챗봇 검색으로 찾아낸 전체 매물 원본
-    let lockedChatItems = [];  // 🔥 현재 지도에 '잠금(Lock)' 해둘 매물 배열 (전체 or 딱 1개)
-    let isChatbotMapLock = false; // 🔥 지도 이동/확대 시 필터 API 호출 방지(락) 플래그
+    let currentChatItems = []; 
+    let lockedChatItems = [];  
+    let isChatbotMapLock = false; 
 
     function toggleChatPanel(show) {
         const panel = document.getElementById('aiChatPanel');
@@ -319,7 +338,6 @@
             fab.style.opacity = '0';
             setTimeout(() => fab.style.pointerEvents = 'none', 300);
 
-            // 🔥 창을 열 때, 챗봇이 추천해둔 매물이 있다면 다시 지도 잠금을 걸어 복구
             if (currentChatItems && currentChatItems.length > 0) {
                 lockedChatItems = currentChatItems; 
                 isChatbotMapLock = true;
@@ -331,7 +349,6 @@
             fab.style.transform = 'scale(1) translateY(0)';
             fab.style.opacity = '1';
 
-            // 🔥 창을 닫을 때, 지도 잠금을 풀고 왼쪽 메뉴 필터로 복귀 (기존 매물 부활)
             isChatbotMapLock = false;
             updateMarkers();
         }
@@ -369,7 +386,7 @@
         currentConditions = {};
         currentChatItems = [];
         lockedChatItems = [];
-        isChatbotMapLock = false; // 리셋 시 잠금 해제
+        isChatbotMapLock = false; 
         
         const body = document.getElementById('chatBody');
         body.innerHTML = `
@@ -383,25 +400,17 @@
         `;
         document.getElementById('status-text').innerText = "새로운 대화를 시작했습니다. 매물 조건을 입력해주세요!";
         
-        // 락을 푼 상태로 updateMarkers 호출하여 전체 지도 복구
         updateMarkers(); 
     }
 
-    // 🔥 [NEW] 챗봇의 "상세정보 보기" 버튼을 눌렀을 때 해당 매물만 지도에 띄우는 함수
     function focusPropertyFromChat(id) {
         const prop = currentChatItems.find(item => item._id === id);
         if (prop && prop.location && prop.location.coordinates) {
-            // 지도 고정 배열에 해당 매물 '딱 1개'만 넣고 락을 유지합니다.
             lockedChatItems = [prop]; 
             isChatbotMapLock = true;
-            
-            // 카메라를 해당 매물 위치로 줌인
-            // (이동이 끝나면 idle 이벤트가 발생하여 updateMarkers가 실행되고, 딱 1개만 그려집니다)
             const pos = new naver.maps.LatLng(prop.location.coordinates[1], prop.location.coordinates[0]);
             map.morph(pos, 16); 
         }
-        
-        // 정보창 열기
         openDetail(id);
     }
 
@@ -431,10 +440,9 @@
             
             if(data.status === 'success' && data.items && data.items.length > 0) {
                 currentChatItems = data.items;
-                lockedChatItems = data.items; // 검색 직후에는 전체 매물 고정
-                isChatbotMapLock = true; // 지도 잠금 ON
+                lockedChatItems = data.items; 
+                isChatbotMapLock = true; 
                 
-                // 첫 번째 매물로 카메라 이동 (마찬가지로 이동 끝나면 updateMarkers 실행됨)
                 const first = data.items[0];
                 if(first.location && first.location.coordinates) {
                     const pos = new naver.maps.LatLng(first.location.coordinates[1], first.location.coordinates[0]);
@@ -461,7 +469,6 @@
     }
     /* ======================================================== */
 
-    // 기존 지도 및 마커 로직 유지
     let map, markers = [], lastRequestId = 0, currentOpenIw = null;
     let searchCenter = null, centerMarker = null;
     let myRadarChart = null;
@@ -558,17 +565,24 @@
         updateMarkers();
     }
 
+    // 🔥 [팀원 코드 유지] 옵션 버튼 토글 함수 
+    function toggleOptionFilter(btn) {
+        const buttons = document.querySelectorAll('.option-filter-btn');
+        buttons.forEach(b => { if(b !== btn) b.classList.remove('active'); });
+        btn.classList.toggle('active');
+        updateMarkers(); 
+    }
+
     function updateMarkers() {
         const zoom = map.getZoom();
         const bounds = map.getBounds();
         const requestId = ++lastRequestId;
 
-        // 🔥 [NEW 핵심 로직] 챗봇 모드 잠금(Lock) 시, 서버 API 호출 중단 및 챗봇 매물만 화면에 유지
+        // 🔥 [챗봇 병합] 챗봇 모드 잠금(Lock) 시, 서버 API 호출 중단 및 챗봇 매물만 화면에 유지
         if (isChatbotMapLock && lockedChatItems.length > 0) {
             markers.forEach(m => m.setMap(null));
             markers = [];
 
-            // 줌 레벨과 무관하게, 현재 화면 안에 있는 챗봇 매물들만 추려냅니다
             const visibleData = lockedChatItems.filter(item => {
                 if(!item.location || !item.location.coordinates) return false;
                 const position = new naver.maps.LatLng(item.location.coordinates[1], item.location.coordinates[0]);
@@ -577,10 +591,16 @@
 
             renderProperties(visibleData);
             document.getElementById('status-text').innerText = `🤖 챗봇 매물 고정: 화면에 ${visibleData.length}건 표시 중`;
-            return; // 여기서 함수 완전 종료 (API 호출 스킵!)
+            return; 
         }
 
-        const selectedRooms = Array.from(document.querySelectorAll('.room-btn.active')).map(b => b.dataset.val).join(',');
+        const selectedRooms = Array.from(document.querySelectorAll('.room-btn.active'))
+            .filter(b => !b.classList.contains('option-filter-btn')) // 옵션 버튼 제외
+            .map(b => b.dataset.val).join(',');
+
+        // 🔥 [팀원 코드 유지] 옵션 필터 버튼에서 현재 활성화된 값 가져오기
+        const activeOptionBtn = document.querySelector('.option-filter-btn.active');
+        const optionStatus = activeOptionBtn ? activeOptionBtn.dataset.val : "";
 
         const filters = {
             type: document.getElementById('filter-type').value,
@@ -602,6 +622,8 @@
             apiUrl += `&type=${filters.type}&rooms=${filters.rooms}&min_deposit=${filters.minDep}&max_deposit=${filters.maxDep}`;
             apiUrl += `&min_price=${filters.minPri}&max_price=${filters.maxPri}&min_size=${filters.minSize}&max_size=${filters.maxSize}`;
             apiUrl += `&parking=${filters.parking}&exclude_under=${filters.excludeUnder}`;
+            apiUrl += `&option_status=${optionStatus}`; // ✅ 팀원의 옵션 파라미터 적용 유지
+
             if (searchCenter) {
                 apiUrl += `&center_lat=${searchCenter.lat}&center_lng=${searchCenter.lng}&radius=${filters.radius}`;
             }

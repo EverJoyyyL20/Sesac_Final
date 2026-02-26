@@ -7,6 +7,7 @@ from datetime import datetime
 from database import houses_col, db, users_col
 from bson.objectid import ObjectId
 
+# 🔥 [챗봇 병합] LLM 모듈 추가
 from dotenv import load_dotenv 
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import PromptTemplate
@@ -14,7 +15,7 @@ from langchain_core.prompts import PromptTemplate
 load_dotenv(override=True)
 
 # ------------------------------------------------------------------
-# AI 모델 초기화 (자연어 검색용)
+# 🔥 [챗봇 병합] AI 모델 초기화
 # ------------------------------------------------------------------
 api_key = os.getenv("OPENAI_API_KEY")
 try:
@@ -24,8 +25,10 @@ except Exception as e:
     print(f"❌ GPT 초기화 실패: {e}")
     llm = None
 
+# 블루프린트 설정
 find_bp = Blueprint('find', __name__, template_folder='.')
 
+# 서울 각 구별 중심 좌표 (클러스터링용)
 GU_COORDS = {
     "강남구": {"lat": 37.514575, "lng": 127.0495556}, "강동구": {"lat": 37.52736667, "lng": 127.1258639},
     "강북구": {"lat": 37.63695556, "lng": 127.0277194}, "강서구": {"lat": 37.54815556, "lng": 126.851675},
@@ -269,11 +272,21 @@ def get_properties():
     if parking == '주차 가능':
         query["hasParking"] = "주차 가능"
 
+    # 🔥 [팀원 코드 유지] 옵션 여부 필터
+    option_status = request.args.get('option_status')
+    if option_status == '있음':
+        query['options'] = {"$exists": True, "$not": {"$size": 0}}
+    elif option_status == '없음':
+        query['$or'] = [
+            {'options': {"$exists": False}},
+            {'options': {"$size": 0}}
+        ]
+
     items = list(houses_col.find(query).limit(300))
     return jsonify([{**item, "_id": str(item['_id'])} for item in items])
 
 # =====================================================================
-# 🔥 AI 자연어 검색 전용 라우트
+# 🔥 [챗봇 병합] AI 자연어 검색 (단기 기억상실 완벽 차단 & 매물 포커스)
 # =====================================================================
 @find_bp.route('/api/chat_search', methods=['POST'])
 def chat_search():
@@ -398,7 +411,6 @@ def chat_search():
             cards_html = "<div style='margin-top:15px; display:flex; flex-direction:column; gap:10px;'>"
             for it in recommended:
                 price_str = f"월세 {it.get('deposit', 0)}/{it.get('price', 0)}" if it.get('rent_type') == '월세' else f"전세 {it.get('price', 0)}"
-                # 🔥 [핵심 수정] openDetail 대신 focusPropertyFromChat 호출!
                 cards_html += f"""
                 <div style='background:#f1f2f6; border:1px solid #e2e8f0; padding:15px; border-radius:12px; font-size:0.95rem;'>
                     <div style='font-weight:900; margin-bottom:5px; color:#111;'>📍 {it.get('address', '주소 없음')}</div>
