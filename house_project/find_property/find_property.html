@@ -362,6 +362,11 @@
             
             switchTab('info');
 
+            const optionsArray = Array.isArray(prop.options) ? prop.options : (prop.options ? prop.options.split(',') : []);
+            const optionTags = optionsArray.length > 0 
+                ? optionsArray.map(opt => `<span class="option-tag"># ${opt.trim()}</span>`).join('')
+                : '<span style="color:#aaa; font-size:12px;">등록된 옵션 정보가 없습니다.</span>';
+
             const favBtn = document.getElementById('favoriteBtn');
             favBtn.innerText = prop.is_favorite ? '💔 찜 취소' : '❤️ 찜하기';
             
@@ -385,11 +390,23 @@
 
             document.getElementById('modal-body-content').innerHTML = `
                 ${imgHtml}
-                <div class="detail-row"><span>📍 주소</span><b>${prop.address}</b></div>
+                <div class="detail-row">
+                    <span>📍 주소</span>
+                    <div class="address-row">
+                        <b style="flex:1;">${prop.address}</b>
+                        <button type="button" class="btn-option-view" onclick="toggleOptionBox()">옵션 보기</button>
+                    </div>
+                </div>
+
+                <div id="optionBox" class="option-hidden-box">
+                    <strong style="display:block; margin-bottom:10px; font-size:14px;">⚠️ 옵션 정보</strong>
+                    ${optionTags}
+                </div>
+
                 <div class="detail-row"><span>💰 가격</span><b style="color:#2ecc71; font-size:1.1em;">${formatPrice(prop)}</b></div>
                 <div class="detail-row"><span>🏢 층수</span><span class="${floorClass}">${prop.floor}</span></div>
                 <div class="detail-row"><span>📐 면적</span><b>${prop.area ?? '정보없음'} ㎡</b></div>
-                <div class="detail-row"><span>🏠 건물유형</span><b>${prop.buildtype ?? '정보없음'}</b></div>
+                <div class="detail-row"><span>🏠 방개수</span><b>${prop.buildtype ?? '정보없음'}</b></div>
                 <div class="detail-row"><span>🚗 주차</span><b>${prop.parking && prop.parking.trim() === "주차 가능" ? '가능' : '불가능'}</b></div>
             `;
             if (prop.score) drawRadarChart(prop.score);
@@ -397,6 +414,19 @@
         });
     }
 
+    // 옵션 박스 열고 닫는 함수
+    function toggleOptionBox() {
+        const box = document.getElementById('optionBox');
+        const btn = document.querySelector('.btn-option-view');
+        
+        if (box.style.display === 'block') {
+            box.style.display = 'none';
+            btn.innerText = '옵션 보기';
+        } else {
+            box.style.display = 'block';
+            btn.innerText = '옵션 닫기';
+        }
+    }
 
     function switchTab(tab) {
 
