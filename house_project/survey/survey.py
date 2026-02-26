@@ -642,8 +642,8 @@ def generate_sandbox_lifestyle_analysis(nw_weights, top2_keys):
     top_names = [category_map[k] for k in top2_keys]
 
     template = """
-    당신은 상위 1% VIP를 전담하는 프리미엄 공간 큐레이터이자 수석 라이프스타일 애널리스트입니다.
-    고객의 설문조사 결과(가중치)를 바탕으로, 기계적인 보고서가 아닌 '프라이빗 매거진' 스타일의 1:1 맞춤형 공간 큐레이션 브리핑을 작성해주세요.
+    당신은 고객의 취향과 일상을 섬세하게 읽어내는 라이프스타일 큐레이터이자 공간 에디터입니다.
+    고객의 설문조사 결과(가중치)를 바탕으로, 딱딱한 보고서가 아닌 따뜻한 감성이 담긴 '퍼스널 매거진' 스타일의 1:1 맞춤형 공간 브리핑을 작성해주세요.
 
     [고객 데이터]
     - 최우선 핵심 가치 2가지: {top_names}
@@ -653,7 +653,7 @@ def generate_sandbox_lifestyle_analysis(nw_weights, top2_keys):
     반드시 아래 제공된 HTML 태그 구조를 그대로 사용하여 내용만 채워주세요.
 
     <div class="report-header">
-        <h2 class="title">고객님의 라이프스타일 페르소나</h2>
+        <h2 class="title">✨ 나만의 라이프스타일 분석</h2>
         <p class="summary">
             내용 입력
         </p>
@@ -674,7 +674,7 @@ def generate_sandbox_lifestyle_analysis(nw_weights, top2_keys):
     </div>
 
     <div class="report-footer">
-        <h3 class="section-title"><i class="fa-solid fa-location-dot"></i> 수석 큐레이터의 핀포인트 추천 지역</h3>
+        <h3 class="section-title"><i class="fa-solid fa-location-dot"></i> AI가 콕 집어주는 맞춤 동네 추천</h3>
         <div class="curation-box">
             <h4 class="dong-name">추천 동네 이름</h4>
             <p class="dong-desc">
@@ -689,7 +689,8 @@ def generate_sandbox_lifestyle_analysis(nw_weights, top2_keys):
     </div>
 
     [말투 및 제약 조건]
-    - 톤앤매너: 5성급 호텔 컨시어지나 프라이빗 뱅커(PB)처럼 극도로 정중하고, 세련되며, 신뢰감 있는 전문가의 말투를 사용하세요.
+    - 톤앤매너: 센스 있는 잡지 에디터나 다정한 공간 디렉터처럼 부드럽고 세련된 말투를 사용하세요. 
+    - 너무 격식을 차린 딱딱한 표현(예: '귀하', '제언합니다') 대신, 대화하듯 친근하면서도 신뢰감이 느껴지는 어조(예: '~인 것 같아요', '~를 추천해 드리고 싶어요', '~를 즐겨보시는 건 어떨까요?')를 사용하세요.
     - 🔥 답변의 처음과 끝에 ```html 또는 ``` 마크다운을 절대 붙이지 마세요. 순수 HTML만 출력하세요.
     """
     

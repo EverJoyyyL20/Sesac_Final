@@ -176,7 +176,7 @@
             color: #444; line-height: 1.75; margin-top: auto; white-space: pre-wrap; 
         }
         .ai-comment::before {
-            content: "\f0eb  수석 큐레이터 심층 브리핑"; font-family: "Font Awesome 6 Free"; 
+            content: "\f0eb  AI 매니저의 맞춤 코멘트"; font-family: "Font Awesome 6 Free"; 
             display: block; font-weight: 900; color: var(--primary); 
             font-size: 0.95rem; margin-bottom: 12px;
         }
@@ -421,7 +421,7 @@
 
     <section id="page-result">
         <div class="result-header">
-            <h2 id="user-nickname-display">{{ session.get('nickname', '회원') }}님의 큐레이션 결과</h2>
+            <h2 id="user-nickname-display">{{ session.get('nickname', '회원') }}님을 위한 맞춤 추천 매물</h2>
             <p id="total-count-text">분석 결과, 총 {{ total_count }}개의 매물이 탐색되었습니다.</p>
         </div>
         
