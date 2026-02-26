@@ -101,6 +101,14 @@
             </div>
 
             <div class="f-section">
+                <label>옵션 여부</label>
+                <div class="f-row">
+                    <button type="button" class="option-filter-btn room-btn" data-val="있음" onclick="toggleOptionFilter(this)">포함</button>
+                    <button type="button" class="option-filter-btn room-btn" data-val="없음" onclick="toggleOptionFilter(this)">제외</button>
+                </div>
+            </div>
+
+            <div class="f-section">
                 <label>면적 (㎡)</label>
                 <div class="f-row">
                     <input type="number" id="min-size" placeholder="최소" min="0" oninput="validateNonNegative(this); updateMarkers()">
@@ -254,12 +262,27 @@
         updateMarkers();
     }
 
+    // 1. 버튼 토글 함수 (하나만 선택되도록 처리)
+    function toggleOptionFilter(btn) {
+        const buttons = document.querySelectorAll('.option-filter-btn');
+        buttons.forEach(b => { if(b !== btn) b.classList.remove('active'); });
+        btn.classList.toggle('active');
+        updateMarkers(); // 버튼 클릭 시 마커 새로고침
+    }
+
     function updateMarkers() {
         const zoom = map.getZoom();
         const bounds = map.getBounds();
         const requestId = ++lastRequestId;
 
-        const selectedRooms = Array.from(document.querySelectorAll('.room-btn.active')).map(b => b.dataset.val).join(',');
+        // 1. 방 개수 필터 버튼에서 값 추출
+        const selectedRooms = Array.from(document.querySelectorAll('.room-btn.active'))
+            .filter(b => !b.classList.contains('option-filter-btn')) // 옵션 버튼은 제외하고 방 버튼만
+            .map(b => b.dataset.val).join(',');
+
+        // 2. 🔥 [중요] 옵션 필터 버튼에서 현재 활성화된 값 가져오기
+        const activeOptionBtn = document.querySelector('.option-filter-btn.active');
+        const optionStatus = activeOptionBtn ? activeOptionBtn.dataset.val : "";
 
         const filters = {
             type: document.getElementById('filter-type').value,
@@ -281,6 +304,8 @@
             apiUrl += `&type=${filters.type}&rooms=${filters.rooms}&min_deposit=${filters.minDep}&max_deposit=${filters.maxDep}`;
             apiUrl += `&min_price=${filters.minPri}&max_price=${filters.maxPri}&min_size=${filters.minSize}&max_size=${filters.maxSize}`;
             apiUrl += `&parking=${filters.parking}&exclude_under=${filters.excludeUnder}`;
+            apiUrl += `&option_status=${optionStatus}`; // ✅ 옵션 파라미터 추가
+
             if (searchCenter) {
                 apiUrl += `&center_lat=${searchCenter.lat}&center_lng=${searchCenter.lng}&radius=${filters.radius}`;
             }
@@ -430,22 +455,22 @@
 
     function switchTab(tab) {
 
-    const infoTab = document.getElementById('infoTab');
-    const analysisTab = document.getElementById('analysisTab');
-    const buttons = document.querySelectorAll('.tab-btn');
+        const infoTab = document.getElementById('infoTab');
+        const analysisTab = document.getElementById('analysisTab');
+        const buttons = document.querySelectorAll('.tab-btn');
 
-    buttons.forEach(btn => btn.classList.remove('active'));
+        buttons.forEach(btn => btn.classList.remove('active'));
 
-    if (tab === 'info') {
-        infoTab.classList.add('active');
-        analysisTab.classList.remove('active');
-        buttons[0].classList.add('active');
-    } else {
-        infoTab.classList.remove('active');
-        analysisTab.classList.add('active');
-        buttons[1].classList.add('active');
+        if (tab === 'info') {
+            infoTab.classList.add('active');
+            analysisTab.classList.remove('active');
+            buttons[0].classList.add('active');
+        } else {
+            infoTab.classList.remove('active');
+            analysisTab.classList.add('active');
+            buttons[1].classList.add('active');
+        }
     }
-}
 
     function drawRadarChart(score) {
         const ctx = document.getElementById('radarChart').getContext('2d');

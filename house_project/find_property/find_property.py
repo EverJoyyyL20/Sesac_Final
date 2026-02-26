@@ -259,5 +259,17 @@ def get_properties():
     if parking == '주차 가능':
         query["hasParking"] = "주차 가능"
 
+    # 🔥 [추가된 부분] 옵션 여부 필터 (배열 데이터 유무 확인)
+    option_status = request.args.get('option_status')
+    if option_status == '있음':
+        # options 필드가 존재하고, 배열의 크기가 0이 아닌 경우 (데이터가 들어있음)
+        query['options'] = {"$exists": True, "$not": {"$size": 0}}
+    elif option_status == '없음':
+        # options 필드가 아예 없거나, 빈 배열([])인 경우
+        query['$or'] = [
+            {'options': {"$exists": False}},
+            {'options': {"$size": 0}}
+        ]
+
     items = list(houses_col.find(query).limit(300))
     return jsonify([{**item, "_id": str(item['_id'])} for item in items])
