@@ -36,12 +36,13 @@
         <div class="divider">
             <span>또는</span>
         </div>
-
         <button type="button" class="google-btn" onclick="location.href='/login/google'">
               <img src="{{ url_for('static', filename='image/google.svg') }}" alt="Google Logo">
               <span>Google로 시작하기</span>
         </button>
-
+        <button type="button" class="naver-btn" onclick="location.href='/login/naver'">
+            <img src="{{ url_for('static', filename='image/naver.png') }}" alt="네이버 로그인">
+        </button>
         <div class="signup-link">
             아직 계정이 없으신가요? <a href="{{ url_for('auth.register') }}">회원가입</a>
         </div>
