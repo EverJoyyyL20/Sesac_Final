@@ -89,6 +89,7 @@ def login():
         
         if user and user.get('PW') and check_password_hash(user['PW'], password):
             session.clear()
+            session.permanent = True 
             session['user_id'] = user['email']
             session['nickname'] = user['nickname']
             
@@ -150,6 +151,7 @@ def google_authorize():
         session['needs_setup'] = True  # 최초 1회 팝업 트리거
 
     session.clear()
+    session.permanent = True
     session['user_id'] = user['email']
     session['nickname'] = user['nickname']
     # 기존 유저라도 소개글이 없으면 띄우고 싶다면 아래 주석 해제
@@ -199,6 +201,7 @@ def naver_callback():
         session['needs_setup'] = True
 
     session.clear()
+    session.permanent = True  
     session['user_id'] = user['email']
     session['nickname'] = user['nickname']
 
@@ -243,6 +246,7 @@ def kakao_callback():
             return "이메일 정보를 가져올 수 없습니다.", 400
 
         session.clear()
+        session.permanent = True
         # 4️⃣ MongoDB에서 사용자 확인
         user = users_col.find_one({"email": email})
 
