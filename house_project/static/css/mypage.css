@@ -30,7 +30,14 @@
 .profile-right { flex: 1; min-width: 0; }
 .info-row { margin-bottom: 25px; border-bottom: 1px solid #f8f9fa; padding-bottom: 15px; }
 .info-label { font-weight: 700; color: #a0aab5; font-size: 0.9rem; display: block; margin-bottom: 8px; }
-.info-value { font-size: 1.2rem; color: #111; font-weight: 800; }
+.info-value { font-size: 1.2rem; color: #111; font-weight: 800; 
+   /* 🔥 레이아웃 붕괴 방지 핵심 설정 */
+    display: block;            /* 너비 인식을 위해 block 설정 */
+    word-break: break-all;     /* 아주 긴 영문/특수문자도 박스 끝에서 줄바꿈 */
+    overflow-wrap: break-word; /* 단어가 길면 다음 줄로 넘김 */
+    white-space: normal;       /* 한 줄로 강제 고정되는 현상 방지 */
+    line-height: 1.5;          /* 줄바꿈 시 가독성을 위한 간격 조정 */
+   }
 
 /* ===============================
    3. 버튼 시스템
