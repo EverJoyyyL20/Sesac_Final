@@ -82,7 +82,8 @@ def get_property_by_id(prop_id):
                 "area": item.get('size_m2'),
                 "images": item.get('images') if isinstance(item.get('images'), list) else [],
                 "is_favorite": is_fav,
-                "score": dict(item.get('category_scores', {}))
+                "score": dict(item.get('category_scores', {})),
+                "options": item.get('options', [])
             }
             return jsonify(processed)
         return jsonify({"error": "매물을 찾을 수 없습니다."}), 404

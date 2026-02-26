@@ -104,6 +104,46 @@ body, html {
 
 .address-lower-row { display: flex; gap: 8px; height: 42px; }
 
+/* 옵션 보기 버튼 스타일 */
+.btn-option-view {
+    padding: 4px 10px;
+    background: #4facfe;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.2s;
+    white-space: nowrap;
+    right: 0;
+    margin-left: auto;   /* ✨ 핵심: 왼쪽 공간을 다 차지해서 버튼을 우측 끝으로 밀어냄 */
+    flex-shrink: 0;      /* 주소가 길어져도 버튼 모양이 망가지지 않게 방어 */
+    white-space: nowrap; /* 버튼 글자가 두 줄로 변하는 것 방지 */
+}
+.btn-option-view:hover { background: #008ef1; }
+
+/* 숨겨진 옵션 리스트 박스 */
+.option-hidden-box {
+    display: none; /* 기본은 숨김 */
+    margin-top: 10px;
+    padding: 15px;
+    background: #f8f9fb;
+    border-radius: 16px;
+    border: 1px solid #eef0f3;
+}
+.option-tag {
+    display: inline-block;
+    background: #fff;
+    border: 1px solid #dce0e5;
+    padding: 4px 10px;
+    margin: 3px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #555;
+}
+
 #search-radius {
     flex: 1.5 !important; background-color: #fff !important; border: 1.5px solid #edf1f5 !important;
     border-radius: 14px !important; padding: 0 15px !important; font-size: 0.9rem !important;
@@ -242,7 +282,7 @@ body, html {
 /* ============================================================
    9. 텍스트 정보 및 모달 하단 버튼
    ============================================================ */
-.detail-row { font-size: 1rem; margin-bottom: 14px; color: #555; display: flex; align-items: center; gap: 8px }
+.detail-row { font-size: 1rem; margin-bottom: 14px; color: #555; display: flex; align-items: center; gap: 8px width: 100%; /* 부모 너비 확보 */ }
 .detail-row span { min-width: 85px; font-weight: 700; color: #888; }
 .detail-row b { color: #111; font-weight: 800; font-size: 1.1rem; }
 
@@ -288,11 +328,4 @@ body, html {
     background: #ffffff;
     color: #111;
     box-shadow: 0 3px 10px rgba(0,0,0,0.08);
-}
-.tab-panel {
-    display: none;
-}
-
-.tab-panel.active {
-    display: block;
 }
