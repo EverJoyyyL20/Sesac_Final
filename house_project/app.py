@@ -9,6 +9,8 @@ from survey.survey import survey_bp
 # database.py에서 oauth 객체를 가져옵니다.
 from database import oauth 
 import os
+
+from datetime import timedelta   
 # 로컬 테스트 시 http 허용 (배포 시에는 삭제하거나 0으로 변경)
 os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 # 1. .env 로드
@@ -16,6 +18,8 @@ load_dotenv()
 
 app = Flask(__name__)
 
+app.secret_key = os.getenv('FLASK_SECRET_KEY', 'default_key_for_safety')
+app.permanent_session_lifetime = timedelta(minutes=10)
 # 2. Flask 설정
 app.secret_key = os.getenv('FLASK_SECRET_KEY', 'default_key_for_safety')
 app.config['NAVER_CLIENT_ID'] = os.getenv('NAVER_CLIENT_ID')
