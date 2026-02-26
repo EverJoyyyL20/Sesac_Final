@@ -151,8 +151,6 @@ def add_favorite():
                     "created_at": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 }
                 
-                if len(favorites) >= 10:
-                    return jsonify({"status": "error", "message": "찜은 최대 10개까지만 가능합니다."}), 400
 
                 users_col.update_one(
                     {'email': user_email},
