@@ -174,15 +174,16 @@
         const ctx = document.getElementById(id);
         if (!ctx) return;
 
-        // 데이터 보정: 0~1 사이 값이면 100을 곱함
+        // 데이터 보정: 0~1 사이 값이면 100을 곱해 0~100 스케일로 변경
         const processedData = data.map(v => (v <= 1 && v > 0) ? Math.round(v * 100) : v);
 
         new Chart(ctx, {
             type: 'radar',
             data: {
-                labels: ['교통', '편의', '녹지', '놀이', '건강', '안전'],
+                // 7가지 항목으로 라벨 수정
+                labels: ['교통', '편의', '녹지', '놀이', '건강', '생활', '안전'], 
                 datasets: [{
-                    data: processedData,
+                    data: processedData, 
                     backgroundColor: 'rgba(79, 172, 254, 0.4)',
                     borderColor: '#4facfe',
                     borderWidth: 2,
@@ -194,7 +195,8 @@
                 maintainAspectRatio: true,
                 scales: {
                     r: {
-                        min: 0, max: 100,
+                        min: 0, 
+                        max: 100, // 최대치를 100으로 고정
                         ticks: { display: false },
                         grid: { color: 'rgba(255, 255, 255, 0.15)' }, 
                         angleLines: { color: 'rgba(255, 255, 255, 0.15)' },
