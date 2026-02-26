@@ -20,7 +20,9 @@ app = Flask(__name__)
 app.secret_key = os.getenv('FLASK_SECRET_KEY', 'default_key_for_safety')
 app.config['NAVER_CLIENT_ID'] = os.getenv('NAVER_CLIENT_ID')
 app.config['NAVER_CLIENT_SECRET'] = os.getenv('NAVER_CLIENT_SECRET')
-
+app.config['KAKAO_REST_API'] = os.getenv("KAKAO_REST_API")
+app.config['NABER_CLIENT_LID']=os.getenv("NAVER_CLIENT_LID")
+app.config['NAVER_CLIENT_LSECRET']=os.getenv("NAVER_CLIENT_LSECRET")
 # 3. OAuth 초기화 (database.py에 있는 oauth 객체를 이 app과 연결)
 oauth.init_app(app)
 
