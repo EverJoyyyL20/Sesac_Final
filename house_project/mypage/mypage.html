@@ -87,7 +87,23 @@
                                     </p>
                                     
                                     <p style="font-size: 14px; color: #555; margin: 8px 0; font-weight: 500;">
-                                        💰 {% if s.budget and 'None' not in s.budget %}{{ s.budget }}{% else %}가격 미설정{% endif %}
+                                        💰
+                                        {% if s.budget %}
+                                            {% if 'None' in s.budget %}
+                                                {# 첫 단어가 '전세' 또는 '월세'인지 확인 후 강제 재조합 #}
+                                                {% if '월세' in s.budget %}
+                                                    월세 - 가격 미설정
+                                                {% elif '전세' in s.budget %}
+                                                    전세 - 가격 미설정
+                                                {% else %}
+                                                    가격 미설정
+                                                {% endif %}
+                                            {% else %}
+                                                {{ s.budget }}
+                                            {% endif %}
+                                        {% else %}
+                                            가격 미설정
+                                        {% endif %}
                                     </p>
                                     
                                     <div class="survey-tags" style="margin-top: 12px; display: flex; flex-wrap: wrap; gap: 6px;">
@@ -316,9 +332,24 @@
             let html = '<div style="display: grid; grid-template-columns: 1fr; gap: 15px; margin-top:10px;">';
             {% if surveys %}
                 {% for s in surveys %}
-                // Jinja2에서 넘어온 값을 안전하게 처리
-                var rawBudget = "{{ s.budget }}";
-                var displayBudget = (rawBudget.indexOf('None') !== -1 || !rawBudget || rawBudget === "") ? "가격 미설정" : rawBudget;   
+                (function() {
+                    var rawBudget = "{{ s.budget }}";
+                    var displayBudget = "";
+
+                    if (!rawBudget || rawBudget === "None" || rawBudget.trim() === "") {
+                        displayBudget = "가격 미설정";
+                    } else if (rawBudget.indexOf('None') !== -1) {
+                        // 단어를 쪼개지 않고 키워드만 검사해서 재조합
+                        if (rawBudget.indexOf('월세') !== -1) {
+                            displayBudget = "월세 - 가격 미설정";
+                        } else if (rawBudget.indexOf('전세') !== -1) {
+                            displayBudget = "전세 - 가격 미설정";
+                        } else {
+                            displayBudget = "가격 미설정";
+                        }
+                    } else {
+                        displayBudget = rawBudget;
+                    }
                 
                 html += `
                     <div class="survey-item-card" style="text-align:left; display:flex; align-items:center; padding:15px; gap:10px;">
@@ -333,6 +364,7 @@
                             <a href="/survey/result/{{ loop.index0 }}" class="btn-result-link hide-on-edit" style="display:block; text-align:center; text-decoration:none; margin-top:10px; padding:10px; box-sizing: border-box;">리포트 결과 보기</a>
                         </div>
                     </div>`;
+                })();
                 {% endfor %}
             {% else %}
                 html = '<p style="padding:40px; color:#ccc; text-align:center;">진행한 설문이 없습니다.</p>';
