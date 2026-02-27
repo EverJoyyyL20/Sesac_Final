@@ -70,7 +70,6 @@
     </div>
 
     <div class="content-section">
-        
         <div class="content-box">
             <div class="box-header">
                 <h3>📝 최근 설문 목록</h3>
@@ -101,25 +100,8 @@
                                     <p style="font-size: 13px; color: #4facfe; font-weight: 600; margin: 4px 0;">
                                         {{ s.main_info }}
                                     </p>
-                                    
                                     <p style="font-size: 14px; color: #555; margin: 8px 0; font-weight: 500;">
-                                        💰
-                                        {% if s.budget %}
-                                            {% if 'None' in s.budget %}
-                                                {# 첫 단어가 '전세' 또는 '월세'인지 확인 후 강제 재조합 #}
-                                                {% if '월세' in s.budget %}
-                                                    월세 - 가격 미설정
-                                                {% elif '전세' in s.budget %}
-                                                    전세 - 가격 미설정
-                                                {% else %}
-                                                    가격 미설정
-                                                {% endif %}
-                                            {% else %}
-                                                {{ s.budget }}
-                                            {% endif %}
-                                        {% else %}
-                                            가격 미설정
-                                        {% endif %}
+                                        💰 {{ s.budget }}
                                     </p>
                                     
                                     <div class="survey-tags" style="margin-top: 12px; display: flex; flex-wrap: wrap; gap: 6px;">
@@ -191,7 +173,6 @@
                 {% endif %}
             </div>
         </div>
-
     </div>
 </div>
 
@@ -206,9 +187,9 @@
                 <span class="close-btn" onclick="closeModal()" style="cursor: pointer; font-size: 24px; color: #888;">&times;</span>
             </div>
         </div>
-        <div id="selectAllArea">
+        <div id="selectAllArea" style="display:none; padding: 10px 20px; border-bottom: 1px solid #eee; align-items: center; gap: 8px;">
             <input type="checkbox" id="selectAll" onclick="toggleAllCheckboxes(this)">
-            <label for="selectAll" style="cursor:pointer;">전체 선택</label>
+            <label for="selectAll" style="cursor:pointer; font-size: 14px; color: #666;">전체 선택</label>
         </div>
         <div id="modalBody"></div>
     </div>
@@ -216,9 +197,8 @@
 
 <script>
     let slideIndices = { survey: 0, property: 0 };
-    
-    // 🔥 모달창에서 어떤 항목을 보고 있는지 추적하는 변수
     let currentModalType = ''; 
+    let isEditMode = false;
 
     document.addEventListener("DOMContentLoaded", function() {
         ['survey', 'property'].forEach(type => {
@@ -273,35 +253,6 @@
         if (nextBtn) { nextBtn.style.display = slideIndices[type] < maxIndex ? 'block' : 'none'; }
     }
 
-    function deleteSurvey(surveyId) {
-        if (confirm("이 설문 내역을 영구적으로 삭제하시겠습니까?")) {
-            fetch('/delete_survey', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                body: JSON.stringify({ survey_id: surveyId })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    alert("성공적으로 삭제되었습니다.");
-                    location.reload(); 
-                } else {
-                    alert(data.message || "삭제에 실패했습니다.");
-                }
-            })
-            .catch(err => {
-                console.error("Error:", err);
-                alert("서버 통신 중 오류가 발생했습니다.");
-            });
-        }
-    }
-
-    let isEditMode = false;
-
-    // 🔥 [수정 2] 설문 결과 모달에도 수정/삭제 UI 적용
     function openModal(event, type) {
         if (event) event.preventDefault();
 
@@ -311,7 +262,7 @@
         const btnGroup = document.getElementById('modalBtnGroup');
         const selectArea = document.getElementById('selectAllArea'); 
 
-        currentModalType = type; // 현재 모달 종류 기록
+        currentModalType = type;
         isEditMode = false;
         modal.classList.remove('is-editing');
         if (selectArea) selectArea.style.display = "none";
@@ -342,31 +293,11 @@
 
         } else if (type === 'survey') {
             title.innerText = "📝 최근 설문 리포트";
-            // 설문 리포트 모달에도 수정 버튼 추가
             btnGroup.innerHTML = `<button class="btn-edit-mode" onclick="toggleEditMode()">수정</button>`;
             
-            let html = '<div style="display: grid; grid-template-columns: 1fr; gap: 15px; margin-top:10px;">';
+            let html = '<div style="display: grid; grid-template-columns: 1fr; gap: 15px; margin-top:10px; padding: 0 10px;">';
             {% if surveys %}
                 {% for s in surveys %}
-                (function() {
-                    var rawBudget = "{{ s.budget }}";
-                    var displayBudget = "";
-
-                    if (!rawBudget || rawBudget === "None" || rawBudget.trim() === "") {
-                        displayBudget = "가격 미설정";
-                    } else if (rawBudget.indexOf('None') !== -1) {
-                        // 단어를 쪼개지 않고 키워드만 검사해서 재조합
-                        if (rawBudget.indexOf('월세') !== -1) {
-                            displayBudget = "월세 - 가격 미설정";
-                        } else if (rawBudget.indexOf('전세') !== -1) {
-                            displayBudget = "전세 - 가격 미설정";
-                        } else {
-                            displayBudget = "가격 미설정";
-                        }
-                    } else {
-                        displayBudget = rawBudget;
-                    }
-                
                 html += `
                     <div class="survey-item-card" style="text-align:left; display:flex; align-items:center; padding:15px; gap:10px;">
                         <input type="checkbox" class="edit-checkbox modal-check" data-id="{{ s._id }}">
@@ -376,11 +307,11 @@
                                 <span style="color:#4facfe; font-size:12px; font-weight:bold;">분석완료</span>
                             </div>
                             <h4 style="margin:5px 0; font-size:16px;">📍 {{ s.location }}</h4>
-                            <p style="font-size:13px; color:#555; margin:5px 0;">{{ s.main_info }}</p>
+                            <p style="font-size:13px; color:#4facfe; font-weight:600; margin:4px 0;">{{ s.main_info }}</p>
+                            <p style="font-size:14px; color:#555; margin:4px 0; font-weight: 500;">💰 {{ s.budget }}</p>
                             <a href="/survey/result/{{ loop.index0 }}" class="btn-result-link hide-on-edit" style="display:block; text-align:center; text-decoration:none; margin-top:10px; padding:10px; box-sizing: border-box;">리포트 결과 보기</a>
                         </div>
                     </div>`;
-                })();
                 {% endfor %}
             {% else %}
                 html = '<p style="padding:40px; color:#ccc; text-align:center;">진행한 설문이 없습니다.</p>';
@@ -390,7 +321,6 @@
         }
     }
 
-    // 🔥 [수정 2] 토글 로직을 공통(hide-on-edit)으로 변경
     function toggleEditMode() {
         isEditMode = !isEditMode;
         const modal = document.getElementById('commonModal');
@@ -412,7 +342,7 @@
             if (selectArea) selectArea.style.display = "none";
 
             btnGroup.innerHTML = `<button class="btn-edit-mode" onclick="toggleEditMode()">수정</button>`;
-            hideElements.forEach(el => el.style.display = ''); // 기본 디스플레이로 원복
+            hideElements.forEach(el => el.style.display = ''); 
 
             const selectAllCb = document.getElementById('selectAll');
             if (selectAllCb) selectAllCb.checked = false;
@@ -426,7 +356,6 @@
 
     function closeModal() { document.getElementById('commonModal').style.display = "none"; }
 
-    // 🔥 [수정 2] 모달 타입에 따라 다중 삭제 API를 구분하여 전송
     function deleteSelected() {
         const selected = document.querySelectorAll('.modal-check:checked');
         const ids = Array.from(selected).map(cb => cb.getAttribute('data-id'));
