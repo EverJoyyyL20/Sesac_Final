@@ -37,6 +37,7 @@ kakao = oauth.register(
     authorize_url='https://kauth.kakao.com/oauth/authorize',
     api_base_url='https://kapi.kakao.com/',
     client_kwargs={'scope': 'profile_nickname account_email'},
+    token_endpoint_auth_method='client_secret_post',
 )
 
 # 🔥 [복구 완료 1] 중복 없는 '새싹' 임시 닉네임 생성 로직
