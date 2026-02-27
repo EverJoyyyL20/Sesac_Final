@@ -162,9 +162,42 @@
         #image-modal .close-modal { position: absolute; top: 30px; right: 30px; font-size: 2.5rem; color: white; cursor: pointer; }
 
         #sentinel { height: 150px; width: 100%; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.3); font-size: 0.85rem; }
+        
+        /* 뒤로가기 버튼 스타일 */
+        .btn-back {
+            position: fixed;
+            top: 30px;
+            left: 50px;
+            z-index: 2500; /* 가이드 레이어보다는 아래, 콘텐츠보다는 위 */
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
+            border: 3px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+
+        .btn-back:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateX(-3px);
+        }
+
+        .btn-back i {
+            font-size: 1.8rem;
+        }
     </style>
 </head>
 <body>
+<a href="javascript:history.back();" class="btn-back" title="뒤로가기">
+    <i class="fa-solid fa-chevron-left"></i>
+</a>
 
 <div id="user-guide">
     <button class="btn-close-guide" onclick="removeGuide()">닫기</button>
