@@ -21,8 +21,8 @@
         <form id="setup-detail-form">
             <div class="input-group">
                 <label for="new-nickname">닉네임</label>
-                <input type="text" id="new-nickname" name="nickname" maxlength="10" required>
-                <small id="nick-count">0 / 10</small>
+                <input type="text" id="new-nickname" name="nickname" required>
+                <small id="nick-count">0 / 16</small>
             </div>
             <div class="input-group">
                 <label for="new-intro">한 줄 소개</label>
@@ -153,25 +153,57 @@
             });
         }
     }
-
     document.addEventListener("DOMContentLoaded", function () {
-        const nicknameInput = document.getElementById('new-nickname');
-        const introInput = document.getElementById('new-intro');
+    const nicknameInput = document.getElementById('new-nickname');
+    const introInput = document.getElementById('new-intro');
 
-        if (nicknameInput) {
-            nicknameInput.addEventListener('input', function() {
-                document.getElementById('nick-count').innerText =
-                    `${this.value.length} / 10`;
-            });
+    // 🔥 한글 2byte, 영문 1byte 계산 함수
+    function getByteLength(str) {
+        let byte = 0;
+        for (let i = 0; i < str.length; i++) {
+            const char = str.charCodeAt(i);
+            byte += char > 127 ? 2 : 1;
         }
+        return byte;
+    }
 
-        if (introInput) {
-            introInput.addEventListener('input', function() {
-                document.getElementById('intro-count').innerText =
-                    `${this.value.length} / 50`;
-            });
-        }
-    });
+    if (nicknameInput) {
+        nicknameInput.addEventListener('input', function() {
+            let value = this.value;
+            let byte = getByteLength(value);
+
+            // 16byte 초과하면 자동 자르기
+            if (byte > 16) {
+                let trimmed = "";
+                let total = 0;
+
+                for (let i = 0; i < value.length; i++) {
+                    let char = value[i];
+                    let charByte = char.charCodeAt(0) > 127 ? 2 : 1;
+
+                    if (total + charByte > 16) break;
+
+                    total += charByte;
+                    trimmed += char;
+                }
+
+                this.value = trimmed;
+                byte = total;
+            }
+
+            document.getElementById('nick-count').innerText =
+                `${byte} / 16`;
+        });
+    }
+
+    // ✅ 한줄소개는 그대로 유지
+    if (introInput) {
+        introInput.addEventListener('input', function() {
+            document.getElementById('intro-count').innerText =
+                `${this.value.length} / 50`;
+        });
+    }
+});
 </script>
 
 </body>
