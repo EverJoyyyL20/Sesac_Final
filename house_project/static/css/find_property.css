@@ -169,12 +169,19 @@ body, html {
 /* ============================================================
    5. 지도 위 마커 태그 (블랙/그레이 유리 질감)
    ============================================================ */
+/* ============================================================
+   5. 지도 위 마커 태그 (블랙/그레이 유리 질감)
+   ============================================================ */
 .price-tag {
     background: linear-gradient(135deg, rgba(40, 40, 40, 0.9), rgba(15, 15, 15, 0.95)); 
     backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
     color: #fff; padding: 10px 20px; border-radius: 50px;
     font-size: 0.85rem; font-weight: 800; border: 1.5px solid rgba(255, 255, 255, 0.25); 
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4); cursor: pointer;
+    
+    /* 🔥 [추가] 글자가 세로로 꺾이는 것을 방지하고 무조건 가로 한 줄로 유지 */
+    white-space: nowrap; 
+    text-align: center;
 }
 
 .gu-tag {
