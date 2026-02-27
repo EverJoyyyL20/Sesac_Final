@@ -21,17 +21,14 @@
         <form id="setup-detail-form">
             <div class="input-group">
                 <label for="new-nickname">닉네임</label>
-                <input type="text" id="new-nickname" name="nickname" 
-                       value="{{ session['nickname'] }}" required>
-                <small id="nick-error" class="error-msg" style="color: red; display: none;"></small>
+                <input type="text" id="new-nickname" name="nickname" maxlength="10" required>
+                <small id="nick-count">0 / 10</small>
             </div>
-
             <div class="input-group">
                 <label for="new-intro">한 줄 소개</label>
-                <textarea id="new-intro" name="introduction" 
-                          placeholder="나를 표현하는 짧은 문구를 적어주세요."></textarea>
+                <textarea id="new-intro" name="introduction" maxlength="50"></textarea>
+                <small id="intro-count">0 / 50</small>
             </div>
-
             <div class="modal-btns">
                 <button type="button" onclick="saveProfile()" id="save-btn">저장하고 시작하기</button>
                 <button type="button" onclick="closeModal()" class="skip-btn">나중에 할게요</button>
@@ -145,6 +142,25 @@
             });
         }
     }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        const nicknameInput = document.getElementById('new-nickname');
+        const introInput = document.getElementById('new-intro');
+
+        if (nicknameInput) {
+            nicknameInput.addEventListener('input', function() {
+                document.getElementById('nick-count').innerText =
+                    `${this.value.length} / 10`;
+            });
+        }
+
+        if (introInput) {
+            introInput.addEventListener('input', function() {
+                document.getElementById('intro-count').innerText =
+                    `${this.value.length} / 50`;
+            });
+        }
+    });
 </script>
 
 </body>
