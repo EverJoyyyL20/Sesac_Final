@@ -5,6 +5,7 @@
     <meta name="referrer" content="no-referrer">
     <title>서울 부동산 매물 탐색</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'/%3E%3Ccircle cx='12' cy='13' r='2' fill='%234facfe' stroke='%234facfe'/%3E%3C/svg%3E">
+    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/find_property.css') }}">
@@ -15,10 +16,10 @@
 
     <style>
         /* ========================================================
-           🔥 [챗봇 병합] AI 챗봇 컨시어지 플로팅 창 스타일 추가
+           🔥 AI 챗봇 컨시어지 플로팅 창 스타일
            ======================================================== */
         .ai-chat-fab {
-            position: fixed; right: 30px; bottom: 30px; z-index: 5000;
+            position: absolute; right: 30px; bottom: 30px; z-index: 5000;
             background: #ffffff; color: #111; border: 1px solid #edf1f5; 
             border-radius: 50px; padding: 18px 32px; 
             font-weight: 800; font-size: 1.15rem; 
@@ -35,9 +36,17 @@
         .ai-chat-fab svg { transition: 0.3s; }
         .ai-chat-fab:hover svg { transform: scale(1.1) rotate(5deg); }
 
+        /* 🔥 [수정] 챗봇 패널: 하단 기준으로 변경 및 여백 동기화 */
         .ai-chat-panel {
-            position: fixed; right: 30px; bottom: 100px;
-            width: 420px; height: 680px; max-height: calc(100vh - 130px);
+            position: absolute; 
+            right: 30px; 
+            width: 420px; 
+            
+            /* 🔥 핵심 수정: top 대신 bottom을 사용하여 왼쪽 매물 필터의 하단 여백(20px)과 완벽하게 동일하게 맞춤 */
+            bottom: 20px;         
+            height: 680px;     
+            max-height: calc(100% - 40px); /* 화면이 작아질 때 상하 20px 여백 보장 */
+            
             background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px);
             box-shadow: 0 20px 50px rgba(0,0,0,0.15); z-index: 6000;
             display: flex; flex-direction: column;
@@ -47,10 +56,12 @@
             
             opacity: 0;
             transform: scale(0.8) translateY(30px);
+            /* 🔥 핵심 수정: 하단 기준으로 팝업이 열리도록 변경 */
             transform-origin: bottom right; 
             pointer-events: none;
             visibility: hidden;
-            transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+            
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .ai-chat-panel.open { 
             opacity: 1;
@@ -120,8 +131,13 @@
         .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
         @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
 
+        /* 🔥 [수정] 모바일 화면에서도 크기 로직 완벽 연동 */
         @media (max-width: 900px) {
-            .ai-chat-panel { width: calc(100vw - 40px); right: 20px; bottom: 90px; height: calc(100vh - 120px); }
+            .ai-chat-panel { 
+                width: calc(100vw - 40px); right: 20px; 
+                bottom: 20px; /* 🔥 모바일 화면도 하단 20px 유지 */
+                max-height: calc(100% - 40px); 
+            }
             .ai-chat-fab { bottom: 20px; right: 20px; padding: 15px 25px; font-size: 1.05rem; }
         }
     </style>
@@ -137,29 +153,26 @@
             </svg>
         </a>
         <a href="{{ url_for('find.find') }}">매물찾기</a>
-        <a href="{{ url_for('survey.survey_short', index=0) }}" class="nav-short-btn">매물쇼츠</a>
     </div>
     <div class="nav-links">
-    {% if session.get('user_id') %}
-        <span class="welcome-text">
-            
-            {% if session.get('profile_img_name') %}
-                <img src="{{ url_for('static', filename='profile_pics/' + session.get('profile_img_name')) }}" 
-                     class="nav-profile-img" alt="프로필">
-            {% else %}
-                <img src="{{ url_for('static', filename='profile_pics/default.png') }}" 
-                     class="nav-profile-img" alt="기본프로필">
-            {% endif %}
-            
-            <strong>{{ session.get('nickname') }}</strong>님
-        </span>
-        <a href="{{ url_for('mypage.mypage') }}">마이페이지</a>
-        <a href="{{ url_for('auth.logout') }}">로그아웃</a>
-    {% else %}
-        <a href="{{ url_for('auth.login') }}">로그인</a>
-        <a href="{{ url_for('auth.register') }}">회원가입</a>
-    {% endif %}
-</div>
+        {% if session.get('user_id') %}
+            <span class="welcome-text">
+                {% if session.get('profile_img_name') %}
+                    <img src="{{ url_for('static', filename='profile_pics/' + session.get('profile_img_name')) }}" 
+                         class="nav-profile-img" alt="프로필">
+                {% else %}
+                    <img src="{{ url_for('static', filename='profile_pics/default.png') }}" 
+                         class="nav-profile-img" alt="기본프로필">
+                {% endif %}
+                <strong>{{ session.get('nickname') }}</strong>님
+            </span>
+            <a href="{{ url_for('mypage.mypage') }}">마이페이지</a>
+            <a href="{{ url_for('auth.logout') }}">로그아웃</a>
+        {% else %}
+            <a href="{{ url_for('auth.login') }}">로그인</a>
+            <a href="{{ url_for('auth.register') }}">회원가입</a>
+        {% endif %}
+    </div>
 </div>
 
 <div id="map-container">
@@ -253,6 +266,50 @@
     </div>
 
     <div id="map"></div>
+
+    <button class="ai-chat-fab" id="chatFabBtn" onclick="toggleChatPanel(true)">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#4facfe" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="18" height="14" x="3" y="7" rx="4" ry="4"></rect>
+            <path d="M12 7V3"></path>
+            <circle cx="12" cy="3" r="1.5"></circle>
+            <circle cx="9" cy="13" r="1.5" fill="#4facfe"></circle>
+            <circle cx="15" cy="13" r="1.5" fill="#4facfe"></circle>
+            <path d="M10 17h4"></path>
+        </svg>
+        AI 챗봇 검색
+    </button>
+
+    <div class="ai-chat-panel" id="aiChatPanel">
+        <div class="chat-header">
+            <h3>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <rect width="18" height="14" x="3" y="7" rx="4" ry="4"></rect>
+                    <path d="M12 7V3"></path>
+                    <circle cx="12" cy="3" r="1.5"></circle>
+                    <circle cx="9" cy="13" r="1.5" fill="currentColor"></circle>
+                    <circle cx="15" cy="13" r="1.5" fill="currentColor"></circle>
+                    <path d="M10 17h4"></path>
+                </svg>
+                매물찾기 챗봇 AI
+            </h3>
+            <button class="close-chat" onclick="toggleChatPanel(false)"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        
+        <div class="chat-body" id="chatBody">
+            <div class="message bot">
+                <div class="bubble">
+                    안녕하세요! 번거로운 필터 설정 대신, 원하시는 매물 조건을 편하게 말씀해주세요.<br><br>
+                    💡 <strong>이렇게 물어보세요!</strong><br>
+                    "강남구 역삼동에 보증금 5천, 월세 60만원 이하 투룸 찾아줘. 주차 가능해야 해!"
+                </div>
+            </div>
+        </div>
+        
+        <div class="chat-footer">
+            <input type="text" id="chatInput" placeholder="메시지를 입력하세요..." onkeypress="handleChatKey(event)">
+            <button onclick="sendChatMessage()"><i class="fa-solid fa-arrow-up"></i></button>
+        </div>
+    </div>
 </div>
 
 <div id="propertyModal" class="modal">
@@ -287,53 +344,9 @@
     </div>
 </div>
 
-<button class="ai-chat-fab" id="chatFabBtn" onclick="toggleChatPanel(true)">
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#4facfe" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <rect width="18" height="14" x="3" y="7" rx="4" ry="4"></rect>
-        <path d="M12 7V3"></path>
-        <circle cx="12" cy="3" r="1.5"></circle>
-        <circle cx="9" cy="13" r="1.5" fill="#4facfe"></circle>
-        <circle cx="15" cy="13" r="1.5" fill="#4facfe"></circle>
-        <path d="M10 17h4"></path>
-    </svg>
-    AI 챗봇 검색
-</button>
-
-<div class="ai-chat-panel" id="aiChatPanel">
-    <div class="chat-header">
-        <h3>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <rect width="18" height="14" x="3" y="7" rx="4" ry="4"></rect>
-                <path d="M12 7V3"></path>
-                <circle cx="12" cy="3" r="1.5"></circle>
-                <circle cx="9" cy="13" r="1.5" fill="currentColor"></circle>
-                <circle cx="15" cy="13" r="1.5" fill="currentColor"></circle>
-                <path d="M10 17h4"></path>
-            </svg>
-            매물찾기 챗봇 AI
-        </h3>
-        <button class="close-chat" onclick="toggleChatPanel(false)"><i class="fa-solid fa-xmark"></i></button>
-    </div>
-    
-    <div class="chat-body" id="chatBody">
-        <div class="message bot">
-            <div class="bubble">
-                안녕하세요! 번거로운 필터 설정 대신, 원하시는 매물 조건을 편하게 말씀해주세요.<br><br>
-                💡 <strong>이렇게 물어보세요!</strong><br>
-                "강남구 역삼동에 보증금 5천, 월세 60만원 이하 투룸 찾아줘. 주차 가능해야 해!"
-            </div>
-        </div>
-    </div>
-    
-    <div class="chat-footer">
-        <input type="text" id="chatInput" placeholder="메시지를 입력하세요..." onkeypress="handleChatKey(event)">
-        <button onclick="sendChatMessage()"><i class="fa-solid fa-arrow-up"></i></button>
-    </div>
-</div>
-
 <script>
     /* ========================================================
-       🔥 [챗봇 병합] AI 챗봇 프론트엔드 상태 & 함수 
+       AI 챗봇 프론트엔드 상태 & 함수 
        ======================================================== */
     let currentConditions = {}; 
     let currentChatItems = []; 
@@ -577,7 +590,6 @@
         updateMarkers();
     }
 
-    // 🔥 [팀원 코드 유지] 옵션 버튼 토글 함수 
     function toggleOptionFilter(btn) {
         const buttons = document.querySelectorAll('.option-filter-btn');
         buttons.forEach(b => { if(b !== btn) b.classList.remove('active'); });
@@ -590,7 +602,6 @@
         const bounds = map.getBounds();
         const requestId = ++lastRequestId;
 
-        // 🔥 [챗봇 병합] 챗봇 모드 잠금(Lock) 시, 서버 API 호출 중단 및 챗봇 매물만 화면에 유지
         if (isChatbotMapLock && lockedChatItems.length > 0) {
             markers.forEach(m => m.setMap(null));
             markers = [];
@@ -607,10 +618,9 @@
         }
 
         const selectedRooms = Array.from(document.querySelectorAll('.room-btn.active'))
-            .filter(b => !b.classList.contains('option-filter-btn')) // 옵션 버튼 제외
+            .filter(b => !b.classList.contains('option-filter-btn'))
             .map(b => b.dataset.val).join(',');
 
-        // 🔥 [팀원 코드 유지] 옵션 필터 버튼에서 현재 활성화된 값 가져오기
         const activeOptionBtn = document.querySelector('.option-filter-btn.active');
         const optionStatus = activeOptionBtn ? activeOptionBtn.dataset.val : "";
 
@@ -634,7 +644,7 @@
             apiUrl += `&type=${filters.type}&rooms=${filters.rooms}&min_deposit=${filters.minDep}&max_deposit=${filters.maxDep}`;
             apiUrl += `&min_price=${filters.minPri}&max_price=${filters.maxPri}&min_size=${filters.minSize}&max_size=${filters.maxSize}`;
             apiUrl += `&parking=${filters.parking}&exclude_under=${filters.excludeUnder}`;
-            apiUrl += `&option_status=${optionStatus}`; // ✅ 팀원의 옵션 파라미터 적용 유지
+            apiUrl += `&option_status=${optionStatus}`; 
 
             if (searchCenter) {
                 apiUrl += `&center_lat=${searchCenter.lat}&center_lng=${searchCenter.lng}&radius=${filters.radius}`;
