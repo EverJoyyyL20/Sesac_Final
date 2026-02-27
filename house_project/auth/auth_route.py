@@ -99,7 +99,7 @@ def login():
             
             return redirect(url_for('main.index'))
         else:
-            return "이메일 또는 비밀번호가 틀렸습니다.", 401
+            return "<script>alert('정보가 일치하지 않습니다.'); history.back();</script>"
             
     return render_template('login.html')
 
