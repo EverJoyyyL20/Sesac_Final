@@ -45,12 +45,51 @@ def mypage():
     surveys = []
     
     for s in raw_surveys:
+        budget_data = s.get('budget', {})
+        
+        # 데이터 추출 (데이터가 없으면 None)
+        min_dep = budget_data.get('min_dep')
+        max_dep = budget_data.get('max_dep')
+        min_rent = budget_data.get('min_rent')
+        max_rent = budget_data.get('max_rent')
+
+        # 유효성 검사 함수 (None, 0, '0', '' 인지 체크)
+        def is_v(val):
+            return val not in [None, 0, '0', '', 'None']
+
+        # 텍스트 생성기 (보증금/월세 공통 로직)
+        def make_label(min_v, max_v, unit="만"):
+            has_min = is_v(min_v)
+            has_max = is_v(max_v)
+            
+            if has_min and has_max:
+                return f"{min_v}~{max_v}{unit}"
+            elif has_min:
+                return f"{min_v}{unit} 이상"
+            elif has_max:
+                return f"{max_v}{unit} 이하"
+            else:
+                return None
+
+        # 계약 형태에 따른 최종 텍스트 조립
         if s.get('contract_type') == 'monthly':
-            rent_val = s.get('budget', {}).get('max_rent', '0')
-            dep_val = s.get('budget', {}).get('max_dep', '0')
-            budget_text = f"보증금 {dep_val}만 / 월세 {rent_val}만"
-        else:
-            budget_text = f"전세 {s.get('budget', {}).get('max_dep', '0')}만원"
+            dep_txt = make_label(min_dep, max_dep)
+            rent_txt = make_label(min_rent, max_rent)
+            
+            if not dep_txt and not rent_txt:
+                budget_text = "월세 - 가격 미설정"
+            else:
+                # 보증금이나 월세 중 하나가 없으면 '미설정' 표시
+                dep_display = dep_txt if dep_txt else "미설정"
+                rent_display = rent_txt if rent_txt else "미설정"
+                budget_text = f"보증금 {dep_display} / 월세 {rent_display}"
+                
+        else: # 전세(yearly)인 경우
+            dep_txt = make_label(min_dep, max_dep, unit="만원")
+            if not dep_txt:
+                budget_text = "전세 - 가격 미설정"
+            else:
+                budget_text = f"전세 {dep_txt}"
 
         building_age_list = s.get('building_age', [])
         age_info = ", ".join(building_age_list) if building_age_list else '연식미상'
