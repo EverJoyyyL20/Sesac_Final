@@ -60,8 +60,12 @@ def generate_recommendation_reason(user_id, nw, house_info):
     user_doc = db.user.find_one({"email": user_id})
     actual_weight = user_doc.get("Weight", nw) if user_doc else nw
     
+    # [수정] 상위 3개를 추출하되, 의미 없는 수치(스무딩 값)는 제외하여 변별력 확보
     sorted_weights = sorted(actual_weight.items(), key=lambda x: x[1], reverse=True)
-    top_interests = [f"{category_map.get(k, k)}({int(float(v)*100)}%)" for k, v in sorted_weights[:2]]
+    top_interests = [
+        f"{category_map.get(k, k)}({int(float(v)*100)}%)" 
+        for k, v in sorted_weights if float(v) > 0.015  # 최소한의 유효값 필터링
+    ][:3] # [핵심] 상위 3가지 카테고리 추출
     
     scores = house_info.get('category_scores', {})
     all_scores = [f"{category_map.get(k.lower(), k)} {int(float(v)*100)}점" for k, v in scores.items() if float(v) > 0]
@@ -96,9 +100,10 @@ def generate_recommendation_reason(user_id, nw, house_info):
 
     infra_str = ", ".join(list(set(nearby_infra_names))) if nearby_infra_names else "훌륭한 지역 상권 및 인프라"
 
+    # [프롬프트 수정] 1문단 가이드를 요청하신 대로 구체화했습니다.
     template = """
     당신은 상위 1% VIP를 전담하는 수석 부동산 큐레이터입니다.
-    고객의 최우선 가중치, 매물의 실제 지표 점수, 그리고 매물 1km 이내의 실제 인프라 시설을 종합하여 이 매물을 강력히 추천하는 '심층 브리핑'을 작성해주세요.
+    제공된 [고객 분석 데이터]는 고객이 직접 선택한 '우선순위 가중치'입니다.
 
     [고객 분석 데이터] 최우선 선호 지표: {top_interests}
     [추천 매물 데이터] 주소: {address}, 가격: {price}
@@ -108,11 +113,11 @@ def generate_recommendation_reason(user_id, nw, house_info):
     [작성 가이드]
     1. 분량: 반드시 3~4개의 문단으로 구성된 긴 호흡의 글 (약 350~450자 분량)을 작성하세요. 절대 짧게 쓰지 마세요.
     2. 내용 구성:
-       - 첫 문단: 고객의 '{top_interests}' 성향을 언급하며 이 매물이 왜 완벽한 맞춤형 공간인지 총평하세요.
+       - 첫 문단: 반드시 고객님이 가장 중요하게 생각하시는 '{top_interests}' 항목들을 직접 언급하며 시작하세요. (예: "{top_interests}을 최우선으로 생각하시는 고객님을 위한 이 매물은...")
        - 두 번째 문단: [매물 평가 점수]에 명시된 구체적인 '점수 숫자'를 1~2개 언급하며 객관적인 강점을 논리적으로 어필하세요.
        - 세 번째 문단: [매물 주변 실제 인프라]에 나열된 장소 이름들(예: 특정 공원, 식당, 병원명 등)을 직접 언급하며, 이곳에 살면 어떤 프리미엄 일상을 누릴 수 있는지 시각적으로 묘사하세요.
     3. 톤앤매너: 5성급 호텔 컨시어지나 프라이빗 뱅커(PB)처럼 극도로 정중하고, 세련되며, 확신에 찬 어조를 사용하세요. (~입니다, ~누리실 수 있습니다)
-    4. 제약사항: 문장 첫머리나 끝에 마크다운(```)이나 HTML 태그를 절대 넣지 마세요. 자연스러운 엔터(줄바꿈)만 사용하여 문단을 구분하세요.
+    4. 제약사항: 0%이거나 데이터에 없는 내용은 절대 언급하지 말고, 문장 첫머리나 끝에 마크다운(```)이나 HTML 태그를 절대 넣지 마세요. 자연스러운 엔터(줄바꿈)만 사용하여 문단을 구분하세요.
     """
     prompt = PromptTemplate.from_template(template)
     chain = prompt | llm
@@ -127,7 +132,7 @@ def generate_recommendation_reason(user_id, nw, house_info):
         })
         return response.content.replace("```", "").strip()
     except Exception:
-        return "고객님의 라이프스타일 지표와 주변 인프라를 종합적으로 분석한 결과, 가장 추천해 드리는 맞춤형 매물입니다."
+        return "고객님의 라이프스타일 지표를 분석한 결과, 가장 추천해 드리는 맞춤형 매물입니다."
 
 def get_user_normalized_weights(category_log, custom_weights=None):
     if custom_weights:
