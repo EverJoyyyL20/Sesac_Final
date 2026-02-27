@@ -29,7 +29,7 @@
             overflow: hidden; color: #fff;
         }
 
-        /* 1. 가이드 레이어 */
+        /* 1. 가이드 레이어 (수정 및 추가) */
         #user-guide {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0, 0, 0, 0.9); z-index: 3000;
@@ -37,12 +37,42 @@
             transition: opacity 0.6s ease; backdrop-filter: blur(10px);
         }
         #user-guide.fade-out { opacity: 0; pointer-events: none; }
-        .btn-close-guide {
-            position: absolute; top: 30px; right: 30px;
-            background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.3);
-            color: white; padding: 10px 20px; border-radius: 50px; cursor: pointer;
-            font-size: 0.9rem; z-index: 3001;
+        
+        /* [추가] 체크박스 감싸는 영역 */
+        .guide-checkbox-wrap {
+            margin-top: 24px;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            cursor: pointer;
         }
+        /* [추가] 커스텀 체크박스 스타일 */
+        .guide-checkbox-wrap input[type="checkbox"] {
+            appearance: none; -webkit-appearance: none;
+            width: 20px; height: 20px; border-radius: 6px;
+            border: 2px solid rgba(255,255,255,0.4);
+            background: rgba(255,255,255,0.05);
+            cursor: pointer; transition: 0.2s; flex-shrink: 0;
+            position: relative;
+        }
+        .guide-checkbox-wrap input[type="checkbox"]:checked {
+            background: var(--accent-color); border-color: var(--accent-color);
+        }
+        .guide-checkbox-wrap input[type="checkbox"]:checked::after {
+            content: ''; position: absolute;
+            left: 5px; top: 2px; width: 6px; height: 10px;
+            border: 2px solid #000; border-top: none; border-left: none;
+            transform: rotate(45deg);
+        }
+        .guide-checkbox-wrap span { font-size: 0.9rem; color: rgba(255,255,255,0.65); }
+
+        /* [수정] 닫기 버튼: 위쪽 절대좌표 삭제하고 일반 버튼 형태로 변경 */
+        .btn-close-guide {
+            margin-top: 30px;
+            background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white; padding: 12px 36px; border-radius: 50px; cursor: pointer;
+            font-size: 0.9rem; font-weight: 700;
+        }
+        .btn-close-guide:active { transform: scale(0.95); background: rgba(255, 255, 255, 0.2); }
+
         .guide-content { text-align: center; animation: fadeInUp 1s ease-out; }
         .hand-anim { font-size: 3.5rem; margin-bottom: 20px; animation: handGesture 2.5s infinite; }
         .guide-main-text { 
@@ -192,6 +222,43 @@
         .btn-back i {
             font-size: 1.8rem;
         }
+
+        /* [추가] 우측 상단 가이드 버튼 */
+        .btn-open-guide {
+            position: fixed;
+            top: 30px;
+            right: 50px;
+            z-index: 2500;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
+            border: 3px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-open-guide:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.05);
+        }
+
+        /* [수정] 가이드 레이어 기본 상태 */
+        #user-guide {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.9); z-index: 3000;
+            display: none; /* 기본을 none으로 변경 */
+            flex-direction: column; align-items: center; justify-content: center;
+            transition: opacity 0.6s ease; backdrop-filter: blur(10px);
+            opacity: 0;
+        }
+        #user-guide.active { display: flex; opacity: 1; }
     </style>
 </head>
 <body>
@@ -199,13 +266,22 @@
     <i class="fa-solid fa-chevron-left"></i>
 </a>
 
+<button class="btn-open-guide" onclick="showGuide()">
+    <i class="fa-solid fa-circle-question"></i> 사용 가이드
+</button>
+
 <div id="user-guide">
-    <button class="btn-close-guide" onclick="removeGuide()">닫기</button>
     <div class="guide-content">
         <div class="hand-anim">👆</div>
         <div class="guide-main-text">넘기고, 두 번 터치하세요</div>
         <div class="guide-sub-text">위아래로 스크롤하고, 마음에 들면 더블 탭!</div>
+
+        <label class="guide-checkbox-wrap">
+            <input type="checkbox" id="no-show-guide">
+            <span>다시 보지 않기</span>
+        </label>
     </div>
+    <button class="btn-close-guide" onclick="removeGuide()">닫기</button>
 </div>
 
 <div id="image-modal">
@@ -265,11 +341,58 @@
 </div>
 
 <script>
-    // 0. 가이드 및 모달 기능
+    // [수정] 가이드 보이기 로직
+    function showGuide() {
+        const guide = document.getElementById('user-guide');
+        if (guide) {
+            guide.style.display = 'flex';
+            // 애니메이션 효과를 위해 약간의 지연 후 opacity 조절
+            setTimeout(() => guide.classList.add('active'), 10);
+        }
+    }
+
+    // [수정] 가이드 닫기 및 저장 로직
+    // [수정] 가이드 보이기 로직
+    function showGuide() {
+        const guide = document.getElementById('user-guide');
+        if (guide) {
+            guide.style.display = 'flex';
+            // 애니메이션 효과를 위해 약간의 지연 후 active 클래스 추가
+            setTimeout(() => guide.classList.add('active'), 10);
+        }
+    }
+
+    // [수정] 가이드 닫기 및 '세션' 저장 로직
     function removeGuide() {
         const guide = document.getElementById('user-guide');
-        if(guide) { guide.classList.add('fade-out'); setTimeout(() => guide.remove(), 600); }
+        if (!guide) return;
+
+        // 체크박스 확인 후 'sessionStorage'에 저장 (브라우저 닫으면 삭제됨)
+        const checkbox = document.getElementById('no-show-guide');
+        if (checkbox && checkbox.checked) {
+            // localStorage 대신 sessionStorage 사용
+            sessionStorage.setItem('shorts_guide_hidden', 'true');
+        }
+
+        guide.classList.remove('active');
+        setTimeout(() => {
+            guide.style.display = 'none';
+        }, 600);
     }
+
+    // [수정] 초기 로딩 시 가이드 판단 로직
+    document.addEventListener('DOMContentLoaded', () => {
+        // sessionStorage에서 확인 (다른 유저/새 세션에는 영향 없음)
+        if (sessionStorage.getItem('shorts_guide_hidden') !== 'true') {
+            showGuide();
+        }
+
+        // 기존 차트 및 스와이퍼 초기화 로직 유지
+        document.querySelectorAll('.mySwiper').forEach(s => initSwiper(s));
+        {% for item in recommendations %}
+            initChart('chart-{{ item._id_str }}', {{ item.chart_data | tojson }});
+        {% endfor %}
+    });
 
     function toggleInfo(overlay, event) {
         if (event.target.closest('.btn-detail') || event.target.closest('.like-btn')) return;
@@ -362,7 +485,6 @@
 
     // 초기 로딩
     document.addEventListener('DOMContentLoaded', () => {
-        setTimeout(removeGuide, 3500);
         document.querySelectorAll('.mySwiper').forEach(s => initSwiper(s));
         {% for item in recommendations %}
             initChart('chart-{{ item._id_str }}', {{ item.chart_data | tojson }});
