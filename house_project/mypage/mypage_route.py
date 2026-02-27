@@ -197,10 +197,18 @@ def update_profile():
     # 프로필 설정 완료 플래그 추가
     update_data['is_setup_done'] = True
 
+    # 1. 실제 DB 업데이트 처리
     users_col.update_one({'email': session['user_id']}, {'$set': update_data})
-    session['nickname'] = new_nickname
+    
+    # 🔥 [여기 추가] DB 업데이트가 성공하면, 상단바가 바라보는 '세션'도 즉시 업데이트!
+    if 'nickname' in update_data and update_data['nickname']:
+        session['nickname'] = update_data['nickname']
+    if 'Profile_IMG' in update_data:
+        session['profile_img_name'] = update_data['Profile_IMG']
+
     session['needs_setup'] = False     # 팝업 중단 선언
     
+    # 2. 결과 리턴 (Ajax 통신 / 일반 통신 분기)
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return jsonify({"success": True, "message": "성공적으로 수정되었습니다."})
     return f"<script>alert('성공적으로 수정되었습니다.'); location.href='{url_for('mypage.mypage')}';</script>"
@@ -211,7 +219,10 @@ def reset_default_image():
     if not user_email: return jsonify({'success': False, 'message': '로그인이 필요합니다.'})
 
     users_col.update_one({'email': user_email}, {'$set': {'Profile_IMG': 'default.png'}})
-    session['profile_img'] = 'default.png' 
+    
+    # 🔥 [수정] 기존 코드는 'profile_img'였으나, HTML에서 'profile_img_name'을 쓰므로 키값 동기화 조치!
+    session['profile_img_name'] = 'default.png' 
+    
     return jsonify({'success': True})
 
 @mypage_bp.route('/toggle_favorite', methods=['POST'])
