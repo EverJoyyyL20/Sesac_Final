@@ -159,6 +159,13 @@ def update_profile():
     user = users_col.find_one({'email': session['user_id']})
     new_nickname = request.form.get('nickname', '').strip()
     new_introduction = request.form.get('introduction', '').strip()
+    if len(new_nickname) > 10:
+        return jsonify({"success": False, "message": "닉네임은 10자 이하만 가능합니다."})
+
+    if len(new_introduction) > 50:
+        return jsonify({"success": False, "message": "한 줄 소개는 50자 이하만 가능합니다."})
+
+
     current_pw = request.form.get('current_password')
     new_pw = request.form.get('new_password')
     confirm_pw = request.form.get('confirm_password')
