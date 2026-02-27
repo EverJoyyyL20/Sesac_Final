@@ -21,17 +21,15 @@
         <form id="setup-detail-form">
             <div class="input-group">
                 <label for="new-nickname">닉네임</label>
-                <input type="text" id="new-nickname" name="nickname" 
-                       value="{{ session['nickname'] }}" required>
-                <small id="nick-error" class="error-msg" style="color: red; display: none;"></small>
+                <input type="text" id="new-nickname" name="nickname" required>
+                <small id="nick-count">0 / 16</small>
+                <small id="nick-error" style="color:red; display:none;"></small>
             </div>
-
             <div class="input-group">
                 <label for="new-intro">한 줄 소개</label>
-                <textarea id="new-intro" name="introduction" 
-                          placeholder="나를 표현하는 짧은 문구를 적어주세요."></textarea>
+                <textarea id="new-intro" name="introduction" maxlength="50"></textarea>
+                <small id="intro-count">0 / 50</small>
             </div>
-
             <div class="modal-btns">
                 <button type="button" onclick="saveProfile()" id="save-btn">저장하고 시작하기</button>
                 <button type="button" onclick="closeModal()" class="skip-btn">나중에 할게요</button>
@@ -156,6 +154,60 @@
             });
         }
     }
+    document.addEventListener("DOMContentLoaded", function () {
+    const nicknameInput = document.getElementById('new-nickname');
+    const introInput = document.getElementById('new-intro');
+
+    function getByteLength(str) {
+        let byte = 0;
+        for (let i = 0; i < str.length; i++) {
+            const char = str.charCodeAt(i);
+            byte += char > 127 ? 2 : 1;
+        }
+        return byte;
+    }
+
+    if (nicknameInput) {
+        nicknameInput.addEventListener('input', function() {
+            let value = this.value;
+            let byte = getByteLength(value);
+
+            if (byte > 16) {
+                let trimmed = "";
+                let total = 0;
+
+                for (let i = 0; i < value.length; i++) {
+                    let char = value[i];
+                    let charByte = char.charCodeAt(0) > 127 ? 2 : 1;
+
+                    if (total + charByte > 16) break;
+
+                    total += charByte;
+                    trimmed += char;
+                }
+
+                this.value = trimmed;
+                byte = total;
+            }
+
+            // 🔥 여기 수정
+            const nickCounter = document.getElementById('nick-count');
+            if (nickCounter) {
+                nickCounter.innerText = `${byte} / 16`;
+            }
+        });
+    }
+
+    if (introInput) {
+        introInput.addEventListener('input', function() {
+            // 🔥 여기도 동일하게 안전처리
+            const introCounter = document.getElementById('intro-count');
+            if (introCounter) {
+                introCounter.innerText = `${this.value.length} / 50`;
+            }
+        });
+    }
+});
 </script>
 
 </body>
