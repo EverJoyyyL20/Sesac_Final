@@ -22,14 +22,19 @@
     margin-top: -65px; /* 상단 네비게이션 바 아래로 자연스럽게 밀어넣음 */
 }
 
-/* Hero 내부 텍스트 래퍼 */
 .hero-content {
     max-width: 900px;
     width: 100%;
+
+    display: flex;              /* 🔥 이거 반드시 필요 */
+    flex-direction: column;     /* 세로 정렬 */
+    align-items: center;        /* 가운데 */
+    justify-content: center;
+    padding-top: 50px;
+    text-align: center;
     z-index: 2;
     animation: fadeInUp 1s ease-out;
 }
-
 /* 메인 타이틀 */
 .hero-content h1 {
     font-size: 3.5rem; /* 글씨 크기 압도적으로 확대 */
@@ -39,6 +44,7 @@
     letter-spacing: -1.5px;
     line-height: 1.25;
     word-break: keep-all;
+    margin-top: 0;
 }
 
 /* 혹시 강조하고 싶은 글씨에 <span class="highlight">를 씌우면 적용되는 파란 그라데이션 */
@@ -75,6 +81,7 @@
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
     box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+    margin-top: -10px;
 }
 
 .survey-btn::after {
@@ -235,4 +242,28 @@
     font-size: 12px;
     color: #888;
     margin-top: 5px;
+}
+
+.circle-bg-text {
+    display: inline-block;
+    padding: 12px 28px; /* 🔥 높이 줄임 */
+    font-size: 1.05rem;
+    font-weight: 400;
+
+
+    background: rgba(255,255,255,0.15); /* 🔥 유리 느낌 */
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 999px;
+
+    box-shadow: none; /* 🔥 그림자 제거 */
+    margin-top: 8px; }
+
+.circle-text {
+    background: linear-gradient(135deg, #4facfe, #00f2fe);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;   /* 🔥 이 줄 추가 */
 }
