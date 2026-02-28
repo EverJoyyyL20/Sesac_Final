@@ -134,7 +134,6 @@ def mypage():
         created_dt = s.get('created_at')
         date_str = f"{created_dt.year}년 {created_dt.month:02d}월 {created_dt.day:02d}일" if created_dt else "날짜미상"
 
-        # 🔥 [추가 2] 저장된 category_log를 통해 라이프스타일 유형 및 설명 계산
         category_log = s.get('category_log', [])
         nw = get_user_normalized_weights_mypage(category_log)
         top2 = sorted(nw.items(), key=lambda x: x[1], reverse=True)[:2]
@@ -148,8 +147,8 @@ def mypage():
             'main_info': main_info, 
             'budget': budget_text,
             'tags': option_tags,
-            'user_type': user_type,           # UI 출력을 위해 추가됨
-            'user_type_desc': user_type_desc  # UI 출력을 위해 추가됨
+            'user_type': user_type,           
+            'user_type_desc': user_type_desc  
         }
         surveys.append(summary)
 
@@ -167,6 +166,26 @@ def mypage():
         
         fav['_id_str'] = str(fav_id)
 
+        # 🔥 [로직 강화] DB에서 직접 최신 매물 데이터를 가져와서 빈 정보를 채움 (태그 생성을 위함)
+        try:
+            rh = None
+            if str(fav_id).isdigit(): rh = houses_col.find_one({'_id': int(fav_id)})
+            if not rh: rh = houses_col.find_one({'_id': fav_id})
+            if not rh: rh = houses_col.find_one({'_id': ObjectId(str(fav_id))})
+            
+            if rh:
+                if not fav.get('images'): fav['images'] = rh.get('images', [])
+                fav['price'] = rh.get('price', fav.get('price'))
+                fav['deposit'] = rh.get('deposit', fav.get('deposit'))
+                fav['rent_type'] = rh.get('rent_type', fav.get('rent_type'))
+                fav['address'] = rh.get('address', fav.get('address'))
+                # 상세 정보 강제 추가
+                fav['room_counts'] = rh.get('room_counts')
+                fav['size_m2'] = rh.get('size_m2')
+                fav['floor'] = rh.get('floor')
+        except Exception as e:
+            print("매물 정보 보완 실패:", e)
+
         r_type = fav.get('rent_type', '')
         p_val = fav.get('price', 0)
         d_val = fav.get('deposit', 0)
@@ -183,20 +202,6 @@ def mypage():
         
         img_list = fav.get('images', [])
         
-        if not img_list:
-            try:
-                rh = None
-                if str(fav_id).isdigit(): rh = houses_col.find_one({'_id': int(fav_id)})
-                if not rh: rh = houses_col.find_one({'_id': fav_id})
-                if not rh: rh = houses_col.find_one({'_id': ObjectId(str(fav_id))})
-                
-                if rh:
-                    img_list = rh.get('images', [])
-                    if 'price' in rh: fav['price'] = rh['price']
-                    if 'deposit' in rh: fav['deposit'] = rh['deposit']
-                    if 'rent_type' in rh: fav['rent_type'] = rh['rent_type']
-            except: pass
-
         if not isinstance(img_list, list): img_list = []
             
         if len(img_list) > 0 and img_list[0]:
