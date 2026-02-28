@@ -10,6 +10,77 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/mypage.css') }}">
     <style>
         .nav-btn { z-index: 10; }
+        .btn-result-link:hover { opacity: 0.85; transform: translateY(-2px); }
+        
+        /* 🔥 [궁극의 모서리 렌더링 버그 픽스] 
+           브라우저의 1px 직각 잔상(Ghost border)을 물리적으로 깎아내는 전용 클래스입니다. */
+        .perfect-card {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 410px;
+            padding: 24px;
+            background-color: #fff;
+            background-clip: padding-box; /* 배경색 번짐 원천 차단 */
+            border: 1px solid #edf1f5; /* 정석적인 물리 테두리 사용 */
+            border-radius: 24px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.03);
+            overflow: hidden;
+            box-sizing: border-box;
+            transform: translateZ(0); /* 하드웨어 가속 강제 (잔상 제거 핵심 1) */
+            -webkit-mask-image: -webkit-radial-gradient(white, black); /* 모서리를 픽셀 단위로 완벽하게 컷팅 (잔상 제거 핵심 2) */
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        /* 매물 카드 전용 덮어쓰기 (패딩 제거 및 호버 효과) */
+        .perfect-card.is-property {
+            padding: 0;
+            cursor: pointer;
+        }
+
+        .perfect-card.is-property:hover {
+            transform: translateY(-6px) translateZ(0);
+            border-color: #4facfe;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.06);
+        }
+
+        .perfect-card.is-property:hover .view-detail-btn {
+            background: #eef2ff !important;
+            color: #4facfe;
+        }
+
+        /* 빈 박스 전용 */
+        .perfect-empty {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 410px;
+            background-color: #fff;
+            border: 1px dashed #edf1f5;
+            border-radius: 24px;
+            box-sizing: border-box;
+            padding: 0 !important; /* 기존 empty-box 패딩 덮어쓰기 */
+        }
+
+        /* 모달 안의 리포트 카드용 */
+        .modal-perfect-card {
+            text-align: left; display: flex; align-items: flex-start; padding: 20px; gap: 15px; 
+            border-radius: 20px; border: 1px solid #edf1f5; box-shadow: 0 5px 15px rgba(0,0,0,0.02); 
+            margin-bottom: 15px; background-color: #fff; 
+            background-clip: padding-box; transform: translateZ(0); 
+            -webkit-mask-image: -webkit-radial-gradient(white, black); overflow: hidden;
+        }
+
+        /* 부모 컨테이너 간섭 완전 초기화 */
+        .slide-item {
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            outline: none !important;
+            border-radius: 0 !important;
+        }
     </style>
 </head>
 <body>
@@ -87,44 +158,65 @@
                     <div class="slider-wrapper" id="survey-slider">
                         {% for s in surveys %}
                         <div class="slide-item">
-                            <div class="survey-item-card">
-                                <div class="survey-card-header" style="display: flex; justify-content: space-between; align-items: center;">
-                                    <span class="count-badge">{{ s.date }} 리포트</span>
-                                    <div style="display: flex; align-items: center; gap: 10px;">
-                                        <span style="color: #4facfe; font-size: 12px; font-weight: bold;">분석 완료</span>
-                                    </div>
-                                </div>
-                                
-                                <div class="survey-card-body" style="margin-top: 15px;">
-                                    <h4 style="margin: 0 0 6px 0; color: #333; font-size: 16px;">📍 {{ s.location }}</h4>
-                                    <p style="font-size: 13px; color: #4facfe; font-weight: 600; margin: 4px 0;">
-                                        {{ s.main_info }}
-                                    </p>
-                                    <p style="font-size: 14px; color: #555; margin: 8px 0; font-weight: 500;">
-                                        💰 {{ s.budget }}
-                                    </p>
-                                    
-                                    <div class="survey-tags" style="margin-top: 12px; display: flex; flex-wrap: wrap; gap: 6px;">
-                                        {% for tag in s.tags %}
-                                            <span style="font-size: 11px; background: #f8f9fa; color: #888; padding: 3px 10px; border-radius: 20px; border: 1px solid #eee;">
-                                                # {{ tag }}
-                                            </span>
-                                        {% endfor %}
+                            <div class="perfect-card">
+                                <div>
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                                        <span style="font-size: 0.85rem; color: #888; font-weight: 700; letter-spacing: 0.5px;">{{ s.date }}</span>
+                                        <span style="font-size: 0.75rem; background: #eef2ff; color: #4facfe; padding: 4px 10px; border-radius: 20px; font-weight: 800; letter-spacing: 0.5px;">분석 완료</span>
                                     </div>
 
-                                    <a href="/survey/result/{{ loop.index0 }}" class="btn-result-link">
-                                        리포트 결과 보기
-                                    </a>
+                                    <div style="margin-bottom: 16px;">
+                                        <h4 style="margin: 0 0 6px 0; font-size: 1.35rem; font-weight: 900; color: #111; letter-spacing: -0.5px;">{{ s.user_type }}</h4>
+                                        <p style="margin: 0; font-size: 0.9rem; color: #666; font-weight: 500; line-height: 1.4; word-break: keep-all;">{{ s.user_type_desc }}</p>
+                                    </div>
+
+                                    <div style="height: 1px; background: #f0f2f5; margin: 16px 0;"></div>
+
+                                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                                        <div style="display: flex; align-items: flex-start; gap: 12px;">
+                                            <div style="width: 30px; height: 30px; border-radius: 8px; background: #f8f9fb; display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0;">📍</div>
+                                            <div>
+                                                <div style="font-size: 0.75rem; color: #a0aab5; font-weight: 700; margin-bottom: 2px;">희망 지역</div>
+                                                <div style="font-size: 1rem; color: #333; font-weight: 800; word-break: keep-all;">{{ s.location }}</div>
+                                            </div>
+                                        </div>
+                                        <div style="display: flex; align-items: flex-start; gap: 12px;">
+                                            <div style="width: 30px; height: 30px; border-radius: 8px; background: #eef2ff; display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0;">🏠</div>
+                                            <div>
+                                                <div style="font-size: 0.75rem; color: #a0aab5; font-weight: 700; margin-bottom: 2px;">매물 조건</div>
+                                                <div style="font-size: 0.95rem; color: #4facfe; font-weight: 800;">{{ s.main_info }}</div>
+                                            </div>
+                                        </div>
+                                        <div style="display: flex; align-items: flex-start; gap: 12px;">
+                                            <div style="width: 30px; height: 30px; border-radius: 8px; background: #fff5f5; display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0;">💰</div>
+                                            <div>
+                                                <div style="font-size: 0.75rem; color: #a0aab5; font-weight: 700; margin-bottom: 2px;">예산</div>
+                                                <div style="font-size: 1rem; color: #111; font-weight: 800;">{{ s.budget }}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {% if s.tags %}
+                                    <div style="margin-top: 14px; display: flex; flex-wrap: wrap; gap: 6px;">
+                                        {% for tag in s.tags %}
+                                            <span style="font-size: 0.75rem; background: #f4f6f8; color: #666; padding: 5px 10px; border-radius: 6px; font-weight: 600;"># {{ tag }}</span>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
                                 </div>
+
+                                <a href="/survey/result/{{ loop.index0 }}" class="btn-result-link" style="display: block; width: 100%; text-align: center; background: #111; color: #fff; padding: 14px 0; border-radius: 12px; text-decoration: none; font-weight: 800; font-size: 1rem; margin-top: 20px; transition: all 0.2s; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
+                                    리포트 결과 보기
+                                </a>
                             </div>
                         </div>
                         {% endfor %}
                     </div>
                     <button class="nav-btn next" id="survey-next" onclick="moveSlide('survey', 1)" style="display: none;">&#10095;</button>
                 {% else %}
-                    <div class="empty-box">
-                        <p>진행한 설문이 없습니다.</p>
-                        <a href="{{ url_for('survey.survey_page') }}" class="btn-sm">설문 시작하기</a>
+                    <div class="empty-box perfect-empty">
+                        <p style="color:#ccc; font-size:14px; margin-bottom: 15px;">진행한 설문이 없습니다.</p>
+                        <a href="{{ url_for('survey.survey_page') }}" style="background:#111; color:#fff; padding:12px 25px; border-radius:12px; text-decoration:none; font-weight:800; font-size:13px;">설문 시작하기</a>
                     </div>
                 {% endif %}
             </div>
@@ -134,19 +226,15 @@
             <div class="box-header">
                 <h3>❤️ 내가 찜한 매물</h3>
                 <div class="header-right">
+                    <span id="property-page-indicator" style="font-weight: bold; color: #444; font-size: 0.95rem; margin-right: 10px;">
+                        {% if total_count > 0 %}
+                            {% if total_count == 1 %}1 / 1건
+                            {% else %}2 / {{ total_count }}건{% endif %}
+                        {% else %}0건{% endif %}
+                    </span>
                     <a href="#" class="view-all" onclick="openModal(event, 'property')">전체보기</a>
                 </div>
             </div>
-            
-            {% if total_count > 0 %}
-            <div class="wishlist-summary" style="margin: 0 20px 15px 20px; padding: 12px 15px; background-color: #fff5f5; border-radius: 10px; border: 1px solid #ffe3e3;">
-                <p style="margin: 0; font-size: 0.95rem; color: #444;">
-                    🏠 현재 찜한 매물 <strong>{{ total_count }}</strong>개 중 
-                    <span style="color: #ff5a5f; font-weight: 600;">전세 {{ jeonse_count }}개</span> / 
-                    <span style="color: #ff5a5f; font-weight: 600;">월세 {{ wolse_count }}개</span>가 있습니다.
-                </p>
-            </div>
-            {% endif %}
             
             <div class="slider-container">
                 {% if favorites %}
@@ -154,11 +242,36 @@
                     <div class="slider-wrapper" id="property-slider">
                         {% for fav in favorites %}
                         <div class="slide-item">
-                            <div class="property-card-mini" onclick="location.href='/find?id={{ fav._id_str or fav.id }}'">
-                                <img src="{{ fav.main_image }}" class="prop-img-sm" referrerpolicy="no-referrer" onerror="this.src='/static/img/default_room.jpg'">
-                                <div class="prop-info-sm">
-                                    <p class="p-price">{{ fav.price }}</p>
-                                    <p class="p-addr">{{ fav.address }}</p>
+                            <div class="perfect-card is-property" onclick="location.href='/find?id={{ fav._id_str or fav.id }}'">
+                                
+                                <div style="position: relative; height: 180px; width: 100%; flex-shrink: 0;">
+                                    <img src="{{ fav.main_image }}" style="width: 100%; height: 100%; object-fit: cover;" referrerpolicy="no-referrer" onerror="this.src='/static/img/default_room.jpg'">
+                                    
+                                    <div style="position: absolute; top: 16px; left: 16px; background: rgba(17, 17, 17, 0.75); backdrop-filter: blur(4px); color: #fff; padding: 6px 14px; border-radius: 12px; font-size: 0.8rem; font-weight: 800; letter-spacing: 0.5px;">
+                                        {% if '전세' in fav.price %}전세{% elif '월세' in fav.price %}월세{% else %}매물{% endif %}
+                                    </div>
+                                    
+                                    <div style="position: absolute; top: 16px; right: 16px; width: 34px; height: 34px; background: rgba(255, 255, 255, 0.95); border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="#ff5a5f" stroke="#ff5a5f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                                    </div>
+                                </div>
+                                
+                                <div style="padding: 24px; display: flex; flex-direction: column; justify-content: space-between; flex-grow: 1;">
+                                    <div>
+                                        <div style="font-size: 1.3rem; font-weight: 900; color: #111; margin-bottom: 12px; word-break: keep-all;">
+                                            {{ fav.price }}
+                                        </div>
+                                        <div style="display: flex; align-items: flex-start; gap: 10px;">
+                                            <div style="width: 26px; height: 26px; border-radius: 8px; background: #f8f9fb; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; flex-shrink: 0; color: #a0aab5;">📍</div>
+                                            <div style="font-size: 0.9rem; color: #666; font-weight: 500; line-height: 1.4; word-break: keep-all; margin-top: 2px;">
+                                                {{ fav.address }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="view-detail-btn" style="margin-top: 24px; text-align: center; padding: 14px 0; background: #f8f9fb; border-radius: 14px; color: #4facfe; font-size: 0.95rem; font-weight: 800; transition: all 0.2s;">
+                                        매물 상세보기
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -166,9 +279,9 @@
                     </div>
                     <button class="nav-btn next" id="property-next" onclick="moveSlide('property', 1)" style="display: none;">&#10095;</button>
                 {% else %}
-                    <div class="empty-box">
-                        <p>찜한 매물이 없습니다.</p>
-                        <a href="{{ url_for('find.find') }}" class="btn-sm">매물 보러가기</a>
+                    <div class="empty-box perfect-empty">
+                        <p style="color:#ccc; font-size:14px; margin-bottom: 15px;">찜한 매물이 없습니다.</p>
+                        <a href="{{ url_for('find.find') }}" style="background:#111; color:#fff; padding:12px 25px; border-radius:12px; text-decoration:none; font-weight:800; font-size:13px;">매물 보러가기</a>
                     </div>
                 {% endif %}
             </div>
@@ -244,6 +357,13 @@
             if (pageIndicator) {
                 pageIndicator.innerText = (slideIndices[type] + 1) + ' / ' + totalItems + '건';
             }
+        } else if (type === 'property') {
+            const pageIndicator = document.getElementById('property-page-indicator');
+            if (pageIndicator) {
+                let currentViewCount = (slideIndices[type] * 2) + 2;
+                if (currentViewCount > totalItems) currentViewCount = totalItems;
+                pageIndicator.innerText = currentViewCount + ' / ' + totalItems + '건';
+            }
         }
 
         const prevBtn = document.getElementById(`${type}-prev`);
@@ -298,18 +418,37 @@
             let html = '<div style="display: grid; grid-template-columns: 1fr; gap: 15px; margin-top:10px; padding: 0 10px;">';
             {% if surveys %}
                 {% for s in surveys %}
+                /* 🔥 모달 안의 리스트 역시 modal-perfect-card 클래스 적용 */
                 html += `
-                    <div class="survey-item-card" style="text-align:left; display:flex; align-items:center; padding:15px; gap:10px;">
-                        <input type="checkbox" class="edit-checkbox modal-check" data-id="{{ s._id }}">
+                    <div class="modal-perfect-card">
+                        <input type="checkbox" class="edit-checkbox modal-check" data-id="{{ s._id }}" style="margin-top:6px; transform: scale(1.2);">
                         <div style="flex-grow:1; width: 100%; min-width: 0;">
-                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                                <span class="count-badge" style="background:#f0f2f5; padding:2px 8px; border-radius:5px; font-size:11px;">{{ s.date }}</span>
-                                <span style="color:#4facfe; font-size:12px; font-weight:bold;">분석완료</span>
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                                <span style="color:#888; font-size:13px; font-weight:700;">{{ s.date }}</span>
+                                <span style="color:#4facfe; background:#eef2ff; padding:5px 12px; border-radius:20px; font-size:11px; font-weight:800;">분석완료</span>
                             </div>
-                            <h4 style="margin:5px 0; font-size:16px;">📍 {{ s.location }}</h4>
-                            <p style="font-size:13px; color:#4facfe; font-weight:600; margin:4px 0;">{{ s.main_info }}</p>
-                            <p style="font-size:14px; color:#555; margin:4px 0; font-weight: 500;">💰 {{ s.budget }}</p>
-                            <a href="/survey/result/{{ loop.index0 }}" class="btn-result-link hide-on-edit" style="display:block; text-align:center; text-decoration:none; margin-top:10px; padding:10px; box-sizing: border-box;">리포트 결과 보기</a>
+                            
+                            <div style="margin-bottom:16px;">
+                                <div style="font-weight:900; font-size:18px; color:#111; margin-bottom:6px;">{{ s.user_type }}</div>
+                                <div style="font-size:13px; color:#666; font-weight:500; word-break:keep-all;">{{ s.user_type_desc }}</div>
+                            </div>
+
+                            <div style="display:flex; flex-direction:column; gap:10px; background:#f8f9fb; padding:16px; border-radius:14px;">
+                                <div style="display:flex; gap:8px; align-items:flex-start;">
+                                    <span style="font-size:14px;">📍</span>
+                                    <span style="font-size:14px; font-weight:800; color:#333; word-break:keep-all;">{{ s.location }}</span>
+                                </div>
+                                <div style="display:flex; gap:8px; align-items:flex-start;">
+                                    <span style="font-size:14px;">🏠</span>
+                                    <span style="font-size:13px; color:#4facfe; font-weight:800;">{{ s.main_info }}</span>
+                                </div>
+                                <div style="display:flex; gap:8px; align-items:flex-start;">
+                                    <span style="font-size:14px;">💰</span>
+                                    <span style="font-size:14px; color:#111; font-weight:800;">{{ s.budget }}</span>
+                                </div>
+                            </div>
+                            
+                            <a href="/survey/result/{{ loop.index0 }}" class="btn-result-link hide-on-edit" style="display:block; text-align:center; background:#111; color:#fff; text-decoration:none; margin-top:16px; padding:14px; border-radius:12px; font-weight:800; font-size:14px; transition:0.2s;">리포트 결과 보기</a>
                         </div>
                     </div>`;
                 {% endfor %}

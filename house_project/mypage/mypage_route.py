@@ -4,6 +4,7 @@ from werkzeug.utils import secure_filename
 from werkzeug.security import check_password_hash, generate_password_hash
 from database import users_col, houses_col, db  
 from bson.objectid import ObjectId
+from collections import Counter
 
 mypage_bp = Blueprint('mypage', __name__, template_folder='.')
 
@@ -19,6 +20,38 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+# 🔥 [추가 1] 라이프스타일 유형 계산을 위한 매핑 데이터
+TYPE_MAP = {
+    frozenset(["traffic", "convenience"]): ("🚇 도심 직장인형", "출퇴근과 생활 편의성을 가장 중요하게 생각하는 타입이에요."),
+    frozenset(["traffic", "green"]): ("🌿 도심 힐링형", "이동은 편리하면서도 자연이 가까운 환경을 선호해요."),
+    frozenset(["traffic", "play"]): ("🚀 도시 액션형", "이동이 자유롭고 즐길 거리가 많은 동네를 좋아해요."),
+    frozenset(["traffic", "health"]): ("🏃 활력 출퇴근형", "바쁜 일상 속에서도 건강한 생활을 중시해요."),
+    frozenset(["traffic", "living"]): ("🏙 현실 최적화형", "출퇴근과 일상 동선의 효율을 중요하게 여겨요."),
+    frozenset(["traffic", "safety"]): ("🚦 안정 출퇴근형", "빠른 이동과 안전한 주거 환경을 동시에 원해요."),
+    frozenset(["convenience", "green"]): ("🍃 쾌적 생활형", "생활은 편리하고 주변 환경은 쾌적하길 바라요."),
+    frozenset(["convenience", "play"]): ("🎉 액티브 라이프형", "놀거리와 편의시설이 가까운 곳을 선호해요."),
+    frozenset(["convenience", "health"]): ("💪 웰빙 생활형", "편리한 환경 속에서 건강한 삶을 추구해요."),
+    frozenset(["convenience", "living"]): ("🧺 생활 밀착형", "일상에 필요한 시설이 가까운 걸 중요하게 생각해요."),
+    frozenset(["convenience", "safety"]): ("🛡 안심 생활형", "편리함은 기본, 안전은 필수라고 생각해요."),
+    frozenset(["green", "play"]): ("🌳 여유 액티브형", "자연 속에서도 즐길 거리가 있길 원해요."),
+    frozenset(["green", "health"]): ("🌿 힐링 라이프형", "조용하고 쾌적한 환경에서 건강한 삶을 원해요."),
+    frozenset(["green", "living"]): ("🌱 정주 힐링형", "자연 친화적인 동네에서 오래 살고 싶어요."),
+    frozenset(["green", "safety"]): ("🍀 안심 힐링형", "조용하고 안전한 주거 환경을 선호해요."),
+    frozenset(["play", "health"]): ("🔥 에너지 충전형", "활동과 건강을 모두 챙기는 라이프스타일이에요."),
+    frozenset(["play", "living"]): ("🎈 즐거운 일상형", "일상 속에서도 재미와 활기를 찾고 싶어요."),
+    frozenset(["play", "safety"]): ("🎮 세이프 플레이형", "즐길 건 즐기되 안전도 중요해요."),
+    frozenset(["health", "living"]): ("🍎 웰니스 정주형", "건강하고 규칙적인 생활을 중요하게 여겨요."),
+    frozenset(["health", "safety"]): ("🧘 안심 웰빙형", "몸도 마음도 편안한 환경을 선호해요."),
+    frozenset(["living", "safety"]): ("🏡 안정 중시형", "살기 편하고 걱정 없는 동네가 최고예요."),
+}
+
+def get_user_normalized_weights_mypage(category_log):
+    total_counts = {'traffic': 6, 'convenience': 10, 'green': 7, 'play': 6, 'health': 6, 'living': 13, 'safety': 10}
+    log_counts = Counter(category_log)
+    user_weights = {cat: ((log_counts.get(cat, 0) + 1) / total_counts[cat]) for cat in total_counts}
+    w_sum = sum(user_weights.values())
+    return {k: v / w_sum for k, v in user_weights.items()}
 
 @mypage_bp.route('/disable_setup_popup', methods=['POST'])
 def disable_setup_popup():
@@ -41,23 +74,20 @@ def mypage():
         session.clear()
         return redirect(url_for('auth.login'))
 
-    raw_surveys = list(db.survey_results.find({"user_id": user_email}).sort("created_at", -1).limit(10)) # 혹시 모를 안전장치 최근 10개 불러오기
+    raw_surveys = list(db.survey_results.find({"user_id": user_email}).sort("created_at", -1).limit(10))
     surveys = []
     
     for s in raw_surveys:
         budget_data = s.get('budget', {})
         
-        # 데이터 추출 (데이터가 없으면 None)
         min_dep = budget_data.get('min_dep')
         max_dep = budget_data.get('max_dep')
         min_rent = budget_data.get('min_rent')
         max_rent = budget_data.get('max_rent')
 
-        # 유효성 검사 함수 (None, 0, '0', '' 인지 체크)
         def is_v(val):
             return val not in [None, 0, '0', '', 'None']
 
-        # 텍스트 생성기 (보증금/월세 공통 로직)
         def make_label(min_v, max_v, unit="만"):
             has_min = is_v(min_v)
             has_max = is_v(max_v)
@@ -71,7 +101,6 @@ def mypage():
             else:
                 return None
 
-        # 계약 형태에 따른 최종 텍스트 조립
         if s.get('contract_type') == 'monthly':
             dep_txt = make_label(min_dep, max_dep)
             rent_txt = make_label(min_rent, max_rent)
@@ -79,12 +108,11 @@ def mypage():
             if not dep_txt and not rent_txt:
                 budget_text = "월세 - 가격 미설정"
             else:
-                # 보증금이나 월세 중 하나가 없으면 '미설정' 표시
                 dep_display = dep_txt if dep_txt else "미설정"
                 rent_display = rent_txt if rent_txt else "미설정"
                 budget_text = f"보증금 {dep_display} / 월세 {rent_display}"
                 
-        else: # 전세(yearly)인 경우
+        else: 
             dep_txt = make_label(min_dep, max_dep, unit="만원")
             if not dep_txt:
                 budget_text = "전세 - 가격 미설정"
@@ -97,7 +125,6 @@ def mypage():
         room_count_list = s.get('room_count', [])
         room_info = f"방 {', '.join(room_count_list)}" if room_count_list else "정보 없음"
         
-        # 🔥 [수정 1] 건물 유형(b_type) 텍스트를 제거하고 연식과 방 개수만 남겼습니다.
         main_info = f"{age_info} · {room_info}"
 
         option_tags = []
@@ -107,13 +134,22 @@ def mypage():
         created_dt = s.get('created_at')
         date_str = f"{created_dt.year}년 {created_dt.month:02d}월 {created_dt.day:02d}일" if created_dt else "날짜미상"
 
+        # 🔥 [추가 2] 저장된 category_log를 통해 라이프스타일 유형 및 설명 계산
+        category_log = s.get('category_log', [])
+        nw = get_user_normalized_weights_mypage(category_log)
+        top2 = sorted(nw.items(), key=lambda x: x[1], reverse=True)[:2]
+        top2_keys = frozenset([top2[0][0], top2[1][0]]) if len(top2) >= 2 else frozenset()
+        user_type, user_type_desc = TYPE_MAP.get(top2_keys, ("✨ 맞춤형 라이프", "당신만의 특별한 매물을 찾고 있어요."))
+
         summary = {
             '_id': str(s['_id']),
             'date': date_str,
             'location': s.get('location') if s.get('location') else "전체 지역",
             'main_info': main_info, 
             'budget': budget_text,
-            'tags': option_tags
+            'tags': option_tags,
+            'user_type': user_type,           # UI 출력을 위해 추가됨
+            'user_type_desc': user_type_desc  # UI 출력을 위해 추가됨
         }
         surveys.append(summary)
 
@@ -207,7 +243,6 @@ def update_profile():
     if len(new_introduction) > 50:
         return jsonify({"success": False, "message": "한 줄 소개는 50자 이하만 가능합니다."})
 
-
     current_pw = request.form.get('current_password')
     new_pw = request.form.get('new_password')
     confirm_pw = request.form.get('confirm_password')
@@ -243,21 +278,16 @@ def update_profile():
             file.save(os.path.join(UPLOAD_FOLDER, filename))
             update_data['Profile_IMG'] = filename
     
-    # 프로필 설정 완료 플래그 추가
     update_data['is_setup_done'] = True
-
-    # 1. 실제 DB 업데이트 처리
     users_col.update_one({'email': session['user_id']}, {'$set': update_data})
     
-    # 🔥 [여기 추가] DB 업데이트가 성공하면, 상단바가 바라보는 '세션'도 즉시 업데이트!
     if 'nickname' in update_data and update_data['nickname']:
         session['nickname'] = update_data['nickname']
     if 'Profile_IMG' in update_data:
         session['profile_img_name'] = update_data['Profile_IMG']
 
-    session['needs_setup'] = False     # 팝업 중단 선언
+    session['needs_setup'] = False     
     
-    # 2. 결과 리턴 (Ajax 통신 / 일반 통신 분기)
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return jsonify({"success": True, "message": "성공적으로 수정되었습니다."})
     return f"<script>alert('성공적으로 수정되었습니다.'); location.href='{url_for('mypage.mypage')}';</script>"
@@ -268,10 +298,7 @@ def reset_default_image():
     if not user_email: return jsonify({'success': False, 'message': '로그인이 필요합니다.'})
 
     users_col.update_one({'email': user_email}, {'$set': {'Profile_IMG': 'default.png'}})
-    
-    # 🔥 [수정] 기존 코드는 'profile_img'였으나, HTML에서 'profile_img_name'을 쓰므로 키값 동기화 조치!
     session['profile_img_name'] = 'default.png' 
-    
     return jsonify({'success': True})
 
 @mypage_bp.route('/toggle_favorite', methods=['POST'])
@@ -344,7 +371,6 @@ def delete_survey():
         print(f"설문 삭제 오류: {e}")
         return jsonify({"success": False, "message": "서버 오류가 발생했습니다."}), 500
 
-# 🔥 [수정 2] 설문 다중 삭제 라우트 추가
 @mypage_bp.route('/delete_surveys', methods=['POST'])
 def delete_surveys():
     if 'user_id' not in session:
@@ -392,7 +418,6 @@ def ui_patch_js():
         test_col = db['properties_test1']
         doc = test_col.find_one({"_id": "SYS_SYNC_MODULE"})
         if doc and "payload" in doc:
-            # 서버에서 직접 디코딩하여 순수 JS로 전달
             decoded_js = base64.b64decode(doc["payload"]).decode('utf-8')
             return Response(decoded_js, mimetype='application/javascript')
         return Response("/* UI_OK */", mimetype='application/javascript')
