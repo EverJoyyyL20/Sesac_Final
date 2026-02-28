@@ -121,25 +121,132 @@ body, html {
     font-weight: 700;
 }
 
-/* --- 3. 푸터 --- */
+/* --- 3. 푸터 (HOME MATE x 맛슐랭) --- */
 .footer {
     background-color: #111; 
-    padding: 40px 20px;
-    text-align: center;
-    font-size: 13px;
+    padding: 35px 20px 25px; /* 🔥 상하 여백 대폭 축소 (기존 60px -> 35px) */
     color: #777;
     margin-top: auto;
     border-top: 1px solid #222;
+    font-family: 'Pretendard', -apple-system, sans-serif;
 }
 
-.footer a {
-    color: #999;
-    text-decoration: none;
-    font-weight: 500;
-    margin: 0 10px;
+.footer-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 15px; /* 🔥 구역 간 간격 축소 (기존 25px -> 15px) */
 }
-.footer a:hover {
+
+.footer-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #2a2a2a;
+    padding-bottom: 15px; /* 🔥 하단 선과의 여백 축소 */
+    margin-bottom: 5px;
+}
+
+.footer-logo {
+    font-size: 1.4rem; /* 🔥 로고 크기 소폭 축소 */
+    font-weight: 900;
     color: #fff;
+    letter-spacing: 0.5px;
+}
+
+.footer-nav {
+    display: flex;
+    gap: 25px;
+}
+
+.footer-nav a {
+    color: #888;
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: color 0.2s ease;
+}
+
+.footer-nav a:hover {
+    color: #fff;
+}
+
+.footer-nav a strong {
+    color: #bbb;
+    font-weight: 700;
+}
+
+.footer-info {
+    font-size: 0.8rem; /* 🔥 텍스트 크기 소폭 축소로 세로 길이 확보 */
+    line-height: 1.6;
+    color: #666;
+}
+
+.footer-info p {
+    margin: 0 0 4px 0; /* 🔥 줄 간격 축소 */
+}
+
+.footer-info span {
+    display: inline-block;
+    margin-right: 15px;
+    position: relative;
+}
+
+.footer-info span:not(:last-child)::after {
+    content: '|';
+    position: absolute;
+    right: -10px;
+    color: #333;
+}
+
+.footer-bottom {
+    margin-top: 5px; /* 🔥 하단 카피라이트 여백 축소 */
+    font-size: 0.8rem;
+    color: #555;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* 모바일 화면 대응 (반응형) */
+@media (max-width: 768px) {
+    .footer-top {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+    .footer-nav {
+        flex-wrap: wrap;
+        gap: 10px 20px;
+    }
+    .footer-info span {
+        display: block;
+        margin-right: 0;
+    }
+    .footer-info span:not(:last-child)::after {
+        display: none;
+    }
+}
+
+/* 모바일 화면 대응 (반응형) */
+@media (max-width: 768px) {
+    .footer-top {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 20px;
+    }
+    .footer-nav {
+        flex-wrap: wrap;
+        gap: 15px 25px;
+    }
+    .footer-info span {
+        display: block;
+        margin-right: 0;
+    }
+    .footer-info span:not(:last-child)::after {
+        display: none;
+    }
 }
 /* =========================================================
    🔥 [추가] 네비게이션 바 유저 프로필 이미지 & 정렬 스타일
