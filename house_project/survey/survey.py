@@ -721,9 +721,37 @@ def survey_short_more():
     })
 
 
+def get_top_dong_recommendations(nw, top_n=3):
+    """유저 가중치 기반으로 최적 동네를 수학적으로 계산 (LLM 아님)"""
+    dong_profiles = list(db.dong_profiles.find())
+    
+    scored_dongs = []
+    for dong in dong_profiles:
+        score = sum(
+            nw.get(cat, 0) * (dong.get(f"avg_{cat}") or 0)
+            for cat in ['traffic', 'convenience', 'green', 'play', 'health', 'living', 'safety']
+        )
+        scored_dongs.append({
+            "name": dong["_id"],
+            "score": score,
+            "scores": {cat: dong.get(f"avg_{cat}") or 0 for cat in ['traffic', 'convenience', 'green', 'play', 'health', 'living', 'safety']}
+        })
+    
+    return sorted(scored_dongs, key=lambda x: x["score"], reverse=True)[:top_n]
+
+
 def generate_sandbox_lifestyle_analysis(nw_weights, top2_keys):
     weight_pct = {category_map[k]: f"{v*100:.1f}%" for k, v in nw_weights.items()}
     top_names = [category_map[k] for k in top2_keys]
+
+    # [추가] 동네는 코드가 계산 - LLM이 창작하지 않음
+    top_dongs = get_top_dong_recommendations(nw_weights)
+    dong_data_lines = []
+    for d in top_dongs:
+        sorted_scores = sorted(d["scores"].items(), key=lambda x: x[1], reverse=True)[:3]
+        score_str = ", ".join([f"{category_map[k]} {int(v*100)}점" for k, v in sorted_scores])
+        dong_data_lines.append(f"- {d['name']}: {score_str}")
+    dong_data_str = "\n".join(dong_data_lines)
 
     template = """
     당신은 고객의 취향과 일상을 섬세하게 읽어내는 라이프스타일 큐레이터이자 공간 에디터입니다.
@@ -732,6 +760,10 @@ def generate_sandbox_lifestyle_analysis(nw_weights, top2_keys):
     [고객 데이터]
     - 최우선 핵심 가치 2가지: {top_names}
     - 7대 지표별 세부 가중치: {weight_pct}
+
+    [추천 동네 데이터] ← 추가: 코드가 계산한 결과를 그대로 주입
+    아래 3개 동네만 사용하고 절대 임의로 동네명을 만들지 마세요.
+    {dong_data}
 
     [작성 가이드 및 HTML 구조]
     반드시 아래 제공된 HTML 태그 구조를 그대로 사용하여 내용만 채워주세요.
@@ -759,10 +791,10 @@ def generate_sandbox_lifestyle_analysis(nw_weights, top2_keys):
 
     <div class="report-footer">
         <h3 class="section-title"><i class="fa-solid fa-location-dot"></i> AI가 콕 집어주는 맞춤 동네 추천</h3>
-        <div class="curation-box">
-            <h4 class="dong-name">추천 동네 이름</h4>
+        <div class="curation-box"> ← curation-box를 3개 반복해서 동네 3곳 모두 작성
+            <h4 class="dong-name">추천 동네 이름 ← 반드시 위 [추천 동네 데이터]의 이름중에서만 사용</h4>
             <p class="dong-desc">
-                이유 설명
+                이유 설명 ← 위 데이터의 점수 기반으로 설명
             </p>
             <ul class="dong-points">
                 <li>장점 1</li>
@@ -775,6 +807,7 @@ def generate_sandbox_lifestyle_analysis(nw_weights, top2_keys):
     [말투 및 제약 조건]
     - 톤앤매너: 센스 있는 잡지 에디터나 다정한 공간 디렉터처럼 부드럽고 세련된 말투를 사용하세요. 
     - 너무 격식을 차린 딱딱한 표현(예: '귀하', '제언합니다') 대신, 대화하듯 친근하면서도 신뢰감이 느껴지는 어조(예: '~인 것 같아요', '~를 추천해 드리고 싶어요', '~를 즐겨보시는 건 어떨까요?')를 사용하세요.
+    - 🚨 dong-name에는 반드시 [추천 동네 데이터]의 이름만 쓰세요. 절대 임의 생성 금지. ← 추가
     - 🔥 답변의 처음과 끝에 ```html 또는 ``` 마크다운을 절대 붙이지 마세요. 순수 HTML만 출력하세요.
     """
     
@@ -784,7 +817,8 @@ def generate_sandbox_lifestyle_analysis(nw_weights, top2_keys):
     try:
         response = chain.invoke({
             "top_names": ", ".join(top_names),
-            "weight_pct": str(weight_pct)
+            "weight_pct": str(weight_pct),
+            "dong_data": dong_data_str  # [추가] 계산된 동네 데이터 주입
         })
         clean_html = response.content.replace("```html", "").replace("```", "").strip()
         return clean_html
