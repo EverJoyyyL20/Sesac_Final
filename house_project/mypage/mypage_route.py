@@ -198,8 +198,11 @@ def update_profile():
     user = users_col.find_one({'email': session['user_id']})
     new_nickname = request.form.get('nickname', '').strip()
     new_introduction = request.form.get('introduction', '').strip()
-    if len(new_nickname) > 10:
-        return jsonify({"success": False, "message": "닉네임은 10자 이하만 가능합니다."})
+    nickname_weight = sum(2 if ord(char) > 127 else 1 for char in new_nickname)
+    if nickname_weight > 16:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({"success": False, "message": "닉네임은 한글 8자 또는 영문 16자 이내로 입력해주세요."})
+        return "<script>alert('닉네임은 한글 8자 또는 영문 16자 이내로 입력해주세요.'); history.back();</script>"
 
     if len(new_introduction) > 50:
         return jsonify({"success": False, "message": "한 줄 소개는 50자 이하만 가능합니다."})
