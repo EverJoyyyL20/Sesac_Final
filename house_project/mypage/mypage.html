@@ -9,31 +9,34 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/mypage.css') }}">
     <style>
-        .nav-btn { z-index: 10; }
+        /* 🔥 [버그 픽스 2] 화살표가 글씨를 가리지 않도록 텍스트 영역 위쪽(이미지 중앙)으로 이동 */
+        .nav-btn { 
+            z-index: 20 !important; 
+            top: 110px !important; /* 상단 이미지(180px)의 중앙쯤으로 배치 */
+            transform: translateY(-50%) !important;
+        }
         .btn-result-link:hover { opacity: 0.85; transform: translateY(-2px); }
         
-        /* 🔥 [궁극의 모서리 렌더링 버그 픽스] 
-           브라우저의 1px 직각 잔상(Ghost border)을 물리적으로 깎아내는 전용 클래스입니다. */
+        /* 🔥 [버그 픽스 1] 하단 정보가 잘리지 않도록 높이를 410px -> 440px로 여유있게 확장 */
         .perfect-card {
             position: relative;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            height: 410px;
+            height: 440px; 
             padding: 24px;
             background-color: #fff;
-            background-clip: padding-box; /* 배경색 번짐 원천 차단 */
-            border: 1px solid #edf1f5; /* 정석적인 물리 테두리 사용 */
+            background-clip: padding-box; 
+            border: 1px solid #edf1f5; 
             border-radius: 24px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.03);
             overflow: hidden;
             box-sizing: border-box;
-            transform: translateZ(0); /* 하드웨어 가속 강제 (잔상 제거 핵심 1) */
-            -webkit-mask-image: -webkit-radial-gradient(white, black); /* 모서리를 픽셀 단위로 완벽하게 컷팅 (잔상 제거 핵심 2) */
+            transform: translateZ(0); 
+            -webkit-mask-image: -webkit-radial-gradient(white, black); 
             transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
         }
 
-        /* 매물 카드 전용 덮어쓰기 (패딩 제거 및 호버 효과) */
         .perfect-card.is-property {
             padding: 0;
             cursor: pointer;
@@ -50,21 +53,20 @@
             color: #4facfe;
         }
 
-        /* 빈 박스 전용 */
+        /* 빈 박스도 완벽하게 동일한 높이(440px) 유지 */
         .perfect-empty {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 410px;
+            height: 440px;
             background-color: #fff;
             border: 1px dashed #edf1f5;
             border-radius: 24px;
             box-sizing: border-box;
-            padding: 0 !important; /* 기존 empty-box 패딩 덮어쓰기 */
+            padding: 0 !important; 
         }
 
-        /* 모달 안의 리포트 카드용 */
         .modal-perfect-card {
             text-align: left; display: flex; align-items: flex-start; padding: 20px; gap: 15px; 
             border-radius: 20px; border: 1px solid #edf1f5; box-shadow: 0 5px 15px rgba(0,0,0,0.02); 
@@ -73,7 +75,6 @@
             -webkit-mask-image: -webkit-radial-gradient(white, black); overflow: hidden;
         }
 
-        /* 부모 컨테이너 간섭 완전 초기화 */
         .slide-item {
             background: transparent !important;
             border: none !important;
@@ -166,7 +167,7 @@
                                     </div>
 
                                     <div style="margin-bottom: 16px;">
-                                        <h4 style="margin: 0 0 6px 0; font-size: 1.35rem; font-weight: 900; color: #111; letter-spacing: -0.5px;">{{ s.user_type }}</h4>
+                                        <h4 style="margin: 0 0 6px 0; font-size: 1.35rem; font-weight: 900; color: #111; letter-spacing: -0.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ s.user_type }}</h4>
                                         <p style="margin: 0; font-size: 0.9rem; color: #666; font-weight: 500; line-height: 1.4; word-break: keep-all;">{{ s.user_type_desc }}</p>
                                     </div>
 
@@ -250,15 +251,11 @@
                                     <div style="position: absolute; top: 16px; left: 16px; background: rgba(17, 17, 17, 0.75); backdrop-filter: blur(4px); color: #fff; padding: 6px 14px; border-radius: 12px; font-size: 0.8rem; font-weight: 800; letter-spacing: 0.5px;">
                                         {% if '전세' in fav.price %}전세{% elif '월세' in fav.price %}월세{% else %}매물{% endif %}
                                     </div>
-                                    
-                                    <div style="position: absolute; top: 16px; right: 16px; width: 34px; height: 34px; background: rgba(255, 255, 255, 0.95); border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="#ff5a5f" stroke="#ff5a5f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
-                                    </div>
                                 </div>
                                 
-                                <div style="padding: 24px; display: flex; flex-direction: column; justify-content: space-between; flex-grow: 1;">
+                                <div style="padding: 24px; display: flex; flex-direction: column; flex-grow: 1; justify-content: space-between;">
                                     <div>
-                                        <div style="font-size: 1.3rem; font-weight: 900; color: #111; margin-bottom: 12px; word-break: keep-all;">
+                                        <div style="font-size: 1.25rem; font-weight: 900; color: #111; margin-bottom: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -0.5px;">
                                             {{ fav.price }}
                                         </div>
                                         <div style="display: flex; align-items: flex-start; gap: 10px;">
@@ -269,8 +266,10 @@
                                         </div>
                                     </div>
                                     
-                                    <div class="view-detail-btn" style="margin-top: 24px; text-align: center; padding: 14px 0; background: #f8f9fb; border-radius: 14px; color: #4facfe; font-size: 0.95rem; font-weight: 800; transition: all 0.2s;">
-                                        매물 상세보기
+                                    <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; border-top: 1px dashed #edf1f5; padding-top: 15px;">
+                                        <span style="background: #f8f9fb; color: #666; padding: 6px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 700;">🚪 {{ fav.room_counts | default('방 미상', true) }}</span>
+                                        <span style="background: #f8f9fb; color: #666; padding: 6px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 700;">📐 {{ fav.size_m2 | default('면적 미상', true) }}㎡</span>
+                                        <span style="background: #f8f9fb; color: #666; padding: 6px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 700;">🏢 {{ fav.floor | default('층수 미상', true) }}</span>
                                     </div>
                                 </div>
                             </div>
@@ -393,23 +392,57 @@
             title.innerText = "❤️ 찜한 매물";
             btnGroup.innerHTML = `<button class="btn-edit-mode" onclick="toggleEditMode()">수정</button>`;
 
-            let html = '';
+            let jeonseHtml = '';
+            let monthlyHtml = '';
+            let jeonseCount = 0;
+            let monthlyCount = 0;
+
             {% if favorites %}
                 {% for fav in favorites %}
-                html += `
-                    <div class="modal-item-list">
-                        <input type="checkbox" class="edit-checkbox modal-check" data-id="{{ fav._id_str or fav.id }}">
-                        <div style="flex-grow:1; text-align:left;">
-                            <strong style="color:#ff4757;">{{ fav.price }}</strong><br>
-                            <span style="color:#666; font-size:12px;">{{ fav.address }}</span>
-                        </div>
-                        <button class="view-btn hide-on-edit" onclick="location.href='/find?id={{ fav._id_str or fav.id }}'">보기</button>
-                    </div>`;
+                    (function() {
+                        let isJeonse = "{{ fav.price }}".includes('전세');
+                        let itemHtml = `
+                            <div class="modal-item-list">
+                                <input type="checkbox" class="edit-checkbox modal-check" data-id="{{ fav._id_str or fav.id }}">
+                                <div style="flex-grow:1; text-align:left;">
+                                    <strong style="color:#111; font-size:15px;">{{ fav.price }}</strong><br>
+                                    <span style="color:#666; font-size:12px;">{{ fav.address }}</span>
+                                </div>
+                                <button class="view-btn hide-on-edit" onclick="location.href='/find?id={{ fav._id_str or fav.id }}'">보기</button>
+                            </div>
+                        `;
+                        if (isJeonse) {
+                            jeonseHtml += itemHtml;
+                            jeonseCount++;
+                        } else {
+                            monthlyHtml += itemHtml;
+                            monthlyCount++;
+                        }
+                    })();
                 {% endfor %}
+                
+                let html = '<div style="padding: 0 5px;">';
+                if (monthlyCount > 0) {
+                    html += `
+                    <div style="margin-top: 15px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                        <span style="font-size: 13px; font-weight: 800; color: #fff; background: #4facfe; padding: 4px 12px; border-radius: 12px;">월세 ${monthlyCount}건</span>
+                        <div style="flex-grow: 1; height: 1px; background: #eee;"></div>
+                    </div>`;
+                    html += monthlyHtml;
+                }
+                if (jeonseCount > 0) {
+                    html += `
+                    <div style="margin-top: ${monthlyCount > 0 ? '30px' : '15px'}; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                        <span style="font-size: 13px; font-weight: 800; color: #111; background: #eef2ff; border: 1px solid #4facfe; padding: 4px 12px; border-radius: 12px;">전세 ${jeonseCount}건</span>
+                        <div style="flex-grow: 1; height: 1px; background: #eee;"></div>
+                    </div>`;
+                    html += jeonseHtml;
+                }
+                html += '</div>';
+                body.innerHTML = html;
             {% else %}
-                html = '<p style="padding:40px; color:#ccc; text-align:center;">찜한 매물이 없습니다.</p>';
+                body.innerHTML = '<p style="padding:40px; color:#ccc; text-align:center;">찜한 매물이 없습니다.</p>';
             {% endif %}
-            body.innerHTML = html;
 
         } else if (type === 'survey') {
             title.innerText = "📝 최근 설문 리포트";
@@ -418,7 +451,6 @@
             let html = '<div style="display: grid; grid-template-columns: 1fr; gap: 15px; margin-top:10px; padding: 0 10px;">';
             {% if surveys %}
                 {% for s in surveys %}
-                /* 🔥 모달 안의 리스트 역시 modal-perfect-card 클래스 적용 */
                 html += `
                     <div class="modal-perfect-card">
                         <input type="checkbox" class="edit-checkbox modal-check" data-id="{{ s._id }}" style="margin-top:6px; transform: scale(1.2);">
@@ -429,7 +461,7 @@
                             </div>
                             
                             <div style="margin-bottom:16px;">
-                                <div style="font-weight:900; font-size:18px; color:#111; margin-bottom:6px;">{{ s.user_type }}</div>
+                                <div style="font-weight:900; font-size:18px; color:#111; margin-bottom:6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ s.user_type }}</div>
                                 <div style="font-size:13px; color:#666; font-weight:500; word-break:keep-all;">{{ s.user_type_desc }}</div>
                             </div>
 
