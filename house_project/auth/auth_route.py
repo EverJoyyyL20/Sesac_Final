@@ -90,7 +90,7 @@ def register():
         # ⭐️ 프로필 이미지 세션 연동
         session['profile_img_name'] = 'default.png' 
 
-        return f"<script>alert('{temp_nickname}님, 환영합니다!'); location.href='{url_for('main.index')}';</script>"
+        return redirect(url_for('main.index'))
 
     return render_template('register.html')
 

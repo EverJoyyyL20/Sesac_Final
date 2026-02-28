@@ -110,20 +110,17 @@
             if (!res.ok) throw new Error('서버 응답 에러');
             return res.json();
         })
-        .then(data => {
+       .then(data => {
             if(data.success) {
-                alert("프로필 설정이 완료되었습니다!");
-                // ✅ 수정: alert을 없애고 모달을 즉시 숨긴 후 새로고침
                 const overlay = document.getElementById('setup-modal-overlay');
                 if(overlay) overlay.style.display = 'none'; 
-                
                 location.reload(); 
             } else {
                 const errorMsg = document.getElementById('nick-error');
-                errorMsg.innerText = data.message || "닉네임 중복 등 오류가 발생했습니다.";
+                errorMsg.innerText = "닉네임 중복 등 오류가 발생했습니다.";
                 errorMsg.style.display = 'block';
             }
-        })
+})
         .catch(err => {
             console.error("Error:", err);
             alert("프로필 업데이트 중 오류가 발생했습니다.");
