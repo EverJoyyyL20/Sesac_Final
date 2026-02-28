@@ -283,11 +283,40 @@
         }, function(status, response) {
             if (status === naver.maps.Service.Status.OK && response.v2.results.length > 0) {
                 const res = response.v2.results[0];
-                const addr = res.region.area1.name + " " + res.region.area2.name + " " + res.region.area3.name + (res.land && res.land.number1 ? " " + res.land.number1 : "");
-                document.getElementById('current-addr').innerText = "📍 현재 위치: " + addr;
-                document.getElementById('pref_location').value = addr;
-                surveyResults.location = addr;
-                surveyResults.target_coords = { lat: latlng.lat(), lng: latlng.lng() };
+                const area1 = res.region.area1.name; // 시/도
+                const addr = area1 + " " + res.region.area2.name + " " + res.region.area3.name + (res.land && res.land.number1 ? " " + res.land.number1 : "");
+
+                const isSeoul = area1.includes("서울");
+                const addrEl = document.getElementById('current-addr');
+                const confirmBtn = document.querySelector('.next-btn-container .confirm-btn');
+
+                if (isSeoul) {
+                    addrEl.style.background = '#f0f7ff';
+                    addrEl.style.borderColor = '#007bff';
+                    addrEl.style.color = '#007bff';
+                    addrEl.innerText = "📍 현재 위치: " + addr;
+                    document.getElementById('pref_location').value = addr;
+                    surveyResults.location = addr;
+                    surveyResults.target_coords = { lat: latlng.lat(), lng: latlng.lng() };
+                    if (confirmBtn) {
+                        confirmBtn.disabled = false;
+                        confirmBtn.style.opacity = '1';
+                        confirmBtn.style.cursor = 'pointer';
+                    }
+                } else {
+                    addrEl.style.background = '#fff0f0';
+                    addrEl.style.borderColor = '#ff4d4f';
+                    addrEl.style.color = '#ff4d4f';
+                    addrEl.innerText = "⚠️ 서울 외 지역입니다. 서울 안에서 선택해주세요.";
+                    document.getElementById('pref_location').value = '';
+                    surveyResults.location = '';
+                    surveyResults.target_coords = { lat: 0, lng: 0 };
+                    if (confirmBtn) {
+                        confirmBtn.disabled = true;
+                        confirmBtn.style.opacity = '0.4';
+                        confirmBtn.style.cursor = 'not-allowed';
+                    }
+                }
             }
         });
     }
@@ -298,6 +327,15 @@
         naver.maps.Service.geocode({ query: query }, function(status, response) {
             if (status !== naver.maps.Service.Status.OK || response.v2.addresses.length === 0) return alert("결과가 없습니다.");
             const item = response.v2.addresses[0];
+            // 서울 외 검색 시 지도 이동 자체를 막음
+            if (!item.roadAddress.includes("서울") && !item.jibunAddress.includes("서울")) {
+                const addrEl = document.getElementById('current-addr');
+                addrEl.style.background = '#fff0f0';
+                addrEl.style.borderColor = '#ff4d4f';
+                addrEl.style.color = '#ff4d4f';
+                addrEl.innerText = "⚠️ 서울 외 지역입니다. 서울 안에서 선택해주세요.";
+                return;
+            }
             const newPoint = new naver.maps.LatLng(item.y, item.x);
             map.setCenter(newPoint);
             updateAddress(newPoint);
@@ -308,6 +346,10 @@
     
     function confirmLocation() { 
         if(!document.getElementById('pref_location').value) return alert("위치를 선택해주세요."); 
+        if(!surveyResults.location.includes("서울")) {
+            alert("서울 안의 위치만 선택할 수 있어요.");
+            return;
+        }
         surveyResults.location_type = "point";
         nextStep(1); 
     }
