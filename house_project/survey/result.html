@@ -297,13 +297,146 @@
             .filter-fab { top: 80px; left: 10px; padding: 12px 20px; font-size: 0.95rem; }
             .filter-panel { top: 80px; left: 10px; width: calc(100% - 20px); }
         }
+
+        /* ===== AI 로딩 스켈레톤 스타일 ===== */
+        @keyframes shimmer {
+            0% { background-position: -800px 0; }
+            100% { background-position: 800px 0; }
+        }
+        .skeleton-line {
+            height: 16px; border-radius: 8px; margin-bottom: 12px;
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 800px 100%;
+            animation: shimmer 1.5s infinite;
+        }
+        .skeleton-line.short { width: 60%; }
+        .skeleton-line.medium { width: 80%; }
+        .skeleton-line.long { width: 100%; }
+        .skeleton-title {
+            height: 28px; border-radius: 8px; margin-bottom: 20px; width: 45%;
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 800px 100%;
+            animation: shimmer 1.5s infinite;
+        }
+
+        .ai-loading-badge {
+            display: inline-flex; align-items: center; gap: 8px;
+            background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+            color: #4facfe; padding: 8px 16px; border-radius: 20px;
+            font-size: 0.9rem; font-weight: 700; margin-bottom: 24px;
+            border: 1px solid rgba(79, 172, 254, 0.3);
+        }
+        .ai-loading-badge .dot-pulse {
+            display: flex; gap: 4px;
+        }
+        .ai-loading-badge .dot-pulse span {
+            width: 5px; height: 5px; background: #4facfe; border-radius: 50%;
+            animation: dotPulse 1.2s infinite;
+        }
+        .ai-loading-badge .dot-pulse span:nth-child(2) { animation-delay: 0.2s; }
+        .ai-loading-badge .dot-pulse span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes dotPulse {
+            0%, 80%, 100% { transform: scale(0.6); opacity: 0.5; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+
+        /* 팁 카드 */
+        .tip-card {
+            margin-top: 32px;
+            margin-bottom: 32px;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            border-radius: 20px;
+            padding: 28px 30px 22px;
+            position: relative;
+            overflow: hidden;
+        }
+        .tip-card::before {
+            content: '';
+            position: absolute; top: -40px; right: -40px;
+            width: 120px; height: 120px;
+            background: radial-gradient(circle, rgba(79,172,254,0.18) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+        .tip-card-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 16px;
+        }
+        .tip-badge {
+            background: rgba(79,172,254,0.15);
+            color: #4facfe;
+            border: 1px solid rgba(79,172,254,0.35);
+            padding: 5px 14px; border-radius: 20px;
+            font-size: 0.82rem; font-weight: 800; letter-spacing: 0.5px;
+        }
+        .tip-dots { display: flex; gap: 6px; }
+        .tip-dot {
+            width: 7px; height: 7px; border-radius: 50%;
+            background: rgba(255,255,255,0.2); transition: background 0.3s;
+        }
+        .tip-dot.active { background: #4facfe; }
+        .tip-card-text {
+            font-size: 1.05rem; font-weight: 600; color: #f1f5f9;
+            line-height: 1.7; margin: 0 0 20px 0;
+            min-height: 52px;
+            transition: opacity 0.35s ease, transform 0.35s ease;
+        }
+        .tip-card-text.hiding {
+            opacity: 0; transform: translateY(6px);
+        }
+        .tip-progress-bar {
+            height: 3px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden;
+        }
+        .tip-progress-fill {
+            height: 100%; width: 0%; border-radius: 2px;
+            background: linear-gradient(90deg, #4facfe, #a29bfe);
+            transition: width linear;
+        }
+
+        .ai-comment-skeleton {
+            border-left: 5px solid #e0e7ff; margin-top: auto;
+        }
+        .ai-comment-skeleton::before {
+            content: "\f0eb  AI 매니저의 맞춤 코멘트 생성 중..."; font-family: "Font Awesome 6 Free";
+            display: block; font-weight: 900; color: #b0c4de;
+            font-size: 0.95rem; margin-bottom: 15px;
+        }
+
+        /* 분석 완료 후 fade-in */
+        .fade-in-up {
+            animation: fadeInUp 0.6s ease forwards;
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* AI 로딩 중 페이지 이동 방지 토스트 */
+        #ai-toast {
+            position: fixed; bottom: 110px; left: 50%; transform: translateX(-50%) translateY(20px);
+            background: #111; color: #fff;
+            padding: 14px 28px; border-radius: 50px;
+            font-size: 0.95rem; font-weight: 700;
+            display: flex; align-items: center; gap: 10px;
+            z-index: 9000; opacity: 0; pointer-events: none;
+            transition: opacity 0.25s ease, transform 0.25s ease;
+            white-space: nowrap;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+        }
+        #ai-toast.show {
+            opacity: 1; transform: translateX(-50%) translateY(0);
+        }
+        #ai-toast .toast-icon {
+            width: 20px; height: 20px; border: 3px solid rgba(255,255,255,0.3);
+            border-top-color: #4facfe; border-radius: 50%;
+            animation: spin 0.8s linear infinite; flex-shrink: 0;
+        }
     </style>
 </head>
 <body>
 
-<div class="loader-wrap" id="loader">
+<div class="loader-wrap" id="loader" style="display:none;">
     <div class="spinner"></div>
-    <p style="font-weight: 800; color: #111; font-size: 1.1rem;" id="loader-text">AI가 맞춤 리포트를 생성하고 있습니다...</p>
+    <p style="font-weight: 800; color: #111; font-size: 1.1rem;" id="loader-text">매물을 불러오는 중입니다...</p>
 </div>
 
 <div class="navbar">
@@ -424,8 +557,45 @@
                     </div>
                 </div>
 
-                <div class="llm-output-panel">
-                    {{ detailed_analysis | safe }}
+                <div class="llm-output-panel" id="llm-panel">
+                    {% if detailed_analysis %}
+                        {{ detailed_analysis | safe }}
+                    {% else %}
+                        <div id="lifestyle-skeleton">
+                            <div class="ai-loading-badge">
+                                <div class="dot-pulse">
+                                    <span></span><span></span><span></span>
+                                </div>
+                                AI가 라이프스타일을 분석하고 있습니다
+                            </div>
+
+                            <!-- 팁 카드 -->
+                            <div class="tip-card" id="tip-card">
+                                <div class="tip-card-header">
+                                    <span class="tip-badge">💡 TIP</span>
+                                    <div class="tip-dots" id="tip-dots"></div>
+                                </div>
+                                <p class="tip-card-text" id="tip-card-text"></p>
+                                <div class="tip-progress-bar"><div class="tip-progress-fill" id="tip-progress-fill"></div></div>
+                            </div>
+
+                            <div class="skeleton-title"></div>
+                            <div class="skeleton-line long"></div>
+                            <div class="skeleton-line medium"></div>
+                            <div class="skeleton-line long"></div>
+                            <div class="skeleton-line short"></div>
+                            <br>
+                            <div class="skeleton-title" style="width:55%;"></div>
+                            <div class="skeleton-line long"></div>
+                            <div class="skeleton-line medium"></div>
+                            <div class="skeleton-line long"></div>
+                            <br>
+                            <div class="skeleton-title" style="width:50%;"></div>
+                            <div class="skeleton-line medium"></div>
+                            <div class="skeleton-line long"></div>
+                            <div class="skeleton-line short"></div>
+                        </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -463,6 +633,11 @@
     </section>
 </div>
 
+<div id="ai-toast">
+    <div class="toast-icon"></div>
+    AI 분석이 아직 완료되지 않았습니다!
+</div>
+
 <div class="floating-nav">
     <button id="float-prev" class="nav-btn btn-prev" onclick="handlePrev()" style="display: none;">
         <i class="fas fa-chevron-left"></i> 이전
@@ -495,18 +670,155 @@
     let myChart;
     let currentSlide = 0;
     let currentFContract = "";
+    let isAiLoading = false; // AI 생성 진행 중 여부
 
     window.onload = () => {
         try {
             initRadarChart();
             renderResults([...initialTop3, ...initialOthers]);
-            initFilterPanel(); 
+            initFilterPanel();
         } catch (error) {
             console.error("화면 렌더링 중 오류 발생:", error);
-        } finally {
-            hideLoader();
+        }
+        // 로더는 항상 숨김 (페이지가 이미 준비된 상태로 진입)
+        hideLoader();
+
+        // AI 코멘트 & 분석이 아직 없으면 백그라운드로 생성 요청
+        const needsLifestyle = !document.getElementById('llm-panel').querySelector('.report-header');
+        const needsComments = initialTop3.some(h => !h.ai_comment);
+        if (needsLifestyle || needsComments) {
+            startAIGeneration();
         }
     };
+
+    // ===== 팁 슬라이더 =====
+    const TIPS = [
+        "당신의 취향을 분석 중이에요. 조금만 기다리면 인생 매물을 만날지도?",
+        "방금 하신 설문이 알고리즘을 깨웠어요! 이제 쇼츠 피드가 당신 맞춤형으로 바뀝니다.",
+        "필터를 세밀하게 조정할수록, 당신의 드림하우스에 더 가까워집니다.",
+        "점수가 높은 매물부터 보여드릴게요. 알고리즘이 꼼꼼하게 채점 중입니다.",
+        "복잡한 조건은 저희가 계산할게요. 당신은 예쁜 방만 골라보세요.",
+        "마음에 드는 매물은 꼭 찜해두세요! 나중에 마이페이지에서 다시 볼 수 있답니다.",
+        "서울에서 1인 가구가 가장 많은 동네는 '관악구'라는 사실, 알고 계셨나요?",
+        "지난해 서울 전세 거래가 가장 활발했던 곳은 송파구와 강서구였답니다.",
+        "서울 아파트 평균가는 계속 변하지만, 당신을 위한 가성비 매물은 어딘가에 숨어있어요.",
+        "직주근접의 힘! 서울 직장인들의 평균 출퇴근 시간은 약 44분이라고 해요.",
+        "요즘 서울 MZ세대는 '역세권'만큼이나 '편세권(편의점)'과 '스세권'을 중요하게 본대요.",
+        "이사 당일 '확정일자'와 '전입신고'는 필수! 당신의 보증금을 지키는 가장 쉬운 방법입니다.",
+        "계약 갱신 요구권은 1회에 한해 사용 가능하며, 2년 더 거주할 권리를 보장받아요.",
+        "임대차가 종료되어도 보증금을 못 받았다면? '임차권등기명령'을 꼭 기억하세요.",
+        "주택임대차보호법에 따라, 임대료 인상은 직전 임대료의 5%를 초과할 수 없어요.",
+        "소액임차인이라면 '최우선변제금'을 통해 보증금 중 일정액을 가장 먼저 보호받을 수 있습니다.",
+        "수선 의무는 기본적으로 임대인에게 있어요. 큰 고장은 당당하게 수리를 요청하세요!"
+    ];
+    const TIP_DURATION = 4500; // 팁 하나 표시 시간 (ms)
+    let tipIndex = 0;
+    let tipTimer = null;
+    let tipProgressTimer = null;
+
+    function shuffleTips() {
+        // Fisher-Yates 셔플로 랜덤 순서
+        const arr = [...TIPS];
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+    }
+
+    let shuffledTips = shuffleTips();
+
+    function initTipDots() {
+        const dotsEl = document.getElementById('tip-dots');
+        if (!dotsEl) return;
+        // 최대 5개 dot만 표시
+        dotsEl.innerHTML = Array.from({length: Math.min(5, shuffledTips.length)})
+            .map((_, i) => `<div class="tip-dot${i === 0 ? ' active' : ''}" id="tip-dot-${i}"></div>`)
+            .join('');
+    }
+
+    function updateTipDots(idx) {
+        const dotCount = Math.min(5, shuffledTips.length);
+        const activeDot = idx % dotCount;
+        for (let i = 0; i < dotCount; i++) {
+            const d = document.getElementById(`tip-dot-${i}`);
+            if (d) d.classList.toggle('active', i === activeDot);
+        }
+    }
+
+    function showTip(idx) {
+        const textEl = document.getElementById('tip-card-text');
+        const fillEl = document.getElementById('tip-progress-fill');
+        if (!textEl || !fillEl) return;
+
+        // fade out
+        textEl.classList.add('hiding');
+        setTimeout(() => {
+            textEl.textContent = shuffledTips[idx % shuffledTips.length];
+            textEl.classList.remove('hiding');
+            updateTipDots(idx);
+
+            // 프로그레스 바 리셋 후 진행
+            fillEl.style.transition = 'none';
+            fillEl.style.width = '0%';
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    fillEl.style.transition = `width ${TIP_DURATION}ms linear`;
+                    fillEl.style.width = '100%';
+                });
+            });
+        }, 350);
+    }
+
+    function startTips() {
+        const card = document.getElementById('tip-card');
+        if (!card) return;
+        initTipDots();
+        showTip(tipIndex);
+        tipTimer = setInterval(() => {
+            tipIndex++;
+            showTip(tipIndex);
+        }, TIP_DURATION);
+    }
+
+    function stopTips() {
+        clearInterval(tipTimer);
+        tipTimer = null;
+    }
+
+    function startAIGeneration() {
+        isAiLoading = true;
+        startTips(); // 팁 슬라이더 시작
+        fetch(`/survey/ai_generate/${surveyId}`, { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status !== 'success') return;
+
+                // 1. 라이프스타일 분석 교체
+                const skeleton = document.getElementById('lifestyle-skeleton');
+                const llmPanel = document.getElementById('llm-panel');
+                if (skeleton && data.detailed_analysis) {
+                    llmPanel.innerHTML = data.detailed_analysis;
+                    llmPanel.classList.add('fade-in-up');
+                }
+
+                // 2. ai_comment 업데이트
+                if (data.ai_comments) {
+                    Object.entries(data.ai_comments).forEach(([houseId, comment]) => {
+                        const el = document.getElementById(`ai-comment-${houseId}`);
+                        if (el && comment) {
+                            el.className = 'ai-comment fade-in-up';
+                            el.textContent = comment;
+                        }
+                    });
+                }
+            })
+            .catch(err => console.error('AI 생성 실패:', err))
+            .finally(() => {
+                isAiLoading = false;
+                stopTips(); // 팁 슬라이더 중단
+            });
+    }
 
     function hideLoader() {
         const loader = document.getElementById('loader');
@@ -752,7 +1064,15 @@
                             <span class="d-tag highlight"><i class="fa-solid fa-couch"></i>${optionsPreview}</span>
                         </div>
 
-                        <div class="ai-comment">${item.ai_comment || '고객님의 라이프스타일에 부합하는 최적의 매물입니다.'}</div>
+                        ${item.ai_comment
+                            ? `<div class="ai-comment" id="ai-comment-${item._id_str}">${item.ai_comment}</div>`
+                            : `<div class="ai-comment-skeleton" id="ai-comment-${item._id_str}">
+                                <div class="skeleton-line long"></div>
+                                <div class="skeleton-line medium"></div>
+                                <div class="skeleton-line long"></div>
+                                <div class="skeleton-line short"></div>
+                               </div>`
+                        }
                     </div>
                 </div>`;
         }).join('');
@@ -771,6 +1091,11 @@
     }
 
     function moveSlide(idx) {
+        // 1페이지(0) → 2페이지(1) 이동 시 AI 로딩 중이면 차단
+        if (currentSlide === 0 && idx === 1 && isAiLoading) {
+            showAiToast();
+            return;
+        }
         currentSlide = idx;
         document.getElementById('mainWrapper').style.transform = `translateX(-${idx * 100}vw)`;
         document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === idx));
@@ -782,8 +1107,23 @@
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
+    let toastTimer = null;
+    function showAiToast() {
+        const toast = document.getElementById('ai-toast');
+        toast.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+
     function handlePrev() { if (currentSlide > 0) moveSlide(currentSlide - 1); }
-    function handleNext() { if (currentSlide < 2) moveSlide(currentSlide + 1); }
+    function handleNext() {
+        // 1페이지(index 0)에서 2페이지로 넘어갈 때만 AI 로딩 여부 체크
+        if (currentSlide === 0 && isAiLoading) {
+            showAiToast();
+            return;
+        }
+        if (currentSlide < 2) moveSlide(currentSlide + 1);
+    }
 </script>
 </body>
 </html>

@@ -310,8 +310,32 @@ def save_survey():
     if len(surveys) >= 10:
         db.survey_results.delete_one({"_id": surveys[-1]['_id']})
 
-    db.survey_results.insert_one(new_survey)
-    return jsonify({"status": "success", "target_index": 0})
+    result = db.survey_results.insert_one(new_survey)
+    survey_id = str(result.inserted_id)
+    # AI 생성 없이 즉시 survey_id 반환 → 프론트엔드에서 result 페이지로 이동
+    return jsonify({"status": "success", "survey_id": survey_id})
+
+@survey_bp.route('/survey/result/by_id/<survey_id>')
+def survey_result_by_id(survey_id):
+    """survey_id(ObjectId)로 직접 결과 페이지 접근 — 설문 직후 이동용"""
+    if 'user_id' not in session:
+        return redirect(url_for('auth.login'))
+
+    user_id = session['user_id']
+    try:
+        selected_survey = db.survey_results.find_one({"_id": ObjectId(survey_id), "user_id": user_id})
+    except Exception:
+        return redirect('/mypage')
+
+    if not selected_survey:
+        return redirect('/mypage')
+
+    # index 찾기
+    surveys = list(db.survey_results.find({"user_id": user_id}).sort("created_at", -1))
+    index = next((i for i, s in enumerate(surveys) if str(s['_id']) == survey_id), 0)
+
+    return survey_result(index)
+
 
 @survey_bp.route('/survey/result/<int:index>')
 def survey_result(index):
@@ -339,12 +363,8 @@ def survey_result(index):
     user_chart_labels = ['교통', '편의', '녹지', '놀이', '건강', '생활', '안전']
     user_chart_data = [round(nw.get(k, 0) * 100, 1) for k in chart_keys]
 
-    is_updated = False
+    # [변경] lifestyle_report가 이미 저장되어 있으면 바로 사용, 없으면 None으로 (AI 로딩 UI 표시)
     detailed_analysis = selected_survey.get('lifestyle_report')
-    if not detailed_analysis:
-        detailed_analysis = generate_sandbox_lifestyle_analysis(nw, top2_keys)
-        db.survey_results.update_one({"_id": survey_id}, {"$set": {"lifestyle_report": detailed_analysis}})
-        is_updated = True
 
     query = {}
     target_coords = selected_survey.get('target_coords')
@@ -387,30 +407,11 @@ def survey_result(index):
 
     top_3 = matched_properties[:3]
     others = matched_properties[3:]
+
+    # [변경] 저장된 ai_comment만 쓰고, 없는 건 None으로 둠 (클라이언트에서 polling)
     saved_comments = selected_survey.get('ai_comments_v2', {})
-
-    futures = {}
-    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-        for house in top_3:
-            h_id = house['_id_str']
-            if h_id in saved_comments:
-                house['ai_comment'] = saved_comments[h_id]
-            else:
-                futures[h_id] = executor.submit(generate_recommendation_reason, user_id, nw, house)
-        
-        for house in top_3:
-            h_id = house['_id_str']
-            if h_id in futures:
-                try:
-                    new_comment = futures[h_id].result(timeout=10)
-                    house['ai_comment'] = new_comment
-                    saved_comments[h_id] = new_comment
-                    is_updated = True
-                except Exception:
-                    house['ai_comment'] = "분석 중입니다..."
-
-    if is_updated:
-        db.survey_results.update_one({"_id": survey_id}, {"$set": {"ai_comments_v2": saved_comments}})
+    for house in top_3:
+        house['ai_comment'] = saved_comments.get(house['_id_str'])  # None이면 프론트에서 로딩 표시
     
     return render_template(
         'result.html', 
@@ -426,8 +427,86 @@ def survey_result(index):
         user_chart_data=user_chart_data,
         chart_keys=chart_keys,
         detailed_analysis=detailed_analysis,
-        index = index
+        index=index
     )
+
+
+@survey_bp.route('/survey/ai_generate/<survey_id>', methods=['POST'])
+def ai_generate(survey_id):
+    """AI 코멘트 & 라이프스타일 분석을 비동기로 생성하고 DB에 저장하는 API.
+    프론트엔드에서 결과 페이지 로드 직후 호출한다."""
+    if 'user_id' not in session:
+        return jsonify({"status": "error", "message": "Unauthorized"}), 401
+
+    user_id = session['user_id']
+
+    try:
+        selected_survey = db.survey_results.find_one({"_id": ObjectId(survey_id)})
+    except Exception:
+        return jsonify({"status": "error", "message": "Invalid survey_id"}), 400
+
+    if not selected_survey:
+        return jsonify({"status": "error", "message": "Survey not found"}), 404
+
+    nw = get_user_normalized_weights(selected_survey.get('category_log', []))
+    top2 = sorted(nw.items(), key=lambda x: x[1], reverse=True)[:2]
+    top2_keys = [top2[0][0], top2[1][0]]
+
+    updates = {}
+
+    # 1. 라이프스타일 분석 (없을 때만 생성)
+    detailed_analysis = selected_survey.get('lifestyle_report')
+    if not detailed_analysis:
+        detailed_analysis = generate_sandbox_lifestyle_analysis(nw, top2_keys)
+        updates['lifestyle_report'] = detailed_analysis
+
+    # 2. ai_comment (없는 매물만 생성)
+    query = {}
+    target_coords = selected_survey.get('target_coords')
+    loc = selected_survey.get('location')
+    if not target_coords or float(target_coords.get('lat', 0)) == 0:
+        if loc and loc != "상관없음": query['address'] = {"$regex": loc}
+
+    c_type = selected_survey.get('contract_type')
+    target_rent_type = {"jeonse": "전세", "monthly": "월세"}.get(c_type, c_type)
+    if target_rent_type: query['rent_type'] = target_rent_type
+    query = apply_detail_filters(query, selected_survey)
+
+    pipeline = build_match_pipeline(query, nw, target_coords=target_coords, limit=10)
+    matched_properties = format_property_data(list(houses_col.aggregate(pipeline)))
+    top_3 = matched_properties[:3]
+
+    saved_comments = selected_survey.get('ai_comments_v2', {})
+    new_comments = dict(saved_comments)
+    futures = {}
+    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+        for house in top_3:
+            h_id = house['_id_str']
+            if h_id not in saved_comments:
+                futures[h_id] = executor.submit(generate_recommendation_reason, user_id, nw, house)
+        for house in top_3:
+            h_id = house['_id_str']
+            if h_id in futures:
+                try:
+                    new_comments[h_id] = futures[h_id].result(timeout=20)
+                except Exception:
+                    new_comments[h_id] = "분석 중 오류가 발생했습니다."
+
+    if new_comments != saved_comments:
+        updates['ai_comments_v2'] = new_comments
+
+    if updates:
+        db.survey_results.update_one({"_id": ObjectId(survey_id)}, {"$set": updates})
+
+    # top3 하우스에 코멘트 붙여서 반환
+    for house in top_3:
+        house['ai_comment'] = new_comments.get(house['_id_str'], '')
+
+    return jsonify({
+        "status": "success",
+        "detailed_analysis": detailed_analysis,
+        "ai_comments": {h['_id_str']: h['ai_comment'] for h in top_3}
+    })
 
 @survey_bp.route('/survey/recalculate', methods=['POST'])
 def recalculate():

@@ -437,8 +437,13 @@
         })
         .then(res => res.json())
         .then(data => {
-            if (data.status === "success") setTimeout(() => { location.href = `/survey/result/${data.target_index}`; }, 1500);
-            else { alert(data.message); location.reload(); }
+            // survey_id를 받아 결과 페이지로 즉시 이동 (AI 생성은 result 페이지에서 처리)
+            if (data.status === "success") {
+                location.href = `/survey/result/by_id/${data.survey_id}`;
+            } else {
+                alert(data.message);
+                location.reload();
+            }
         });
     }
 
