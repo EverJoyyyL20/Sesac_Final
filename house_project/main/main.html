@@ -121,7 +121,8 @@
                 location.reload(); 
             } else {
                 const errorMsg = document.getElementById('nick-error');
-                errorMsg.innerText = "닉네임 중복 등 오류가 발생했습니다.";
+                // 서버에서 보낸 정확한 에러 메시지를 출력합니다.
+                errorMsg.innerText = data.message || "오류가 발생했습니다.";
                 errorMsg.style.display = 'block';
             }
 })
@@ -171,27 +172,24 @@
     if (nicknameInput) {
         nicknameInput.addEventListener('input', function() {
             let value = this.value;
-            let byte = getByteLength(value);
-
-            if (byte > 16) {
-                let trimmed = "";
-                let total = 0;
-
-                for (let i = 0; i < value.length; i++) {
-                    let char = value[i];
-                    let charByte = char.charCodeAt(0) > 127 ? 2 : 1;
-
-                    if (total + charByte > 16) break;
-
-                    total += charByte;
-                    trimmed += char;
-                }
-
-                this.value = trimmed;
-                byte = total;
+            let byte = 0;
+            let trimmed = "";
+            
+            for (let i = 0; i < value.length; i++) {
+                let char = value[i];
+                let charByte = char.charCodeAt(0) > 127 ? 2 : 1; // 한글 2점, 영문/숫자 1점 계산
+                
+                // 16점을 초과하면 더 이상 문자를 추가하지 않고 중단
+                if (byte + charByte > 16) break; 
+                
+                byte += charByte;
+                trimmed += char;
             }
 
-            // 🔥 여기 수정
+            if (this.value !== trimmed) {
+                this.value = trimmed;
+            }
+
             const nickCounter = document.getElementById('nick-count');
             if (nickCounter) {
                 nickCounter.innerText = `${byte} / 16`;
