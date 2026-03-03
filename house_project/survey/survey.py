@@ -24,6 +24,11 @@ except Exception as e:
 
 survey_bp = Blueprint('survey', __name__, template_folder='.')
 
+# 쇼츠 전용 라우트(함수) 추가
+@survey_bp.route('/shorts')
+def shorts_page():
+    return render_template('shorts.html')
+
 category_map = {
     "traffic": "교통", "convenience": "편의", "green": "녹지",
     "play": "놀이", "health": "건강", "living": "생활", "safety": "안전"
