@@ -77,12 +77,12 @@ body, html {
 
 /* [상단바 링크] */
 .navbar a {
-    font-size: 0.95rem; 
-    font-weight: 500;   
+    font-size: 1.1rem;  
+    font-weight: 600;   
     text-decoration: none;
     color: rgba(255, 255, 255, 0.7); /* 살짝 은은한 톤 */     
-    margin: 0 5px;
-    padding: 8px 12px;
+    margin: 0 8px;       /* 살짝 여백 증가 */
+    padding: 10px 14px;  /* 높이도 자연스럽게 같이 증가 */
     border-radius: 8px;
     transition: all 0.2s ease;
 }
