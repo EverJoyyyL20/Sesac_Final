@@ -23,7 +23,7 @@ body, html {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px 5% !important; 
+    padding: 20px 5% !important; 
     width: 100%;
     /* 🔥 완전한 검정색 톤 베이스에 투명도를 부여 */
     background-color: rgba(0, 0, 0, 0.6); 
