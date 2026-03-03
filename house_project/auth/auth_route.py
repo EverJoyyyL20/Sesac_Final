@@ -140,7 +140,6 @@ def google_login():
 @auth_bp.route('/login/google/authorize')
 def google_authorize():
     try:
-        # 사용자가 취소를 누르면 여기서 OAuthError가 발생합니다.
         token = google.authorize_access_token()
     except Exception as e:
         print(f"구글 로그인 취소 또는 오류: {e}")
@@ -149,6 +148,7 @@ def google_authorize():
     resp = google.get('https://www.googleapis.com/oauth2/v3/userinfo')
     user_info = resp.json()
     email = user_info['email']
+    google_picture = user_info.get('picture', 'default.png')  # ⭐️ 구글 프로필 이미지 URL 추출
 
     user = users_col.find_one({'email': email})
     
@@ -160,7 +160,7 @@ def google_authorize():
             'nickname': temp_nickname,
             'introduction': '',
             'Bookmark': [],
-            'Profile_IMG': user_info.get('picture', 'default.png'),
+            'Profile_IMG': google_picture,  # ⭐️ 구글 프로필 이미지 URL 저장
             'Weight': {'traffic':0, 'convenience':0, 'green':0, 'play':0, 'health':0, 'living':0, 'safety':0},
             'is_social': True
         }
@@ -173,8 +173,8 @@ def google_authorize():
     session['nickname'] = user.get('nickname', user['email'].split('@')[0])
     session['is_social'] = True
     
-    # ⭐️ 프로필 이미지 세션 연동
-    session['profile_img_name'] = user.get('Profile_IMG', 'default.png')
+    # ⭐️ 신규 가입이면 구글 이미지, 기존 유저면 저장된 이미지 사용
+    session['profile_img_name'] = user.get('Profile_IMG', google_picture)
 
     if not user.get('introduction') and not user.get('is_setup_done'):
         session['needs_setup'] = True

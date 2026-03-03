@@ -25,12 +25,13 @@
     {% if session.get('user_id') %}
         <span class="welcome-text">
             
-            {% if session.get('profile_img_name') %}
-                <img src="{{ url_for('static', filename='profile_pics/' + session.get('profile_img_name')) }}" 
-                     class="nav-profile-img" alt="프로필">
+            {% set profile_img = session.get('profile_img_name', 'default.png') %}
+            {% if profile_img.startswith('http') %}
+                <img src="{{ profile_img }}"
+                    class="nav-profile-img" alt="프로필">
             {% else %}
-                <img src="{{ url_for('static', filename='profile_pics/default.png') }}" 
-                     class="nav-profile-img" alt="기본프로필">
+                <img src="{{ url_for('static', filename='profile_pics/' + profile_img) }}"
+                    class="nav-profile-img" alt="프로필">
             {% endif %}
             
             <strong>{{ session.get('nickname') }}</strong>님
@@ -41,7 +42,7 @@
         <a href="{{ url_for('auth.login') }}">로그인</a>
         <a href="{{ url_for('auth.register') }}">회원가입</a>
     {% endif %}
-</div>
+    </div>
 </div>
 
 <div class="page-wrapper">
