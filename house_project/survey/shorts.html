@@ -29,29 +29,28 @@
             overflow: hidden; color: #fff;
         }
 
-        /* 1. 가이드 레이어 (수정 및 추가) */
+        /* 가이드 레이어 — 기본 none, .active 시 flex */
         #user-guide {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.9); z-index: 3000;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background: rgba(0,0,0,0.9); z-index: 3000;
+            display: none;
+            flex-direction: column; align-items: center; justify-content: center;
             transition: opacity 0.6s ease; backdrop-filter: blur(10px);
+            opacity: 0;
         }
-        #user-guide.fade-out { opacity: 0; pointer-events: none; }
-        
-        /* [추가] 체크박스 감싸는 영역 */
+        #user-guide.active { display: flex; opacity: 1; }
+
         .guide-checkbox-wrap {
             margin-top: 24px;
             display: flex; align-items: center; justify-content: center; gap: 10px;
             cursor: pointer;
         }
-        /* [추가] 커스텀 체크박스 스타일 */
         .guide-checkbox-wrap input[type="checkbox"] {
             appearance: none; -webkit-appearance: none;
             width: 20px; height: 20px; border-radius: 6px;
             border: 2px solid rgba(255,255,255,0.4);
             background: rgba(255,255,255,0.05);
-            cursor: pointer; transition: 0.2s; flex-shrink: 0;
-            position: relative;
+            cursor: pointer; transition: 0.2s; flex-shrink: 0; position: relative;
         }
         .guide-checkbox-wrap input[type="checkbox"]:checked {
             background: var(--accent-color); border-color: var(--accent-color);
@@ -64,14 +63,13 @@
         }
         .guide-checkbox-wrap span { font-size: 0.9rem; color: rgba(255,255,255,0.65); }
 
-        /* [수정] 닫기 버튼: 위쪽 절대좌표 삭제하고 일반 버튼 형태로 변경 */
         .btn-close-guide {
             margin-top: 30px;
-            background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3);
             color: white; padding: 12px 36px; border-radius: 50px; cursor: pointer;
             font-size: 0.9rem; font-weight: 700;
         }
-        .btn-close-guide:active { transform: scale(0.95); background: rgba(255, 255, 255, 0.2); }
+        .btn-close-guide:active { transform: scale(0.95); background: rgba(255,255,255,0.2); }
 
         .guide-content { text-align: center; animation: fadeInUp 1s ease-out; }
         .hand-anim { font-size: 3.5rem; margin-bottom: 20px; animation: handGesture 2.5s infinite; }
@@ -91,7 +89,7 @@
         }
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* 2. 쇼츠 레이아웃 */
+        /* 쇼츠 레이아웃 */
         .shorts-wrapper {
             width: 100vw; height: 100vh; overflow-y: scroll;
             scroll-snap-type: y mandatory; scrollbar-width: none; position: relative;
@@ -113,36 +111,33 @@
         }
         .swiper-slide-active .slide-img { filter: grayscale(0) brightness(1); transform: scale(1); }
 
-        /* 더블탭 하트 애니메이션 */
         .double-tap-heart {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0);
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%) scale(0);
             font-size: 80px; color: var(--heart-color); z-index: 200; pointer-events: none;
             text-shadow: 0 0 20px rgba(0,0,0,0.5);
         }
         .double-tap-heart.animate { animation: heartPop 0.8s ease-out; }
         @keyframes heartPop {
-            0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
-            50% { transform: translate(-50%, -50%) scale(1.5); opacity: 1; }
-            100% { transform: translate(-50%, -50%) scale(1.2); opacity: 0; }
+            0%   { transform: translate(-50%,-50%) scale(0); opacity: 0; }
+            50%  { transform: translate(-50%,-50%) scale(1.5); opacity: 1; }
+            100% { transform: translate(-50%,-50%) scale(1.2); opacity: 0; }
         }
 
         .btn-full-view {
             position: absolute; top: 10vh; right: calc(50% - (var(--main-slide-width) / 2) + 20px);
-            z-index: 110; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2); color: white;
+            z-index: 110; background: rgba(0,0,0,0.6); backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2); color: white;
             padding: 10px 16px; border-radius: 50px; font-size: 0.8rem; font-weight: 600;
             cursor: pointer; display: flex; align-items: center; gap: 8px;
         }
 
-        /* 3. 정보 오버레이 */
         .info-overlay {
             position: absolute; bottom: 3vh; width: calc(var(--main-slide-width) - 40px);
-            z-index: 100; padding: 20px; background: rgba(20, 20, 20, 0.9);
+            z-index: 100; padding: 20px; background: rgba(20,20,20,0.9);
             backdrop-filter: blur(35px); border-radius: 30px;
-            border: 1px solid rgba(255, 255, 255, 0.12); box-shadow: 0 15px 45px rgba(0,0,0,0.6);
-            transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-            transform: translateY(0); 
-            will-change: transform;
+            border: 1px solid rgba(255,255,255,0.12); box-shadow: 0 15px 45px rgba(0,0,0,0.6);
+            transition: transform 0.6s cubic-bezier(0.16,1,0.3,1);
+            transform: translateY(0); will-change: transform;
         }
         .info-overlay.collapsed { transform: translateY(calc(100% - 105px)); }
 
@@ -151,12 +146,11 @@
             color: var(--accent-color); margin-bottom: 12px; cursor: pointer;
         }
 
-        /* 찜 버튼 스타일 */
         .like-btn {
             position: absolute; top: 20px; right: 20px;
-            background: rgba(255, 255, 255, 0.1); border-radius: 50%;
+            background: rgba(255,255,255,0.1); border-radius: 50%;
             width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;
-            font-size: 1.2rem; border: 1px solid rgba(255, 255, 255, 0.2);
+            font-size: 1.2rem; border: 1px solid rgba(255,255,255,0.2);
             cursor: pointer; transition: 0.2s; z-index: 105; color: #fff;
         }
         .like-btn i.fa-solid { color: var(--heart-color); }
@@ -165,18 +159,28 @@
             display: flex; align-items: flex-start; justify-content: space-between; 
             margin-bottom: 15px; gap: 10px;
         }
-        .info-left { flex: 1; }
+        .info-left { flex: 1; min-width: 0; }
         .info-right { width: 120px; height: 120px; flex-shrink: 0; }
 
+        /* 배지 행 */
+        .badge-row {
+            display: flex; flex-wrap: wrap; gap: 5px;
+            align-items: center; margin-bottom: 6px;
+        }
         .match-badge {
             display: inline-block; background: linear-gradient(135deg, #4facfe, #00f2fe);
-            padding: 4px 12px; border-radius: 50px; font-size: 0.75rem; font-weight: 800; color: #000; margin-bottom: 6px;
+            padding: 4px 12px; border-radius: 50px; font-size: 0.75rem; font-weight: 800; color: #000;
         }
+        .vfm-badge {
+            display: inline-block; padding: 4px 12px; border-radius: 50px;
+            font-size: 0.72rem; font-weight: 800; color: #fff;
+        }
+
         .price-text { font-size: 1.6rem; font-weight: 900; margin: 0; width: 85%; }
         .addr-text { font-size: 0.85rem; color: #bbb; margin: 5px 0 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         
         .spec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 15px; }
-        .spec-item { background: rgba(255, 255, 255, 0.08); padding: 8px; border-radius: 12px; font-size: 0.75rem; text-align: center; }
+        .spec-item { background: rgba(255,255,255,0.08); padding: 8px; border-radius: 12px; font-size: 0.75rem; text-align: center; }
         
         .btn-detail { 
             width: 100%; padding: 16px; border: none; border-radius: 18px; 
@@ -193,72 +197,43 @@
 
         #sentinel { height: 150px; width: 100%; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.3); font-size: 0.85rem; }
         
-        /* 뒤로가기 버튼 스타일 */
         .btn-back {
-            position: fixed;
-            top: 30px;
-            left: 50px;
-            z-index: 2500; /* 가이드 레이어보다는 아래, 콘텐츠보다는 위 */
-            background: rgba(0, 0, 0, 0.4);
-            backdrop-filter: blur(10px);
-            border: 3px solid rgba(255, 255, 255, 0.2);
-            color: white;
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-decoration: none;
+            position: fixed; top: 30px; left: 50px; z-index: 2500;
+            background: rgba(0,0,0,0.4); backdrop-filter: blur(10px);
+            border: 3px solid rgba(255,255,255,0.2); color: white;
+            width: 60px; height: 60px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: all 0.3s ease; text-decoration: none;
         }
+        .btn-back:hover { background: rgba(255,255,255,0.2); transform: translateX(-3px); }
+        .btn-back i { font-size: 1.8rem; }
 
-        .btn-back:hover {
-            background: rgba(255, 255, 255, 0.2);
-            transform: translateX(-3px);
-        }
-
-        .btn-back i {
-            font-size: 1.8rem;
-        }
-
-        /* [추가] 우측 상단 가이드 버튼 */
         .btn-open-guide {
-            position: fixed;
-            top: 30px;
-            right: 50px;
-            z-index: 2500;
-            background: rgba(0, 0, 0, 0.4);
-            backdrop-filter: blur(10px);
-            border: 3px solid rgba(255, 255, 255, 0.2);
-            color: white;
-            padding: 10px 20px;
-            border-radius: 50px;
-            font-size: 0.9rem;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            position: fixed; top: 30px; right: 50px; z-index: 2500;
+            background: rgba(0,0,0,0.4); backdrop-filter: blur(10px);
+            border: 3px solid rgba(255,255,255,0.2); color: white;
+            padding: 10px 20px; border-radius: 50px;
+            font-size: 0.9rem; font-weight: 700; cursor: pointer;
+            transition: all 0.3s ease; display: flex; align-items: center; gap: 8px;
         }
+        .btn-open-guide:hover { background: rgba(255,255,255,0.2); transform: scale(1.05); }
 
-        .btn-open-guide:hover {
-            background: rgba(255, 255, 255, 0.2);
-            transform: scale(1.05);
+        /* 가성비 토글 버튼 */
+        .btn-vfm-toggle {
+            position: fixed; top: 100px; right: 50px; z-index: 2500;
+            background: rgba(0,0,0,0.5); backdrop-filter: blur(10px);
+            border: 2px solid rgba(255,255,255,0.25); color: rgba(255,255,255,0.7);
+            padding: 10px 16px; border-radius: 50px;
+            font-size: 0.85rem; font-weight: 700; cursor: pointer;
+            transition: all 0.3s ease; display: flex; align-items: center; gap: 7px;
+            white-space: nowrap;
         }
-
-        /* [수정] 가이드 레이어 기본 상태 */
-        #user-guide {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.9); z-index: 3000;
-            display: none; /* 기본을 none으로 변경 */
-            flex-direction: column; align-items: center; justify-content: center;
-            transition: opacity 0.6s ease; backdrop-filter: blur(10px);
-            opacity: 0;
+        .btn-vfm-toggle.active {
+            background: linear-gradient(135deg, rgba(0,176,155,0.85), rgba(79,172,254,0.85));
+            border-color: transparent; color: #fff;
+            box-shadow: 0 4px 20px rgba(0,176,155,0.4);
         }
-        #user-guide.active { display: flex; opacity: 1; }
+        .btn-vfm-toggle .vfm-check { font-size: 1rem; }
     </style>
 </head>
 <body>
@@ -270,12 +245,15 @@
     <i class="fa-solid fa-circle-question"></i> 사용 가이드
 </button>
 
+<button class="btn-vfm-toggle" id="vfmToggleBtn" onclick="toggleVfmMode()">
+    <span class="vfm-check">💰</span> 가성비 보기
+</button>
+
 <div id="user-guide">
     <div class="guide-content">
         <div class="hand-anim">👆</div>
         <div class="guide-main-text">넘기고, 두 번 터치하세요</div>
         <div class="guide-sub-text">위아래로 스크롤하고, 마음에 들면 더블 탭!</div>
-
         <label class="guide-checkbox-wrap">
             <input type="checkbox" id="no-show-guide">
             <span>다시 보지 않기</span>
@@ -319,7 +297,21 @@
             <div class="toggle-guide" onclick="toggleInfo(this.parentElement, event)">▼ 상세 정보 닫기</div>
             <div class="info-flex-container">
                 <div class="info-left">
-                    <span class="match-badge">AI 매칭 {{ item.match_score }}점</span>
+                    <div class="badge-row">
+                        <span class="match-badge">AI 매칭 {{ item.match_score }}점</span>
+                        {%- set vs = item.vfm_score -%}
+                        {%- if vs is not none -%}
+                            {%- if vs >= 90 -%}
+                                <span class="vfm-badge" style="background:#e84393;display:none;">🔥 역대급 꿀매 {{ vs }}점</span>
+                            {%- elif vs >= 70 -%}
+                                <span class="vfm-badge" style="background:#00b09b;display:none;">💰 가성비 우수 {{ vs }}점</span>
+                            {%- elif vs >= 50 -%}
+                                <span class="vfm-badge" style="background:#f7971e;display:none;">📊 시장가 {{ vs }}점</span>
+                            {%- else -%}
+                                <span class="vfm-badge" style="background:#888;display:none;">⚠️ 가성비 낮음 {{ vs }}점</span>
+                            {%- endif -%}
+                        {%- endif -%}
+                    </div>
                     <p class="price-text">{{ item.rent_type }} {{ item.price_display }}</p>
                     <p class="addr-text">📍 {{ item.address }}</p>
                     <div class="spec-grid">
@@ -341,184 +333,271 @@
 </div>
 
 <script>
-    // [수정] 가이드 보이기 로직
-    function showGuide() {
-        const guide = document.getElementById('user-guide');
-        if (guide) {
-            guide.style.display = 'flex';
-            // 애니메이션 효과를 위해 약간의 지연 후 opacity 조절
-            setTimeout(() => guide.classList.add('active'), 10);
-        }
+    // ── 가성비 토글 ───────────────────────────────────────────────────
+    let vfmMode = false;
+
+    function toggleVfmMode() {
+        vfmMode = !vfmMode;
+        const btn = document.getElementById('vfmToggleBtn');
+        btn.classList.toggle('active', vfmMode);
+        btn.innerHTML = vfmMode
+            ? '<span class="vfm-check">✅</span> 가성비 ON'
+            : '<span class="vfm-check">💰</span> 가성비 보기';
+
+        // 현재 렌더된 모든 카드의 vfm-badge 표시/숨김
+        document.querySelectorAll('.vfm-badge').forEach(el => {
+            el.style.display = vfmMode ? 'inline-block' : 'none';
+        });
     }
 
-    // [수정] 가이드 닫기 및 저장 로직
-    // [수정] 가이드 보이기 로직
-    function showGuide() {
-        const guide = document.getElementById('user-guide');
-        if (guide) {
-            guide.style.display = 'flex';
-            // 애니메이션 효과를 위해 약간의 지연 후 active 클래스 추가
-            setTimeout(() => guide.classList.add('active'), 10);
-        }
+    // 배지를 처음엔 숨겨두고 토글 시 보여주는 헬퍼
+    function renderVfmBadgeHidden(score) {
+        if (score === null || score === undefined) return '';
+        let color, label;
+        if      (score >= 90) { color = '#e84393'; label = '🔥 역대급 꿀매'; }
+        else if (score >= 70) { color = '#00b09b'; label = '💰 가성비 우수'; }
+        else if (score >= 50) { color = '#f7971e'; label = '📊 시장가'; }
+        else                  { color = '#888888'; label = '⚠️ 가성비 낮음'; }
+        // 초기에는 display:none, toggleVfmMode()로 제어
+        return `<span class="vfm-badge" style="background:${color};display:none;">${label} ${score}점</span>`;
     }
 
-    // [수정] 가이드 닫기 및 '세션' 저장 로직
+    // ── 가성비 점수 계산 ─────────────────────────────────────────────
+    // VFM.py 와 완전히 동일한 로직
+    //
+    // expense_per_m2 = (3년 총비용) / size_m2
+    //   전세: 전세금 × 0.04 × 3  (기회비용)  ← price가 전세금, deposit=0
+    //   월세: 보증금 × 0.04 × 3 + 월세 × 12 × 3
+    //
+    // stats_map 단위: 만원/㎡  (VFM.py 분석 결과 그대로)
+    const VFM_STATS = {
+        '전세_Normal':   { peak: 99.4,  mean: 96.2,  std: 40.0 },
+        '월세_Normal':   { peak: 91.9,  mean: 124.8, std: 51.3 },
+        '월세_Basement': { peak: 77.7,  mean: 76.3,  std: 22.3 },
+        '전세_Basement': { peak: 26.4,  mean: 31.7,  std: 11.7 },
+    };
+    const VFM_YEARS = 3;
+    const VFM_RATE  = 0.04;
+
+    // 숫자 또는 "전세 24000" 같은 문자열 → 만원 단위
+    function toManwon(v) {
+        if (v === null || v === undefined) return 0;
+        if (typeof v === 'string') {
+            const m = v.replace(/,/g, '').match(/[\d.]+/);
+            if (!m) return 0;
+            v = parseFloat(m[0]);
+        } else {
+            v = parseFloat(v || 0);
+        }
+        if (v <= 0) return 0;
+        if (v >= 10_000_000) return v / 10_000;
+        return v;
+    }
+
+    function calcVfmScore(item) {
+        const rentType   = item.rent_type || '';
+        const floorStr   = String(item.floor || '');
+        const isBasement = floorStr.includes('반지하');
+        const layer      = isBasement ? 'Basement' : 'Normal';
+        const group      = `${rentType}_${layer}`;
+
+        const stats = VFM_STATS[group];
+        if (!stats) return 60.0;
+
+        const size = parseFloat(item.size_m2 || item.area || item.size || 0);
+        if (!size || size <= 0) return 60.0;
+
+        const deposit = toManwon(item.deposit);
+        const price   = toManwon(item.price);
+
+        // 3년 총비용 (VFM.py calculate_total_cost 동일)
+        let totalExpense;
+        if (rentType === '전세') {
+            const realDeposit = deposit > 0 ? deposit : price; // deposit=0이면 price가 전세금
+            totalExpense = realDeposit * VFM_RATE * VFM_YEARS;
+        } else {
+            totalExpense = deposit * VFM_RATE * VFM_YEARS + price * 12 * VFM_YEARS;
+        }
+        if (totalExpense <= 0) return 60.0;
+
+        const expPerM2 = totalExpense / size;
+        const center   = (stats.mean > stats.peak * 1.1) ? stats.peak : stats.mean;
+        const z        = (center - expPerM2) / stats.std;
+        let   raw      = 60.0 + (z * 18.0);
+
+        if (deposit <= 5500) raw += 5;  // 최우선변제 가산점
+        if (size < 15)       raw -= 5;  // 고시원급 감점
+
+        return Math.round(Math.max(0, Math.min(100, raw)) * 10) / 10;
+    }
+
+    function renderVfmBadge(score) {
+        if (score === null || score === undefined) return '';
+        let color, label;
+        if      (score >= 90) { color = '#e84393'; label = '🔥 역대급 꿀매'; }
+        else if (score >= 70) { color = '#00b09b'; label = '💰 가성비 우수'; }
+        else if (score >= 50) { color = '#f7971e'; label = '📊 시장가'; }
+        else                  { color = '#888888'; label = '⚠️ 가성비 낮음'; }
+        return `<span class="vfm-badge" style="background:${color};">${label} ${score}점</span>`;
+    }
+
+    // ── 가이드 ────────────────────────────────────────────────────────
+    function showGuide() {
+        const guide = document.getElementById('user-guide');
+        if (!guide) return;
+        guide.style.display = 'flex';
+        setTimeout(() => guide.classList.add('active'), 10);
+    }
+
     function removeGuide() {
         const guide = document.getElementById('user-guide');
         if (!guide) return;
-
-        // 체크박스 확인 후 'sessionStorage'에 저장 (브라우저 닫으면 삭제됨)
-        const checkbox = document.getElementById('no-show-guide');
-        if (checkbox && checkbox.checked) {
-            // localStorage 대신 sessionStorage 사용
-            sessionStorage.setItem('shorts_guide_hidden', 'true');
-        }
-
+        const cb = document.getElementById('no-show-guide');
+        if (cb && cb.checked) sessionStorage.setItem('shorts_guide_hidden', 'true');
         guide.classList.remove('active');
-        setTimeout(() => {
-            guide.style.display = 'none';
-        }, 600);
+        setTimeout(() => { guide.style.display = 'none'; }, 600);
     }
 
-    // [수정] 초기 로딩 시 가이드 판단 로직
-    document.addEventListener('DOMContentLoaded', () => {
-        // sessionStorage에서 확인 (다른 유저/새 세션에는 영향 없음)
-        if (sessionStorage.getItem('shorts_guide_hidden') !== 'true') {
-            showGuide();
-        }
-
-        // 기존 차트 및 스와이퍼 초기화 로직 유지
-        document.querySelectorAll('.mySwiper').forEach(s => initSwiper(s));
-        {% for item in recommendations %}
-            initChart('chart-{{ item._id_str }}', {{ item.chart_data | tojson }});
-        {% endfor %}
-    });
-
+    // ── 오버레이 토글 ─────────────────────────────────────────────────
     function toggleInfo(overlay, event) {
         if (event.target.closest('.btn-detail') || event.target.closest('.like-btn')) return;
         overlay.classList.toggle('collapsed');
-        const guideText = overlay.querySelector('.toggle-guide');
-        guideText.innerText = overlay.classList.contains('collapsed') ? '▲ 상세 정보 펼치기' : '▼ 상세 정보 닫기';
+        overlay.querySelector('.toggle-guide').innerText =
+            overlay.classList.contains('collapsed') ? '▲ 상세 정보 펼치기' : '▼ 상세 정보 닫기';
     }
 
+    // ── 이미지 모달 ───────────────────────────────────────────────────
     function openImageModal(btn) {
-        const section = btn.closest('.prop-section');
-        const activeImg = section.querySelector('.swiper-slide-active .slide-img');
+        const activeImg = btn.closest('.prop-section').querySelector('.swiper-slide-active .slide-img');
         if (activeImg) {
             document.getElementById('modal-img').src = activeImg.src;
             document.getElementById('image-modal').style.display = 'flex';
         }
     }
-
     function closeImageModal() { document.getElementById('image-modal').style.display = 'none'; }
 
-    // 1. 찜하기 로직 연동
+    // ── 찜하기 ────────────────────────────────────────────────────────
     async function handleFavorite(propId, event) {
-        if (event) event.stopPropagation(); 
-        
+        if (event) event.stopPropagation();
         try {
-            const response = await fetch('/api/favorite', {
+            const res  = await fetch('/api/favorite', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ property_id: propId })
             });
-            const data = await response.json();
-            
+            const data = await res.json();
             if (data.status === 'success') {
-                const favBtn = document.getElementById(`fav-${propId}`);
-                if(favBtn) {
-                    favBtn.innerHTML = data.action === 'added' ? '<i class="fa-solid fa-heart"></i>' : '<i class="fa-regular fa-heart"></i>';
-                }
-            } else {
-                alert(data.message);
-            }
-        } catch (e) { console.error("Favorite Error:", e); }
+                const btn = document.getElementById(`fav-${propId}`);
+                if (btn) btn.innerHTML = data.action === 'added'
+                    ? '<i class="fa-solid fa-heart"></i>'
+                    : '<i class="fa-regular fa-heart"></i>';
+            } else { alert(data.message); }
+        } catch (e) { console.error('Favorite Error:', e); }
     }
 
-    // 2. 더블탭 찜하기 애니메이션
+    // ── 더블탭 찜하기 ─────────────────────────────────────────────────
     function handleDoubleTap(section) {
-        const propId = section.getAttribute('data-id');
+        const propId    = section.getAttribute('data-id');
         const heartAnim = section.querySelector('.double-tap-heart');
-        
         heartAnim.classList.remove('animate');
-        void heartAnim.offsetWidth; 
+        void heartAnim.offsetWidth;
         heartAnim.classList.add('animate');
-
         const favBtn = document.getElementById(`fav-${propId}`);
-        // 빈 하트일 때만 찜하기 실행
-        if (favBtn && favBtn.querySelector('.fa-regular')) {
-            handleFavorite(propId);
-        }
+        if (favBtn && favBtn.querySelector('.fa-regular')) handleFavorite(propId);
     }
 
-    // 3. 차트 초기화
+    // ── 차트 ──────────────────────────────────────────────────────────
     function initChart(id, data) {
         const ctx = document.getElementById(id);
         if (!ctx) return;
-        const processedData = data.map(v => (v <= 1 && v > 0) ? Math.round(v * 100) : v);
+        const processed = data.map(v => (v <= 1 && v > 0) ? Math.round(v * 100) : v);
         new Chart(ctx, {
             type: 'radar',
             data: {
-                labels: ['교통', '편의', '녹지', '놀이', '건강', '생활', '안전'], 
+                labels: ['교통', '편의', '녹지', '놀이', '건강', '생활', '안전'],
                 datasets: [{
-                    data: processedData, backgroundColor: 'rgba(79, 172, 254, 0.4)',
+                    data: processed,
+                    backgroundColor: 'rgba(79,172,254,0.4)',
                     borderColor: '#4facfe', borderWidth: 2, pointRadius: 0
                 }]
             },
             options: {
                 responsive: true, maintainAspectRatio: true,
-                scales: { r: { min: 0, max: 100, ticks: { display: false }, grid: { color: 'rgba(255, 255, 255, 0.15)' }, angleLines: { color: 'rgba(255, 255, 255, 0.15)' }, pointLabels: { display: true, color: '#ffffff', font: { size: 9, weight: '600' } } } },
+                scales: { r: {
+                    min: 0, max: 100,
+                    ticks: { display: false },
+                    grid: { color: 'rgba(255,255,255,0.15)' },
+                    angleLines: { color: 'rgba(255,255,255,0.15)' },
+                    pointLabels: { display: true, color: '#fff', font: { size: 9, weight: '600' } }
+                }},
                 plugins: { legend: { display: false } },
                 animation: { duration: 800 }
             }
         });
     }
 
-    // 4. 스와이퍼 초기화
+    // ── 스와이퍼 ──────────────────────────────────────────────────────
     function initSwiper(target) {
         return new Swiper(target, {
             slidesPerView: 1, centeredSlides: true, grabCursor: true, nested: true,
-            effect: 'creative', creativeEffect: { prev: { shadow: false, translate: [0, 0, -400] }, next: { translate: ['100%', 0, 0] } },
-            speed: 500, 
+            effect: 'creative',
+            creativeEffect: {
+                prev: { shadow: false, translate: [0, 0, -400] },
+                next: { translate: ['100%', 0, 0] }
+            },
+            speed: 500
         });
     }
 
-    // 초기 로딩
+    // ── 초기화 (DOMContentLoaded 단 1회) ─────────────────────────────
     document.addEventListener('DOMContentLoaded', () => {
+        if (sessionStorage.getItem('shorts_guide_hidden') !== 'true') showGuide();
         document.querySelectorAll('.mySwiper').forEach(s => initSwiper(s));
         {% for item in recommendations %}
             initChart('chart-{{ item._id_str }}', {{ item.chart_data | tojson }});
         {% endfor %}
     });
 
-    // 5. 무한 스크롤 (Fetch API)
+    // ── 무한 스크롤 ───────────────────────────────────────────────────
     let isFetching = false;
-    const wrapper = document.getElementById('shortsWrapper');
+    const wrapper  = document.getElementById('shortsWrapper');
     const sentinel = document.getElementById('sentinel');
 
     async function fetchMore() {
         if (isFetching) return;
         isFetching = true;
         try {
-            const response = await fetch('/survey/short/more');
-            const data = await response.json();
-            
+            const res  = await fetch('/survey/short/more');
+            const data = await res.json();
+
             if (data.status === 'success' && data.items && data.items.length > 0) {
                 data.items.forEach(item => {
                     if (document.querySelector(`[data-id="${item._id_str}"]`)) return;
-                    
-                    const section = document.createElement('section');
+
+                    const section     = document.createElement('section');
                     section.className = 'prop-section';
                     section.setAttribute('data-id', item._id_str);
                     section.setAttribute('ondblclick', 'handleDoubleTap(this)');
-                    
-                    const imgsHtml = item.images.map(img => `<div class="swiper-slide"><img src="${img}" class="slide-img"></div>`).join('');
+
+                    const imgsHtml   = item.images.map(img =>
+                        `<div class="swiper-slide"><img src="${img}" class="slide-img"></div>`
+                    ).join('');
                     const newChartId = `chart-${item._id_str}-${Date.now()}`;
-                    
+
+                    // JS에서 직접 가성비 계산 (Python vfm_score가 있으면 그것 사용, 없으면 재계산)
+                    const vfmScore = (item.vfm_score !== undefined && item.vfm_score !== null)
+                        ? item.vfm_score
+                        : calcVfmScore(item);
+                    const vfmHtml  = renderVfmBadgeHidden(vfmScore);
+
                     section.innerHTML = `
                         <div class="double-tap-heart">❤️</div>
-                        <button class="btn-full-view" onclick="openImageModal(this)"><span>🔍</span> 이미지 원본보기</button>
-                        <div class="swiper mySwiper"><div class="swiper-wrapper">${imgsHtml}</div></div>
+                        <button class="btn-full-view" onclick="openImageModal(this)">
+                            <span>🔍</span> 이미지 원본보기
+                        </button>
+                        <div class="swiper mySwiper">
+                            <div class="swiper-wrapper">${imgsHtml}</div>
+                        </div>
                         <div class="info-overlay">
                             <button class="like-btn" onclick="handleFavorite('${item._id_str}', event)" id="fav-${item._id_str}">
                                 ${item.is_liked ? '<i class="fa-solid fa-heart"></i>' : '<i class="fa-regular fa-heart"></i>'}
@@ -526,7 +605,10 @@
                             <div class="toggle-guide" onclick="toggleInfo(this.parentElement, event)">▼ 상세 정보 닫기</div>
                             <div class="info-flex-container">
                                 <div class="info-left">
-                                    <span class="match-badge">AI 매칭 ${item.match_score}점</span>
+                                    <div class="badge-row">
+                                        <span class="match-badge">AI 매칭 ${item.match_score}점</span>
+                                        ${vfmHtml}
+                                    </div>
                                     <p class="price-text">${item.rent_type} ${item.price_display}</p>
                                     <p class="addr-text">📍 ${item.address}</p>
                                     <div class="spec-grid">
@@ -546,18 +628,19 @@
                     initChart(newChartId, item.chart_data);
                 });
             } else {
-                sentinel.innerText = "모든 추천 매물을 확인했습니다.";
+                sentinel.innerText = '모든 추천 매물을 확인했습니다.';
                 observer.unobserve(sentinel);
             }
-        } catch (e) { 
+        } catch (e) {
             console.error(e);
-            sentinel.innerText = "로딩 중 오류 발생"; 
+            sentinel.innerText = '로딩 중 오류 발생';
         } finally { isFetching = false; }
     }
 
-    const observer = new IntersectionObserver((entries) => {
-        if (entries[0].isIntersecting) fetchMore();
-    }, { root: wrapper, threshold: 0.1 });
+    const observer = new IntersectionObserver(
+        entries => { if (entries[0].isIntersecting) fetchMore(); },
+        { root: wrapper, threshold: 0.1 }
+    );
     observer.observe(sentinel);
 </script>
 

@@ -40,6 +40,38 @@
         }
         .skip-btn:hover { color: #888; }
         .detail-q-group { margin-bottom: 25px; text-align: left; }
+
+        /* ── 슬라이더 공통 스타일 ── */
+        .slider-wrap { position: relative; padding-bottom: 30px; }
+        .custom-slider {
+            -webkit-appearance: none; appearance: none;
+            width: 100%; height: 6px; border-radius: 3px;
+            background: linear-gradient(to right, #4facfe 0%, #4facfe 100%);
+            outline: none; cursor: pointer; margin-bottom: 8px;
+        }
+        .custom-slider::-webkit-slider-thumb {
+            -webkit-appearance: none; appearance: none;
+            width: 24px; height: 24px; border-radius: 50%;
+            background: #fff; border: 3px solid #4facfe;
+            box-shadow: 0 2px 6px rgba(79,172,254,0.4);
+            cursor: pointer; transition: transform 0.15s;
+        }
+        .custom-slider::-webkit-slider-thumb:hover { transform: scale(1.2); }
+        .custom-slider::-moz-range-thumb {
+            width: 24px; height: 24px; border-radius: 50%;
+            background: #fff; border: 3px solid #4facfe;
+            cursor: pointer;
+        }
+        .slider-labels {
+            display: flex; justify-content: space-between;
+            font-size: 0.78rem; color: #aaa; margin-top: 4px;
+        }
+        .slider-labels span { text-align: center; flex: 1; }
+        .slider-bubble {
+            display: inline-block; background: #4facfe; color: #fff;
+            font-weight: 800; font-size: 0.9rem;
+            padding: 6px 16px; border-radius: 20px; margin-top: 10px;
+        }
     </style>
 </head>
 <body>
@@ -73,7 +105,7 @@
         <a href="{{ url_for('auth.login') }}">로그인</a>
         <a href="{{ url_for('auth.register') }}">회원가입</a>
     {% endif %}
-</div>
+    </div>
 </div>
 
 <div class="survey-wrapper">
@@ -150,42 +182,63 @@
 
         <div class="q-card" id="step-2">
             <h2>🏠 상세 희망 조건을 선택해주세요.</h2>
-            
+
+            <!-- ① 건물 연식 슬라이더 -->
             <div class="detail-q-group">
-                <p class="sub-q">가능한 건물 연식 (중복 가능)</p>
-                <div class="options-group multi-group" data-key="building_age">
-                    <button type="button" class="opt-btn" onclick="toggleBtn(this, true)">신축 (5년 이하)</button>
-                    <button type="button" class="opt-btn" onclick="toggleBtn(this, true)">준신축 (5~10년)</button>
-                    <button type="button" class="opt-btn" style="grid-column: span 2;" onclick="toggleBtn(this, true)">구축 (10년 이상)</button>
+                <p class="sub-q">🏗 허용 건물 연식</p>
+                <p style="color:#aaa;font-size:0.8rem;margin:-8px 0 12px;">슬라이더를 오른쪽으로 밀수록 오래된 건물도 허용됩니다</p>
+                <div class="slider-wrap">
+                    <input type="range" id="age-slider" class="custom-slider" min="0" max="5" step="1" value="5" oninput="updateAgeSlider(this.value)">
+                    <div class="slider-labels age-labels">
+                        <span>신축만</span><span>3년</span><span>5년</span>
+                        <span>7년</span><span>10년</span><span>상관없음</span>
+                    </div>
+                    <div class="slider-bubble" id="age-bubble">상관없음</div>
                 </div>
             </div>
 
+            <!-- ② 방 개수 슬라이더 -->
             <div class="detail-q-group">
-                <p class="sub-q">희망하는 방 개수 (중복 가능)</p>
-                <div class="options-group multi-group" data-key="room_count">
-                    <button type="button" class="opt-btn" onclick="toggleBtn(this, true)">1개</button>
-                    <button type="button" class="opt-btn" onclick="toggleBtn(this, true)">2개</button>
-                    <button type="button" class="opt-btn" style="grid-column: span 2;" onclick="toggleBtn(this, true)">3개 이상</button>
+                <p class="sub-q">🚪 최소 방 개수</p>
+                <p style="color:#aaa;font-size:0.8rem;margin:-8px 0 12px;">이 개수 이상인 매물만 추천합니다</p>
+                <div class="slider-wrap">
+                    <input type="range" id="room-slider" class="custom-slider" min="1" max="3" step="1" value="1" oninput="updateRoomSlider(this.value)">
+                    <div class="slider-labels room-labels">
+                        <span>1개(원룸)</span><span>2개 이상</span><span>3개 이상</span>
+                    </div>
+                    <div class="slider-bubble" id="room-bubble">1개(원룸) 이상</div>
                 </div>
             </div>
 
+            <!-- ③ 반지하/옥탑 -->
             <div class="detail-q-group">
-                <p class="sub-q">반지하 혹은 옥탑방도 괜찮으신가요?</p>
+                <p class="sub-q">🏚 반지하 · 옥탑방</p>
                 <div class="options-group single-group" data-key="special_room">
                     <button type="button" class="opt-btn" onclick="toggleBtn(this, false)">네, 상관없어요</button>
                     <button type="button" class="opt-btn" onclick="toggleBtn(this, false)">아니요, 피하고 싶어요</button>
                 </div>
             </div>
 
+            <!-- ④ 주차 -->
             <div class="detail-q-group">
-                <p class="sub-q">주차장이 필요하신가요?</p>
+                <p class="sub-q">🚗 주차장 필요 여부</p>
                 <div class="options-group single-group" data-key="parking">
                     <button type="button" class="opt-btn" onclick="toggleBtn(this, false)">네, 필요해요</button>
                     <button type="button" class="opt-btn" onclick="toggleBtn(this, false)">아니요, 상관없어요</button>
                 </div>
             </div>
 
-            <p class="limit-info detail-empty" style="color: orange; display: none; margin-top: 10px; text-align: center;">모든 항목을 1개 이상 선택해주세요! ⚠️</p>
+            <!-- ⑤ 가성비 반영 -->
+            <div class="detail-q-group">
+                <p class="sub-q">💰 가성비 점수 반영</p>
+                <p style="color:#aaa;font-size:0.8rem;margin:-8px 0 10px;">매칭 점수에 가성비 30%를 포함합니다</p>
+                <div class="options-group single-group" data-key="prefer_vfm">
+                    <button type="button" class="opt-btn" onclick="toggleVfmBtn(this, true)">💸 가성비 좋은 매물 우선</button>
+                    <button type="button" class="opt-btn" onclick="toggleVfmBtn(this, false)">🏆 라이프스타일 매칭만</button>
+                </div>
+            </div>
+
+            <p class="limit-info detail-empty" style="color: orange; display: none; margin-top: 10px; text-align: center;">반지하/주차/가성비 항목을 모두 선택해주세요! ⚠️</p>
 
             <div class="next-btn-container" style="display: flex; gap: 10px;">
                 <button type="button" class="back-btn" onclick="prevStep(1)" style="flex: 1;">이전</button>
@@ -233,7 +286,12 @@
 <script>
     let map;
     let currentIdx = 0;
-    const totalSteps = 3 + {{ questions|length }}; 
+    const totalSteps = 3 + {{ questions|length }};
+
+    // 슬라이더 설정
+    const AGE_STEPS  = [0, 3, 5, 7, 10, null]; // null = 상관없음
+    const AGE_LABELS = ['신축만','3년까지','5년까지','7년까지','10년까지','상관없음'];
+    const ROOM_LABELS = ['1개(원룸) 이상','2개 이상','3개 이상'];
 
     const surveyResults = { 
         location: "", 
@@ -241,15 +299,47 @@
         contract_type: "", 
         budget: { min_dep: null, max_dep: null, min_rent: null, max_rent: null },
         building_type: [],
-        building_age: [],
-        room_count: [],
+        building_age: [],        // legacy
+        max_building_age: null,  // 슬라이더: null=상관없음, 숫자=최대 연식(년)
+        room_count: [],          // legacy
+        min_room_count: 1,       // 슬라이더: 최소 방 개수
         special_room: "",
         parking: "",
+        prefer_vfm: false,
         category_log: [] 
     };
 
     history.replaceState({idx: 0}, "Step 0");
 
+    // ── 슬라이더 업데이트 ──
+    function updateAgeSlider(val) {
+        val = parseInt(val);
+        const label = AGE_LABELS[val];
+        document.getElementById('age-bubble').textContent = label;
+        surveyResults.max_building_age = AGE_STEPS[val]; // null or 숫자
+        updateSliderFill('age-slider', val, 5);
+    }
+
+    function updateRoomSlider(val) {
+        val = parseInt(val);
+        document.getElementById('room-bubble').textContent = ROOM_LABELS[val - 1];
+        surveyResults.min_room_count = val;
+        updateSliderFill('room-slider', val - 1, 2);
+    }
+
+    function updateSliderFill(id, val, max) {
+        const pct = (val / max) * 100;
+        const el = document.getElementById(id);
+        el.style.background = `linear-gradient(to right, #4facfe ${pct}%, #e0e0e0 ${pct}%)`;
+    }
+
+    // 초기 슬라이더 상태
+    window.addEventListener('DOMContentLoaded', () => {
+        updateAgeSlider(document.getElementById('age-slider').value);  // max=5, 기본 5=상관없음
+        updateRoomSlider(document.getElementById('room-slider').value);
+    });
+
+    // ── 지도 ──
     function showMapSection(wantMap) {
         if (wantMap) {
             document.getElementById('map-selection-area').style.display = 'block';
@@ -281,39 +371,24 @@
         }, function(status, response) {
             if (status === naver.maps.Service.Status.OK && response.v2.results.length > 0) {
                 const res = response.v2.results[0];
-                const area1 = res.region.area1.name; // 시/도
+                const area1 = res.region.area1.name;
                 const addr = area1 + " " + res.region.area2.name + " " + res.region.area3.name + (res.land && res.land.number1 ? " " + res.land.number1 : "");
-
                 const isSeoul = area1.includes("서울");
                 const addrEl = document.getElementById('current-addr');
                 const confirmBtn = document.querySelector('.next-btn-container .confirm-btn');
-
                 if (isSeoul) {
-                    addrEl.style.background = '#f0f7ff';
-                    addrEl.style.borderColor = '#007bff';
-                    addrEl.style.color = '#007bff';
+                    addrEl.style.background = '#f0f7ff'; addrEl.style.borderColor = '#007bff'; addrEl.style.color = '#007bff';
                     addrEl.innerText = "📍 현재 위치: " + addr;
                     document.getElementById('pref_location').value = addr;
                     surveyResults.location = addr;
                     surveyResults.target_coords = { lat: latlng.lat(), lng: latlng.lng() };
-                    if (confirmBtn) {
-                        confirmBtn.disabled = false;
-                        confirmBtn.style.opacity = '1';
-                        confirmBtn.style.cursor = 'pointer';
-                    }
+                    if (confirmBtn) { confirmBtn.disabled = false; confirmBtn.style.opacity = '1'; confirmBtn.style.cursor = 'pointer'; }
                 } else {
-                    addrEl.style.background = '#fff0f0';
-                    addrEl.style.borderColor = '#ff4d4f';
-                    addrEl.style.color = '#ff4d4f';
+                    addrEl.style.background = '#fff0f0'; addrEl.style.borderColor = '#ff4d4f'; addrEl.style.color = '#ff4d4f';
                     addrEl.innerText = "⚠️ 서울 외 지역입니다. 서울 안에서 선택해주세요.";
                     document.getElementById('pref_location').value = '';
-                    surveyResults.location = '';
-                    surveyResults.target_coords = { lat: 0, lng: 0 };
-                    if (confirmBtn) {
-                        confirmBtn.disabled = true;
-                        confirmBtn.style.opacity = '0.4';
-                        confirmBtn.style.cursor = 'not-allowed';
-                    }
+                    surveyResults.location = ''; surveyResults.target_coords = { lat: 0, lng: 0 };
+                    if (confirmBtn) { confirmBtn.disabled = true; confirmBtn.style.opacity = '0.4'; confirmBtn.style.cursor = 'not-allowed'; }
                 }
             }
         });
@@ -325,18 +400,13 @@
         naver.maps.Service.geocode({ query: query }, function(status, response) {
             if (status !== naver.maps.Service.Status.OK || response.v2.addresses.length === 0) return alert("결과가 없습니다.");
             const item = response.v2.addresses[0];
-            // 서울 외 검색 시 지도 이동 자체를 막음
             if (!item.roadAddress.includes("서울") && !item.jibunAddress.includes("서울")) {
                 const addrEl = document.getElementById('current-addr');
-                addrEl.style.background = '#fff0f0';
-                addrEl.style.borderColor = '#ff4d4f';
-                addrEl.style.color = '#ff4d4f';
-                addrEl.innerText = "⚠️ 서울 외 지역입니다. 서울 안에서 선택해주세요.";
-                return;
+                addrEl.style.background = '#fff0f0'; addrEl.style.borderColor = '#ff4d4f'; addrEl.style.color = '#ff4d4f';
+                addrEl.innerText = "⚠️ 서울 외 지역입니다. 서울 안에서 선택해주세요."; return;
             }
             const newPoint = new naver.maps.LatLng(item.y, item.x);
-            map.setCenter(newPoint);
-            updateAddress(newPoint);
+            map.setCenter(newPoint); updateAddress(newPoint);
         });
     }
 
@@ -344,12 +414,8 @@
     
     function confirmLocation() { 
         if(!document.getElementById('pref_location').value) return alert("위치를 선택해주세요."); 
-        if(!surveyResults.location.includes("서울")) {
-            alert("서울 안의 위치만 선택할 수 있어요.");
-            return;
-        }
-        surveyResults.location_type = "point";
-        nextStep(1); 
+        if(!surveyResults.location.includes("서울")) { alert("서울 안의 위치만 선택할 수 있어요."); return; }
+        surveyResults.location_type = "point"; nextStep(1); 
     }
     
     function skipStep0() { surveyResults.location = "상관없음"; nextStep(1); }
@@ -366,16 +432,14 @@
         currentIdx = idx;
         document.getElementById(`step-${currentIdx}`).classList.add('active');
         history.pushState({idx: idx}, `Step ${idx}`);
-        updateUI();
-        window.scrollTo(0, 0);
+        updateUI(); window.scrollTo(0, 0);
     }
 
     function prevStep(idx) {
         document.getElementById(`step-${currentIdx}`).classList.remove('active');
         currentIdx = idx;
         document.getElementById(`step-${currentIdx}`).classList.add('active');
-        updateUI();
-        window.scrollTo(0, 0);
+        updateUI(); window.scrollTo(0, 0);
     }
 
     function selectContract(type, btn) {
@@ -386,13 +450,11 @@
         document.getElementById('jeonse-area').style.display = (type === 'jeonse') ? 'block' : 'none';
     }
 
-    // 질문자님 핵심 로직: 예산을 기입하지 않아도 강제로 0으로 잡히지 않도록 Null 처리
     function validateStep1() {
         if (!surveyResults.contract_type) { alert("계약 형태를 선택해주세요!"); return; }
-        
         if (surveyResults.contract_type === 'monthly') {
-            surveyResults.budget.min_dep = document.getElementById('m_dep_min').value;
-            surveyResults.budget.max_dep = document.getElementById('m_dep_max').value;
+            surveyResults.budget.min_dep  = document.getElementById('m_dep_min').value;
+            surveyResults.budget.max_dep  = document.getElementById('m_dep_max').value;
             surveyResults.budget.min_rent = document.getElementById('m_rent_min').value;
             surveyResults.budget.max_rent = document.getElementById('m_rent_max').value;
         } else {
@@ -404,33 +466,37 @@
 
     function toggleBtn(btn, isMulti) {
         const group = btn.closest('.options-group');
-        if (!isMulti) {
-            group.querySelectorAll('.opt-btn').forEach(b => b.classList.remove('selected'));
-        }
+        if (!isMulti) group.querySelectorAll('.opt-btn').forEach(b => b.classList.remove('selected'));
         btn.classList.toggle('selected');
-        document.querySelector('.detail-empty').style.display = 'none';
+        const errEl = document.querySelector('.detail-empty');
+        if (errEl) errEl.style.display = 'none';
+    }
+
+    function toggleVfmBtn(btn, value) {
+        const group = btn.closest('.options-group');
+        group.querySelectorAll('.opt-btn').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        surveyResults.prefer_vfm = value;
+        const errEl = document.querySelector('.detail-empty');
+        if (errEl) errEl.style.display = 'none';
     }
 
     function validateStep2() {
         const step2 = document.getElementById('step-2');
-        const groups = step2.querySelectorAll('.options-group');
+        // 슬라이더는 항상 값이 있으므로 single-group 버튼만 체크
+        const groups = step2.querySelectorAll('.single-group');
         let isValid = true;
-
-        groups.forEach(group => {
-            if (group.querySelectorAll('.selected').length === 0) {
-                isValid = false;
-            }
-        });
+        groups.forEach(g => { if (!g.querySelector('.selected')) isValid = false; });
 
         if (!isValid) {
             step2.querySelector('.detail-empty').style.display = 'block';
             return;
         }
 
-        surveyResults.building_age = Array.from(step2.querySelector('[data-key="building_age"]').querySelectorAll('.selected')).map(b => b.innerText);
-        surveyResults.room_count = Array.from(step2.querySelector('[data-key="room_count"]').querySelectorAll('.selected')).map(b => b.innerText);
+        // 슬라이더 값 저장 (이미 oninput에서 실시간 반영됨)
         surveyResults.special_room = step2.querySelector('[data-key="special_room"] .selected').innerText;
-        surveyResults.parking = step2.querySelector('[data-key="parking"] .selected').innerText;
+        surveyResults.parking      = step2.querySelector('[data-key="parking"] .selected').innerText;
+        // prefer_vfm은 toggleVfmBtn에서 이미 저장됨
 
         nextStep(3); 
     }
@@ -477,7 +543,6 @@
         })
         .then(res => res.json())
         .then(data => {
-            // survey_id를 받아 결과 페이지로 즉시 이동 (AI 생성은 result 페이지에서 처리)
             if (data.status === "success") {
                 location.href = `/survey/result/by_id/${data.survey_id}`;
             } else {

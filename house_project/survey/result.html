@@ -287,6 +287,27 @@
         .fp-btn-search { flex: 2; background: #111; color: white; padding: 15px; border-radius: 14px; font-weight: 800; border: none; cursor: pointer; transition: 0.3s; }
         .fp-btn-search:hover { background: var(--primary); }
 
+        /* 필터 슬라이더 */
+        .fp-slider {
+            -webkit-appearance: none; appearance: none;
+            width: 100%; height: 5px; border-radius: 3px; outline: none; cursor: pointer;
+            background: linear-gradient(to right, #4facfe 100%, #e0e0e0 100%);
+        }
+        .fp-slider::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%;
+            background: #fff; border: 3px solid #4facfe;
+            box-shadow: 0 1px 4px rgba(79,172,254,0.4); cursor: pointer;
+        }
+        .fp-slider::-moz-range-thumb {
+            width: 20px; height: 20px; border-radius: 50%;
+            background: #fff; border: 3px solid #4facfe; cursor: pointer;
+        }
+        .fp-slider-bubble {
+            display: inline-block; background: #4facfe; color: #fff;
+            font-size: 0.82rem; font-weight: 800; padding: 4px 12px;
+            border-radius: 14px; margin-top: 8px;
+        }
+
         @media (max-width: 900px) {
             .grid-layout { grid-template-columns: 1fr; }
             .llm-output-panel { padding: 30px 20px; }
@@ -508,11 +529,24 @@
     </div>
 
     <div class="fp-group">
-        <label class="fp-label">방 개수 (중복 가능)</label>
-        <div class="fp-btns" style="grid-template-columns: 1fr 1fr 1fr;" id="f-room-group">
-            <button class="fp-btn" onclick="toggleFMulti(this)">1개</button>
-            <button class="fp-btn" onclick="toggleFMulti(this)">2개</button>
-            <button class="fp-btn" onclick="toggleFMulti(this)">3개 이상</button>
+        <label class="fp-label">🏗 건물 연식 (최대 허용)</label>
+        <div class="slider-wrap" style="padding-bottom:28px;">
+            <input type="range" id="f-age-slider" class="fp-slider" min="0" max="5" step="1" value="5" oninput="updateFAgeSlider(this.value)">
+            <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:#aaa;margin-top:4px;">
+                <span>신축</span><span>3년</span><span>5년</span><span>7년</span><span>10년</span><span>상관없음</span>
+            </div>
+            <div class="fp-slider-bubble" id="f-age-bubble">상관없음</div>
+        </div>
+    </div>
+
+    <div class="fp-group">
+        <label class="fp-label">🚪 최소 방 개수</label>
+        <div class="slider-wrap" style="padding-bottom:28px;">
+            <input type="range" id="f-room-slider" class="fp-slider" min="1" max="3" step="1" value="1" oninput="updateFRoomSlider(this.value)">
+            <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:#aaa;margin-top:4px;">
+                <span>1개(원룸)</span><span style="text-align:center;">2개 이상</span><span style="text-align:right;">3개 이상</span>
+            </div>
+            <div class="fp-slider-bubble" id="f-room-bubble">1개(원룸) 이상</div>
         </div>
     </div>
 
@@ -529,6 +563,15 @@
         <div class="fp-btns" id="f-parking-group">
             <button class="fp-btn" onclick="toggleFSingle(this)">네, 필요해요</button>
             <button class="fp-btn" onclick="toggleFSingle(this)">아니요, 상관없어요</button>
+        </div>
+    </div>
+
+    <div class="fp-group">
+        <label class="fp-label">💰 가성비 점수 반영</label>
+        <p style="font-size:0.8rem;color:#999;margin:-5px 0 10px;">가성비 점수 30%를 매칭에 포함합니다</p>
+        <div class="fp-btns" id="f-vfm-group">
+            <button class="fp-btn" onclick="toggleFSingle(this)">💸 가성비 반영</button>
+            <button class="fp-btn" onclick="toggleFSingle(this)">🏆 라이프스타일만</button>
         </div>
     </div>
 
@@ -664,6 +707,16 @@
     const initRoomCount = {{ survey.get('room_count', []) | tojson }};
     const initSpecialRoom = "{{ survey.get('special_room', '') }}";
     const initParking = "{{ survey.get('parking', '') }}";
+    const initMaxBuildingAge = {{ survey.get('max_building_age') | tojson }};
+    const initMinRoomCount = {{ survey.get('min_room_count', 1) | tojson }};
+    const initPreferVfm = {{ (prefer_vfm if prefer_vfm is defined else false) | tojson }};
+
+    // 슬라이더 설정
+    const F_AGE_STEPS  = [0, 3, 5, 7, 10, null];
+    const F_AGE_LABELS = ['신축만','3년까지','5년까지','7년까지','10년까지','상관없음'];
+    const F_ROOM_LABELS = ['1개(원룸) 이상','2개 이상','3개 이상'];
+    let fMaxBuildingAge = initMaxBuildingAge;
+    let fMinRoomCount   = initMinRoomCount || 1;
 
     let myChart;
     let currentSlide = 0;
@@ -864,18 +917,33 @@
         btn.classList.add('selected');
     }
 
+    // ── 필터 슬라이더 함수 ──
+    function updateFAgeSlider(val) {
+        val = parseInt(val);
+        fMaxBuildingAge = F_AGE_STEPS[val];
+        document.getElementById('f-age-bubble').textContent = F_AGE_LABELS[val];
+        const pct = (val / 6) * 100;
+        document.getElementById('f-age-slider').style.background =
+            `linear-gradient(to right,#4facfe ${pct}%,#e0e0e0 ${pct}%)`;
+    }
+
+    function updateFRoomSlider(val) {
+        val = parseInt(val);
+        fMinRoomCount = val;
+        document.getElementById('f-room-bubble').textContent = F_ROOM_LABELS[val - 1];
+        const pct = ((val - 1) / 2) * 100;
+        document.getElementById('f-room-slider').style.background =
+            `linear-gradient(to right,#4facfe ${pct}%,#e0e0e0 ${pct}%)`;
+    }
+
     function initFilterPanel() {
         if (initContract === 'monthly' || initContract === 'jeonse') {
             selectFContract(initContract);
-            
-            const maxDep = initBudget.max_dep;
-            const maxRent = initBudget.max_rent;
-            const minDep = initBudget.min_dep;
-            const minRent = initBudget.min_rent;
-
+            const maxDep = initBudget.max_dep, maxRent = initBudget.max_rent;
+            const minDep = initBudget.min_dep, minRent = initBudget.min_rent;
             if (initContract === 'monthly') {
-                document.getElementById('f_m_dep_min').value = (minDep == null) ? '' : minDep;
-                document.getElementById('f_m_dep_max').value = (maxDep == null || maxDep === 2000000000) ? '' : maxDep;
+                document.getElementById('f_m_dep_min').value  = (minDep == null) ? '' : minDep;
+                document.getElementById('f_m_dep_max').value  = (maxDep == null || maxDep === 2000000000) ? '' : maxDep;
                 document.getElementById('f_m_rent_min').value = (minRent == null) ? '' : minRent;
                 document.getElementById('f_m_rent_max').value = (maxRent == null || maxRent === 10000000) ? '' : maxRent;
             } else {
@@ -884,17 +952,31 @@
             }
         }
 
-        document.querySelectorAll('#f-room-group .fp-btn').forEach(btn => {
-            if (initRoomCount.includes(btn.innerText)) btn.classList.add('selected');
-        });
+        // 연식 슬라이더 초기화
+        const ageIdx = initMaxBuildingAge === null || initMaxBuildingAge === undefined
+            ? 6
+            : F_AGE_STEPS.indexOf(initMaxBuildingAge);
+        const ageInitIdx = ageIdx < 0 ? 6 : ageIdx;
+        document.getElementById('f-age-slider').value = ageInitIdx;
+        updateFAgeSlider(ageInitIdx);
 
+        // 방 개수 슬라이더 초기화
+        const roomInit = initMinRoomCount || 1;
+        document.getElementById('f-room-slider').value = roomInit;
+        updateFRoomSlider(roomInit);
+
+        // 반지하/주차 버튼
         document.querySelectorAll('#f-special-group .fp-btn').forEach(btn => {
             if (btn.innerText === initSpecialRoom) btn.classList.add('selected');
         });
-
         document.querySelectorAll('#f-parking-group .fp-btn').forEach(btn => {
             if (btn.innerText === initParking) btn.classList.add('selected');
         });
+
+        // 가성비 버튼 초기화
+        const vfmBtns = document.querySelectorAll('#f-vfm-group .fp-btn');
+        if (initPreferVfm) vfmBtns[0].classList.add('selected');
+        else               vfmBtns[1].classList.add('selected');
     }
 
     function resetFilters() {
@@ -903,14 +985,16 @@
         document.querySelectorAll('.fp-inputs input').forEach(inp => inp.value = '');
         document.getElementById('f-monthly-area').style.display = 'none';
         document.getElementById('f-jeonse-area').style.display = 'none';
+        document.getElementById('f-age-slider').value = 5; updateFAgeSlider(5);
+        document.getElementById('f-room-slider').value = 1; updateFRoomSlider(1);
     }
 
     function applyFiltersAndSearch() {
         const filters = { contract_type: currentFContract };
         
         if (currentFContract === 'monthly') {
-            filters.min_dep = document.getElementById('f_m_dep_min').value;
-            filters.max_dep = document.getElementById('f_m_dep_max').value;
+            filters.min_dep  = document.getElementById('f_m_dep_min').value;
+            filters.max_dep  = document.getElementById('f_m_dep_max').value;
             filters.min_rent = document.getElementById('f_m_rent_min').value;
             filters.max_rent = document.getElementById('f_m_rent_max').value;
         } else if (currentFContract === 'jeonse') {
@@ -918,12 +1002,18 @@
             filters.max_dep = document.getElementById('f_j_dep_max').value;
         }
 
-        filters.room_count = Array.from(document.querySelectorAll('#f-room-group .selected')).map(b => b.innerText);
+        // 슬라이더 값
+        filters.max_building_age = fMaxBuildingAge;   // null or 숫자
+        filters.min_room_count   = fMinRoomCount;
+
         const specialBtn = document.querySelector('#f-special-group .selected');
         filters.special_room = specialBtn ? specialBtn.innerText : "";
-        
         const parkBtn = document.querySelector('#f-parking-group .selected');
         filters.parking = parkBtn ? parkBtn.innerText : "";
+
+        // 가성비 반영 여부
+        const vfmBtn = document.querySelector('#f-vfm-group .selected');
+        filters.prefer_vfm = vfmBtn ? vfmBtn.innerText.includes('가성비') : false;
 
         toggleFilterPanel(false);
         showLoader("수정된 조건으로 매물을 다시 큐레이션 중입니다...");
@@ -983,6 +1073,16 @@
                 plugins: { legend: { display: false } }
             }
         });
+    }
+
+    function renderVfmBadge(score) {
+        if (score === undefined || score === null) return '';
+        let color, label;
+        if (score >= 90)      { color = '#e84393'; label = '🔥 역대급 꿀매'; }
+        else if (score >= 70) { color = '#00b09b'; label = '💰 가성비 우수'; }
+        else if (score >= 50) { color = '#f7971e'; label = '📊 시장가'; }
+        else                  { color = '#aaa';    label = '⚠️ 가성비 낮음'; }
+        return `<span style="background:${color};color:white;font-size:0.8rem;font-weight:800;padding:4px 12px;border-radius:20px;white-space:nowrap;">${label} ${score}점</span>`;
     }
 
     function movePropertySlide(id, direction, event) {
@@ -1050,7 +1150,10 @@
                     </div>
 
                     <div class="p-info">
-                        <div class="p-score">${item.match_score}점</div>
+                        <div class="p-score" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                            <span>${item.match_score}점 매칭</span>
+                            ${renderVfmBadge(item.vfm_score)}
+                        </div>
                         <span class="p-price">${item.rent_type} ${item.price_display}</span>
                         <div class="p-addr">${item.address}</div>
                         

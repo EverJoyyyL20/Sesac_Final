@@ -15,29 +15,10 @@
             <img src="{{ url_for('static', filename='image/logo.png') }}" alt="홈 로고" class="nav-logo">
         </a>
         <a href="{{ url_for('find.find') }}">매물찾기</a>
-        <a href="{{ url_for('survey.survey_short', index=0) }}" class="nav-short-btn">매물쇼츠</a>
     </div>
     <div class="nav-links">
-    {% if session.get('user_id') %}
-        <span class="welcome-text">
-            
-            {% set profile_img = session.get('profile_img_name', 'default.png') %}
-            {% if profile_img.startswith('http') %}
-                <img src="{{ profile_img }}"
-                    class="nav-profile-img" alt="프로필">
-            {% else %}
-                <img src="{{ url_for('static', filename='profile_pics/' + profile_img) }}"
-                    class="nav-profile-img" alt="프로필">
-            {% endif %}
-            
-            <strong>{{ session.get('nickname') }}</strong>님
-        </span>
-        <a href="{{ url_for('mypage.mypage') }}">마이페이지</a>
-        <a href="{{ url_for('auth.logout') }}">로그아웃</a>
-    {% else %}
         <a href="{{ url_for('auth.login') }}">로그인</a>
         <a href="{{ url_for('auth.register') }}">회원가입</a>
-    {% endif %}
     </div>
 </div>
 

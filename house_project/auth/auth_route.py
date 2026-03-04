@@ -260,8 +260,14 @@ def kakao_callback():
         resp = kakao.get('v2/user/me')
         user_info = resp.json()
 
-        # 3️⃣ 이메일 추출
-        email = user_info.get('kakao_account', {}).get('email')
+        # 3️⃣ 데이터 추출 (이메일 및 카카오 프로필 이미지)
+        kakao_account = user_info.get('kakao_account', {})
+        email = kakao_account.get('email')
+        profile = kakao_account.get('profile', {})
+        # 카카오톡 프로필 이미지 URL 가져오기
+        print(f"DEBUG - 카카오 계정 정보: {kakao_account}")
+        print(f"DEBUG - 프로필 정보: {profile}")
+        kakao_profile_img = profile.get('profile_image_url') or profile.get('thumbnail_image_url') or 'default.png'
 
         if not email:
             return "이메일 정보를 가져올 수 없습니다.", 400
@@ -273,6 +279,7 @@ def kakao_callback():
         user = users_col.find_one({"email": email})
 
         if not user:
+            # 신규 회원가입 시 카카오 프로필 이미지를 저장
             temp_nickname = generate_temp_nickname()
             user_document = {
                 'email': email,
@@ -280,18 +287,25 @@ def kakao_callback():
                 'nickname': temp_nickname,
                 'introduction': '',
                 'Bookmark': [],
-                'Profile_IMG': 'default.png',
+                'Profile_IMG': kakao_profile_img if kakao_profile_img else 'default.png',
                 'Weight': {'traffic':0, 'convenience':0, 'green':0, 'play':0, 'health':0, 'living':0, 'safety':0},
                 'is_social': True
             }
             users_col.insert_one(user_document)
             user = user_document
+        else:
+            # 기존 회원인데 프로필 이미지가 없는 경우 업데이트 (선택 사항)
+            if not user.get('Profile_IMG') or user.get('Profile_IMG') == 'default.png':
+                if kakao_profile_img:
+                    users_col.update_one({"email": email}, {"$set": {"Profile_IMG": kakao_profile_img}})
+                    user['Profile_IMG'] = kakao_profile_img
             
+        # 5️⃣ 세션 저장
         session['user_id'] = user['email']
         session['nickname'] = user.get('nickname', '카카오회원')
         session['is_social'] = True
         
-        # ⭐️ 프로필 이미지 세션 연동
+        # 프로필 이미지 URL 또는 파일명을 세션에 연동
         session['profile_img_name'] = user.get('Profile_IMG', 'default.png')
 
         if not user.get('introduction') and not user.get('is_setup_done'):

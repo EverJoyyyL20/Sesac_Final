@@ -154,8 +154,12 @@
             
             <div class="profile-side">
                 <div class="img-wrapper">
-                    <img id="preview" src="{{ url_for('static', filename='profile_pics/' + (profile_img if profile_img else 'default.png')) }}" 
-                         onerror="this.src='/static/profile_pics/default.png'">
+                    {% set display_img = profile_img if profile_img else 'default.png' %}
+                    <img id="preview" 
+                         src="{{ display_img if display_img.startswith('http') else url_for('static', filename='profile_pics/' + display_img) }}" 
+                         onerror="this.src='{{ url_for('static', filename='profile_pics/default.png') }}'"
+                         style="width: 200px; height: 180px; object-fit: cover; border-radius: 50%;">
+
                     <label for="profile_img" class="btn-camera">
                         <i class="fa-solid fa-camera"></i>
                     </label>
