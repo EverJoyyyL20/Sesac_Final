@@ -480,19 +480,34 @@
     async function handleFavorite(propId, event) {
         if (event) event.stopPropagation();
         try {
-            const res  = await fetch('/api/favorite', {
+            const res = await fetch('/api/favorite', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ property_id: propId })
             });
+
+            // 쇼츠 페이지 handleFavorite 함수 내부
+            if (res.status === 401) {
+                if (confirm("로그인이 필요한 서비스입니다.\n로그인 후 마이페이지 찜 목록에서 확인하실 수 있습니다.")) {
+                    // 목적지를 '/mypage'로 설정하고, 찜할 ID 정보를 쿼리 스트링으로 붙입니다.
+                    const nextUrl = `/mypage?action=wish&wish_id=${propId}`; 
+                    window.location.href = `/login?next=${encodeURIComponent(nextUrl)}`;
+                }
+                return;
+            }
+
             const data = await res.json();
             if (data.status === 'success') {
                 const btn = document.getElementById(`fav-${propId}`);
                 if (btn) btn.innerHTML = data.action === 'added'
                     ? '<i class="fa-solid fa-heart"></i>'
                     : '<i class="fa-regular fa-heart"></i>';
-            } else { alert(data.message); }
-        } catch (e) { console.error('Favorite Error:', e); }
+            } else {
+                alert(data.message);
+            }
+        } catch (e) {
+            console.error('Favorite Error:', e);
+        }
     }
 
     // ── 더블탭 찜하기 ─────────────────────────────────────────────────

@@ -15,6 +15,7 @@
             <img src="{{ url_for('static', filename='image/logo.png') }}" alt="홈 로고" class="nav-logo">
         </a>
         <a href="{{ url_for('find.find') }}">매물찾기</a>
+        <a href="{{ url_for('survey.survey_short', index=0) }}" class="nav-short-btn">매물쇼츠</a>
     </div>
     <div class="nav-links">
         <a href="{{ url_for('auth.login') }}">로그인</a>
@@ -26,7 +27,7 @@
     <div class="login-box">
         <h2>로그인</h2>
         
-        <form action="{{ url_for('auth.login') }}" method="post">
+        <form action="{{ url_for('auth.login', next=request.args.get('next')) }}" method="post">
             <div class="input-group">
                 <input type="email" name="email" placeholder="이메일 주소 (example@email.com)" required>
             </div>
@@ -39,14 +40,14 @@
         <div class="divider">
             <span>또는</span>
         </div>
-        <button type="button" class="google-btn" onclick="location.href='/login/google'">
+        <button type="button" class="google-btn" onclick="location.href='/login/google?next={{ request.args.get('next', '') }}'">
               <img src="{{ url_for('static', filename='image/google.svg') }}" alt="Google Logo">
               <span>Google로 시작하기</span>
         </button>
-        <button type="button" class="naver-btn" onclick="location.href='/login/naver'">
+        <button type="button" class="naver-btn" onclick="location.href='/login/naver?next={{ request.args.get('next', '') }}'">
             <img src="{{ url_for('static', filename='image/naver.png') }}" alt="네이버 로그인">
         </button>
-        <button type="button" class="kakao-btn" onclick="location.href='/login/kakao'">
+        <button type="button" class="kakao-btn" onclick="location.href='/login/kakao?next={{ request.args.get('next', '') }}'">
             <img src="{{ url_for('static', filename='image/kakao.png') }}" alt="카카오 로그인">
         </button> 
         <div class="signup-link">
