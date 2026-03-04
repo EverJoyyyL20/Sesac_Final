@@ -641,6 +641,11 @@
                     wrapper.insertBefore(section, sentinel);
                     initSwiper(section.querySelector('.mySwiper'));
                     initChart(newChartId, item.chart_data);
+
+                    // 새 카드에도 현재 vfmMode 상태 즉시 반영
+                    section.querySelectorAll('.vfm-badge').forEach(el => {
+                        el.style.display = vfmMode ? 'inline-block' : 'none';
+                    });
                 });
             } else {
                 sentinel.innerText = '모든 추천 매물을 확인했습니다.';

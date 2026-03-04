@@ -354,6 +354,18 @@ def chat_search():
     3. 기존 조건 보존: 사용자가 명시적으로 바꾸거나 지우지 않는 한, [기존 조건]에 있던 값은 무조건 새 JSON에 복사하세요.
     4. 🚫 서울 한정 서비스 (엄격 적용): 본 서비스는 오직 **'서울시'** 내의 매물만 제공합니다. 
        - 사용자가 경기도 등 서울 외 지역을 검색하면, "is_ready_to_search"를 false로 하고 `reply_msg`에 "현재 저희 서비스는 서울 지역 매물만 다루고 있습니다."라고 안내하세요.
+    5. 💰 가성비 필터 추론:
+       - 사용자가 "가성비", "저렴한", "싼", "꿀매", "가성비 좋은", "비용 대비", "가격 대비" 등을 언급하면 -> "vfm_min"을 설정하세요.
+       - 단순히 가성비를 원하면 vfm_min: 70 (가성비 우수 기준)
+       - "아주 가성비 좋은", "최고 가성비", "역대급 꿀매" 등 강조하면 vfm_min: 90
+       - "어느 정도 가성비" 등 약한 표현이면 vfm_min: 50
+       - 가성비 조건을 없애거나 "상관없다"고 하면 vfm_min: null
+
+    [가성비 점수 기준 안내 (reply_msg에서 설명할 때 참고)]
+    - 90점 이상: 🔥 역대급 꿀매 (면적 대비 비용이 매우 저렴)
+    - 70점 이상: 💰 가성비 우수
+    - 50점 이상: 📊 시장 평균 수준
+    - 50점 미만: 비용이 다소 높은 편
 
     [기존 누적 조건]
     {current_state}
@@ -371,6 +383,7 @@ def chat_search():
         "max_rent": 최대 월세 (만원 단위 숫자. 상관없으면 null),
         "room_count": "1", "2", "3+" 중 하나 (상관없으면 null),
         "parking": true, false 또는 null,
+        "vfm_min": 가성비 최소 점수 (숫자. 예: 70. 없으면 null),
         "is_ready_to_search": 충분한 정보가 모였거나 사용자가 "아무거나/상관없다"고 하면 무조건 true,
         "reply_msg": "HTML <br>을 활용한 자연스럽고 세련된 안내 멘트"
     }}
@@ -448,12 +461,36 @@ def chat_search():
             
         if parsed.get("parking") is True or str(parsed.get("parking")).lower() == "true":
             db_query["hasParking"] = "주차 가능"
-            
-        # 5. 매물 검색
-        items = list(houses_col.find(db_query).limit(100))
-        formatted_items = [{**item, "_id": str(item['_id'])} for item in items]
+
+        # 5. 가성비 필터 파싱
+        vfm_min_chat = safe_int(parsed.get("vfm_min"))
+
+        # 6. 매물 검색 — 가성비 필터가 있으면 전체 조회 후 필터링, 없으면 limit(100)
+        if vfm_min_chat is not None:
+            raw_items = list(houses_col.find(db_query))
+            formatted_items = []
+            for item in raw_items:
+                item_dict = {**item, "_id": str(item['_id'])}
+                item_dict['vfm_score'] = get_vfm_score_fp(item)
+                if item_dict['vfm_score'] >= vfm_min_chat:
+                    formatted_items.append(item_dict)
+            formatted_items = formatted_items[:100]
+        else:
+            raw_items = list(houses_col.find(db_query).limit(100))
+            formatted_items = []
+            for item in raw_items:
+                item_dict = {**item, "_id": str(item['_id'])}
+                item_dict['vfm_score'] = get_vfm_score_fp(item)
+                formatted_items.append(item_dict)
 
         reply_html = parsed.get("reply_msg", f"{nickname}님, 분석 중입니다.")
+        
+        # 가성비 필터가 활성화된 경우 안내 문구 추가
+        if vfm_min_chat is not None:
+            vfm_labels = {90: "🔥 역대급 꿀매", 70: "💰 가성비 우수", 50: "📊 시장가 수준"}
+            vfm_label = next((v for k, v in sorted(vfm_labels.items(), reverse=True) if vfm_min_chat >= k), "가성비 필터")
+            reply_html += f"<br><span style='font-size:0.82rem;color:#f7971e;font-weight:700;'>💰 가성비 {vfm_min_chat}점 이상 ({vfm_label}) 필터 적용 중</span>"
+
         show_reset = False
 
         # 6. 결과 렌더링
@@ -463,10 +500,21 @@ def chat_search():
                 cards_html = "<div style='margin-top:15px; display:flex; flex-direction:column; gap:10px;'>"
                 for it in recommended:
                     price_str = f"월세 {it.get('deposit', 0)}/{it.get('price', 0)}" if it.get('rent_type') == '월세' else f"전세 {it.get('price', 0)}"
+                    vfm = it.get('vfm_score')
+                    if vfm is not None:
+                        if vfm >= 90:   vfm_badge = f"<span style='background:#e84393;color:white;font-size:0.72rem;font-weight:800;padding:2px 8px;border-radius:12px;'>🔥 꿀매 {vfm}점</span>"
+                        elif vfm >= 70: vfm_badge = f"<span style='background:#00b09b;color:white;font-size:0.72rem;font-weight:800;padding:2px 8px;border-radius:12px;'>💰 가성비 {vfm}점</span>"
+                        elif vfm >= 50: vfm_badge = f"<span style='background:#f7971e;color:white;font-size:0.72rem;font-weight:800;padding:2px 8px;border-radius:12px;'>📊 시장가 {vfm}점</span>"
+                        else:           vfm_badge = f"<span style='background:#aaa;color:white;font-size:0.72rem;font-weight:800;padding:2px 8px;border-radius:12px;'>⚠️ {vfm}점</span>"
+                    else:
+                        vfm_badge = ""
                     cards_html += f"""
                     <div style='background:#f1f2f6; border:1px solid #e2e8f0; padding:15px; border-radius:12px; font-size:0.95rem;'>
                         <div style='font-weight:900; margin-bottom:5px; color:#111;'>📍 {it.get('address', '주소 없음')}</div>
-                        <div style='color:#4facfe; font-weight:800; margin-bottom:10px;'>💰 {price_str}</div>
+                        <div style='display:flex;align-items:center;gap:6px;margin-bottom:10px;flex-wrap:wrap;'>
+                            <span style='color:#4facfe; font-weight:800;'>💰 {price_str}</span>
+                            {vfm_badge}
+                        </div>
                         <button onclick="focusPropertyFromChat('{str(it['_id'])}')" style='background:#111; color:#fff; border:none; padding:8px 12px; border-radius:8px; cursor:pointer; width:100%; font-weight:bold; transition:0.2s;'>상세정보 보기</button>
                     </div>
                     """
