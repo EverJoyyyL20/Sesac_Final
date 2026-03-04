@@ -119,11 +119,35 @@ def mypage():
             else:
                 budget_text = f"전세 {dep_txt}"
 
-        building_age_list = s.get('building_age', [])
-        age_info = ", ".join(building_age_list) if building_age_list else '연식미상'
+        # ── 연식 표시 (슬라이더 방식: max_building_age 숫자 or None) ──
+        max_age = s.get('max_building_age')          # None = 상관없음, 숫자 = 최대 연식
+        if max_age is None and 'max_building_age' not in s:
+            # 구형 데이터 호환: 예전 building_age 리스트
+            building_age_list = s.get('building_age', [])
+            age_info = ', '.join(building_age_list) if building_age_list else '연식 상관없음'
+        elif max_age is None:
+            age_info = '연식 상관없음'
+        elif max_age == 0:
+            age_info = '신축만'
+        else:
+            age_info = f'{max_age}년 이하'
 
-        room_count_list = s.get('room_count', [])
-        room_info = f"방 {', '.join(room_count_list)}" if room_count_list else "정보 없음"
+        # ── 방 개수 표시 (슬라이더 방식: min_room_count 숫자) ──
+        min_room = s.get('min_room_count')           # 1, 2, 3
+        if min_room is None and 'min_room_count' not in s:
+            # 구형 데이터 호환
+            room_count_list = s.get('room_count', [])
+            room_info = f"방 {', '.join(room_count_list)}" if room_count_list else '방 상관없음'
+        elif min_room is None:
+            room_info = '방 상관없음'
+        elif min_room == 1:
+            room_info = '방 1개(원룸) 이상'
+        elif min_room == 2:
+            room_info = '방 2개 이상'
+        elif min_room == 3:
+            room_info = '방 3개 이상'
+        else:
+            room_info = f'방 {min_room}개 이상'
         
         main_info = f"{age_info} · {room_info}"
 

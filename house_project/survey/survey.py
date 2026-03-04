@@ -134,6 +134,125 @@ def generate_recommendation_reason(user_id, nw, house_info):
     except Exception:
         return "고객님의 라이프스타일 지표를 분석한 결과, 가장 추천해 드리는 맞춤형 매물입니다."
 
+def _to_manwon(value):
+    """
+    DB 금액을 만원 단위로 통일.
+    숫자 또는 "전세 24000" 같은 문자열 모두 처리.
+    원 단위(≥10,000,000)이면 /10,000.
+    """
+    import re as _re
+    if value is None:
+        return 0.0
+    if isinstance(value, (int, float)):
+        v = float(value)
+        if v <= 0: return 0.0
+        if v >= 10_000_000: return v / 10_000
+        return v
+    s = str(value).replace(',', '').strip()
+    m = _re.search(r'[\d.]+', s)
+    if not m: return 0.0
+    try:
+        v = float(m.group())
+    except ValueError:
+        return 0.0
+    if v <= 0: return 0.0
+    if v >= 10_000_000: return v / 10_000
+    return v
+
+
+def get_vfm_score_100(house):
+    """
+    매물 dict → 100점 만점 가성비 점수.
+
+    VFM.py 와 완전히 동일한 계산 방식:
+      expense_per_m2 = (3년 총비용) / size_m2
+
+      전세: 3년 총비용 = 전세금 × 0.04 × 3  (기회비용)
+            * price 필드 = 전세금(만원), deposit = 0
+      월세: 3년 총비용 = 보증금 × 0.04 × 3 + 월세 × 12 × 3
+
+    stats_map 단위: 만원/㎡  (VFM.py 분석 결과 그대로)
+    """
+    import re as _re
+
+    YEARS = 3
+    RATE  = 0.04
+
+    stats_map = {
+        '전세_Normal':   {'peak': 99.4,  'mean': 96.2,  'std': 40.0},
+        '월세_Normal':   {'peak': 91.9,  'mean': 124.8, 'std': 51.3},
+        '월세_Basement': {'peak': 77.7,  'mean': 76.3,  'std': 22.3},
+        '전세_Basement': {'peak': 26.4,  'mean': 31.7,  'std': 11.7},
+    }
+
+    rent_type   = house.get('rent_type', '')
+    floor_str   = str(house.get('floor', ''))
+    is_basement = '반지하' in floor_str
+    layer       = 'Basement' if is_basement else 'Normal'
+    group       = f"{rent_type}_{layer}"
+
+    if group not in stats_map:
+        print(f"[VFM] 알 수 없는 그룹: {group!r}")
+        return 60.0
+
+    stats = stats_map[group]
+
+    # ── 면적 ──────────────────────────────────────────────────────────
+    size = 0.0
+    size_key_used = None
+    for key in ('size_m2', 'area', 'size', 'supply_area', 'exclusive_area',
+                'area_m2', 'private_area', 'net_area', 'living_area', '전용면적', '공급면적'):
+        raw = house.get(key)
+        if raw is None:
+            continue
+        try:
+            candidate = float(raw)
+        except (TypeError, ValueError):
+            m = _re.search(r'[\d.]+', str(raw))
+            candidate = float(m.group()) if m else 0.0
+        if candidate > 0:
+            size = candidate
+            size_key_used = key
+            break
+
+    if size <= 0:
+        safe_keys = [k for k in house.keys()
+                     if k not in ('_id', 'images', 'category_scores', 'ai_comments_v2')]
+        print(f"[VFM] 면적 필드 없음 — rent_type={rent_type!r} 필드: {safe_keys}")
+        return 60.0
+
+    # ── 금액 → 만원 단위 ──────────────────────────────────────────────
+    deposit = _to_manwon(house.get('deposit', 0))
+    price   = _to_manwon(house.get('price',   0))
+
+    # ── 3년 총비용 계산 (VFM.py calculate_total_cost 동일) ───────────
+    if rent_type == '전세':
+        real_deposit  = deposit if deposit > 0 else price   # deposit=0이면 price가 전세금
+        total_expense = real_deposit * RATE * YEARS
+    else:
+        total_expense = deposit * RATE * YEARS + price * 12 * YEARS
+
+    if total_expense <= 0:
+        print(f"[VFM] total_expense=0 — deposit={deposit} price={price}")
+        return 60.0
+
+    expense_per_m2 = total_expense / size
+
+    # ── 점수 계산 (VFM.py calculate_vfm_score_pro 동일) ─────────────
+    center    = stats['peak'] if stats['mean'] > stats['peak'] * 1.1 else stats['mean']
+    z         = (center - expense_per_m2) / stats['std']
+    raw_score = 60.0 + (z * 18.0)
+
+    # 가산점: 최우선변제 보증금 5500만원 이하
+    if deposit <= 5500:
+        raw_score += 5
+    if size < 15:
+        raw_score -= 5   # 고시원급 감점
+
+    final = round(max(0.0, min(100.0, raw_score)), 1)
+    return final
+
+
 def get_user_normalized_weights(category_log, custom_weights=None):
     if custom_weights:
         w_sum = sum(custom_weights.values())
@@ -164,78 +283,128 @@ def format_property_data(houses, user_liked_ids=None):
         h['is_liked'] = False
         if user_liked_ids and h['_id_str'] in user_liked_ids:
             h['is_liked'] = True
+        # 가성비 점수 계산
+        h['vfm_score'] = get_vfm_score_100(h)
     return houses
 
-def build_match_pipeline(match_query, nw, target_coords=None, limit=10, is_random=False):
+def build_match_pipeline(match_query, nw, target_coords=None, limit=10, is_random=False, use_vfm=False):
+    """
+    use_vfm=True: 기존 라이프스타일:거리 = 8:2 비율을 유지하면서
+    가성비(Python 후처리)가 30% 추가되는 구조.
+    MongoDB 단계는 라이프스타일·거리로만 정렬 → Python에서 VFM 합산 후 재정렬.
+    """
     pipeline = []
     lifestyle_score_expr = {"$add": [{"$multiply": [{"$ifNull": [f"$category_scores.{c}", 0]}, nw[c]]} for c in nw]}
 
-    if target_coords and 'lng' in target_coords and 'lat' in target_coords and float(target_coords.get('lat', 0)) != 0:
+    has_coords = target_coords and 'lng' in target_coords and 'lat' in target_coords and float(target_coords.get('lat', 0)) != 0
+
+    if has_coords:
         pipeline.append({
             "$geoNear": {
-                "near": {
-                    "type": "Point", 
-                    "coordinates": [float(target_coords['lng']), float(target_coords['lat'])]
-                },
+                "near": {"type": "Point", "coordinates": [float(target_coords['lng']), float(target_coords['lat'])]},
                 "distanceField": "distance_meters",
                 "spherical": True,
                 "query": match_query
             }
         })
         dist_score_expr = {"$divide": [{"$max": [0, {"$subtract": [5000, "$distance_meters"]}]}, 50]}
-        final_score_expr = {
-            "$add": [
+        if use_vfm:
+            # 라이프스타일 56% + 거리 14% (가성비 30%는 Python 후처리)
+            base_expr = {"$add": [
+                {"$multiply": [lifestyle_score_expr, 100, 0.56]},
+                {"$multiply": [dist_score_expr, 0.14]}
+            ]}
+        else:
+            base_expr = {"$add": [
                 {"$multiply": [lifestyle_score_expr, 100, 0.7]},
                 {"$multiply": [dist_score_expr, 0.3]}
-            ]
-        }
+            ]}
     else:
         pipeline.append({"$match": match_query})
-        final_score_expr = {"$multiply": [lifestyle_score_expr, 100]}
+        if use_vfm:
+            base_expr = {"$multiply": [lifestyle_score_expr, 70]}  # 70% (가성비 30% Python 후처리)
+        else:
+            base_expr = {"$multiply": [lifestyle_score_expr, 100]}
 
-    pipeline.append({
-        "$addFields": {
-            "match_score": {"$round": [final_score_expr, 1]}
-        }
-    })
+    pipeline.append({"$addFields": {"match_score": {"$round": [base_expr, 1]}}})
 
     if is_random:
-        pipeline.append({"$match": {"match_score": {"$gte": 50.0}}})
+        pipeline.append({"$match": {"match_score": {"$gte": 35.0}}})
         pipeline.append({"$sample": {"size": limit}})
     else:
         pipeline.append({"$sort": {"match_score": -1}})
         pipeline.append({"$limit": limit})
-        
+
     return pipeline
 
-def apply_detail_filters(query, selected_survey):
-    b_age = selected_survey.get('building_age', [])
-    if b_age:
-        current_year = datetime.now().year
-        age_conditions = []
-        for age in b_age:
-            if "신축" in age:
-                age_conditions.append({"built_year": {"$gte": str(current_year - 5)}})
-                age_conditions.append({"year_built": {"$gte": str(current_year - 5)}})
-            elif "준신축" in age:
-                age_conditions.append({"built_year": {"$gte": str(current_year - 10), "$lt": str(current_year - 5)}})
-                age_conditions.append({"year_built": {"$gte": str(current_year - 10), "$lt": str(current_year - 5)}})
-            elif "구축" in age:
-                age_conditions.append({"built_year": {"$lt": str(current_year - 10), "$gte": "1000"}})
-                age_conditions.append({"year_built": {"$lt": str(current_year - 10), "$gte": "1000"}})
-        if age_conditions:
-            query.setdefault("$and", []).append({"$or": age_conditions})
 
-    r_count = selected_survey.get('room_count', [])
-    if r_count:
-        room_conditions = []
-        for rc in r_count:
-            if rc == "1개": room_conditions.append({"room_counts": "1개"})
-            elif rc == "2개": room_conditions.append({"room_counts": "2개"})
-            elif rc == "3개 이상":
-                room_conditions.append({"room_counts": {"$regex": "^[3-9]개|^[1-9][0-9]+개"}})
-        if room_conditions:
-            query.setdefault("$and", []).append({"$or": room_conditions})
+def apply_vfm_to_results(houses):
+    """가성비 점수(30%)를 match_score에 합산하고 재정렬"""
+    for h in houses:
+        vfm = h.get('vfm_score', 60.0)
+        h['match_score'] = round(h.get('match_score', 0) + vfm * 0.3, 1)
+    houses.sort(key=lambda x: x.get('match_score', 0), reverse=True)
+    return houses
+
+
+def apply_detail_filters(query, selected_survey):
+    current_year = datetime.now().year
+
+    # --- 건물 연식: 슬라이더 값(정수, 연도 기준) ---
+    max_age = selected_survey.get('max_building_age')   # None = 상관없음
+    if max_age is not None:
+        try:
+            max_age = int(max_age)
+            oldest_year = str(current_year - max_age)
+            query.setdefault("$and", []).append({"$or": [
+                {"built_year": {"$gte": oldest_year}},
+                {"year_built": {"$gte": oldest_year}}
+            ]})
+        except (TypeError, ValueError):
+            pass
+    else:
+        # 구형 방식(building_age 리스트) fallback
+        b_age = selected_survey.get('building_age', [])
+        if b_age:
+            age_conditions = []
+            for age in b_age:
+                if "신축" in age:
+                    age_conditions += [{"built_year": {"$gte": str(current_year - 5)}}, {"year_built": {"$gte": str(current_year - 5)}}]
+                elif "준신축" in age:
+                    age_conditions += [{"built_year": {"$gte": str(current_year - 10), "$lt": str(current_year - 5)}}, {"year_built": {"$gte": str(current_year - 10), "$lt": str(current_year - 5)}}]
+                elif "구축" in age:
+                    age_conditions += [{"built_year": {"$lt": str(current_year - 10), "$gte": "1000"}}, {"year_built": {"$lt": str(current_year - 10), "$gte": "1000"}}]
+            if age_conditions:
+                query.setdefault("$and", []).append({"$or": age_conditions})
+
+    # --- 방 개수: 슬라이더 최솟값 ---
+    min_rooms = selected_survey.get('min_room_count')   # 1, 2, 3
+    if min_rooms is not None:
+        try:
+            min_rooms = int(min_rooms)
+            if min_rooms == 1:
+                pass  # 1개 이상 = 모두 허용
+            elif min_rooms == 2:
+                query.setdefault("$and", []).append({"$or": [
+                    {"room_counts": "2개"},
+                    {"room_counts": {"$regex": "^[3-9]개|^[1-9][0-9]+개"}}
+                ]})
+            elif min_rooms >= 3:
+                query.setdefault("$and", []).append({"room_counts": {"$regex": "^[3-9]개|^[1-9][0-9]+개"}})
+        except (TypeError, ValueError):
+            pass
+    else:
+        # 구형 방식(room_count 리스트) fallback
+        r_count = selected_survey.get('room_count', [])
+        if r_count:
+            room_conditions = []
+            for rc in r_count:
+                if rc == "1개": room_conditions.append({"room_counts": "1개"})
+                elif rc == "2개": room_conditions.append({"room_counts": "2개"})
+                elif rc == "3개 이상":
+                    room_conditions.append({"room_counts": {"$regex": "^[3-9]개|^[1-9][0-9]+개"}})
+            if room_conditions:
+                query.setdefault("$and", []).append({"$or": room_conditions})
 
     s_room = selected_survey.get('special_room', "")
     if "피하고 싶어요" in s_room:
@@ -299,9 +468,12 @@ def save_survey():
         },
         "building_type": data.get('building_type', []),
         "building_age": data.get('building_age', []),
+        "max_building_age": data.get('max_building_age'),       # 슬라이더: None=상관없음, 숫자=최대 연식(년)
         "room_count": data.get('room_count', []),
+        "min_room_count": data.get('min_room_count', 1),        # 슬라이더: 최소 방 개수
         "special_room": data.get('special_room', ""),
         "parking": data.get('parking', ""),
+        "prefer_vfm": data.get('prefer_vfm', False),            # 가성비 점수 반영 여부
         "category_log": data.get('category_log', []),
         "created_at": datetime.now()
     }
@@ -401,17 +573,19 @@ def survey_result(index):
 
     query = apply_detail_filters(query, selected_survey)
 
+    use_vfm = bool(selected_survey.get('prefer_vfm', False))
     total_count = houses_col.count_documents(query)
-    pipeline = build_match_pipeline(query, nw, target_coords=target_coords, limit=10)
+    pipeline = build_match_pipeline(query, nw, target_coords=target_coords, limit=10, use_vfm=use_vfm)
     matched_properties = format_property_data(list(houses_col.aggregate(pipeline)), user_liked_ids)
+    if use_vfm:
+        matched_properties = apply_vfm_to_results(matched_properties)
 
     top_3 = matched_properties[:3]
     others = matched_properties[3:]
 
-    # [변경] 저장된 ai_comment만 쓰고, 없는 건 None으로 둠 (클라이언트에서 polling)
     saved_comments = selected_survey.get('ai_comments_v2', {})
     for house in top_3:
-        house['ai_comment'] = saved_comments.get(house['_id_str'])  # None이면 프론트에서 로딩 표시
+        house['ai_comment'] = saved_comments.get(house['_id_str'])
     
     return render_template(
         'result.html', 
@@ -427,6 +601,7 @@ def survey_result(index):
         user_chart_data=user_chart_data,
         chart_keys=chart_keys,
         detailed_analysis=detailed_analysis,
+        prefer_vfm=use_vfm,
         index=index
     )
 
@@ -587,8 +762,13 @@ def recalculate():
         else:
             query = apply_detail_filters({}, selected_survey)
 
-        pipeline = build_match_pipeline(query, nw_norm, target_coords=selected_survey.get('target_coords'), limit=12)
+        # 가성비 반영 여부 (클라이언트 필터 우선, 없으면 설문 저장값)
+        use_vfm = bool(client_filters.get('prefer_vfm', selected_survey.get('prefer_vfm', False))) if client_filters else bool(selected_survey.get('prefer_vfm', False))
+
+        pipeline = build_match_pipeline(query, nw_norm, target_coords=selected_survey.get('target_coords'), limit=12, use_vfm=use_vfm)
         matched_properties = format_property_data(list(houses_col.aggregate(pipeline)))
+        if use_vfm:
+            matched_properties = apply_vfm_to_results(matched_properties)
 
         futures_recalc = {}
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
