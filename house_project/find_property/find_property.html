@@ -266,6 +266,30 @@
                     <label><input type="checkbox" id="exclude-under" onchange="updateMarkers()"> 반지하 제외</label>
                 </div>
             </div>
+
+            <div class="f-section">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+                    <label style="margin:0;">💰 가성비 필터</label>
+                    <button onclick="toggleVfmTooltip(event)" style="width:18px;height:18px;border-radius:50%;border:1.5px solid #bbb;background:#f8f9fb;color:#999;font-size:0.68rem;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0;line-height:1;font-family:inherit;" title="가성비 안내">i</button>
+                </div>
+                <div id="vfm-tooltip" style="display:none;background:#fffbe6;border:1.5px solid #f7c948;border-radius:10px;padding:9px 12px;font-size:0.78rem;color:#7a5500;line-height:1.6;margin-bottom:10px;">
+                    💡 가성비 점수가 높을수록 면적 대비 비용이 저렴한 매물이에요.<br>
+                    단, <strong>가성비가 좋으면 입지·환경·시설 등 다른 조건이 아쉬울 수 있어요!</strong> 점수는 참고용으로만 활용하세요 😊
+                </div>
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:5px;">
+                    <span style="font-size:0.75rem;color:#aaa;">제한 없음</span>
+                    <span id="vfm-score-label" style="font-size:0.82rem;font-weight:800;color:#111;min-width:70px;text-align:right;">– (전체)</span>
+                </div>
+                <input type="range" id="filter-vfm-min" min="0" max="95" step="5" value="0"
+                    oninput="onVfmSlider(this)" onchange="updateMarkers()"
+                    style="width:100%;height:4px;accent-color:#4facfe;cursor:pointer;margin:0;">
+                <div style="display:flex;justify-content:space-between;margin-top:5px;">
+                    <span style="font-size:0.68rem;color:#ccc;">0</span>
+                    <span style="font-size:0.68rem;color:#f7971e;font-weight:700;">50 📊</span>
+                    <span style="font-size:0.68rem;color:#00b09b;font-weight:700;">70 💰</span>
+                    <span style="font-size:0.68rem;color:#e84393;font-weight:700;">90 🔥</span>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -639,7 +663,8 @@
             maxSize: document.getElementById('max-size').value,
             parking: document.getElementById('filter-parking').checked ? "주차 가능" : "",
             excludeUnder: document.getElementById('exclude-under').checked ? "true" : "false",
-            radius: document.getElementById('search-radius').value
+            radius: document.getElementById('search-radius').value,
+            vfmMin: parseInt(document.getElementById('filter-vfm-min').value) || 0
         };
 
         let apiUrl = zoom < 14 ? '/api/stats/gu' : `/api/properties?sw_lat=${bounds.getSW().lat()}&sw_lng=${bounds.getSW().lng()}&ne_lat=${bounds.getNE().lat()}&ne_lng=${bounds.getNE().lng()}`;
@@ -649,6 +674,7 @@
             apiUrl += `&min_price=${filters.minPri}&max_price=${filters.maxPri}&min_size=${filters.minSize}&max_size=${filters.maxSize}`;
             apiUrl += `&parking=${filters.parking}&exclude_under=${filters.excludeUnder}`;
             apiUrl += `&option_status=${optionStatus}`; 
+            if (filters.vfmMin > 0) apiUrl += `&vfm_min=${filters.vfmMin}`;
 
             if (searchCenter) {
                 apiUrl += `&center_lat=${searchCenter.lat}&center_lng=${searchCenter.lng}&radius=${filters.radius}`;
@@ -691,6 +717,16 @@
         });
     }
 
+    function renderVfmBadgeFP(score) {
+        if (score === undefined || score === null) return '';
+        let color, label;
+        if (score >= 90)      { color = '#e84393'; label = '🔥 역대급 꿀매'; }
+        else if (score >= 70) { color = '#00b09b'; label = '💰 가성비 우수'; }
+        else if (score >= 50) { color = '#f7971e'; label = '📊 시장가'; }
+        else                  { color = '#aaa';    label = '⚠️ 가성비 낮음'; }
+        return `<div style="font-size:0.75rem;font-weight:800;color:${color};margin:3px 0 5px;">${label} ${score}점</div>`;
+    }
+
     function renderProperties(data) {
         const groups = {};
         data.forEach(item => {
@@ -712,7 +748,8 @@
 
             let html = `<div class="iw-container">`;
             items.forEach(item => {
-                html += `<div class="iw-item"><div class="iw-title">${formatPrice(item)}</div><button class="iw-btn" onclick="openDetail('${item._id}')">상세정보 보기</button></div>`;
+                const vfmBadge = item.vfm_score !== undefined ? renderVfmBadgeFP(item.vfm_score) : '';
+                html += `<div class="iw-item"><div class="iw-title">${formatPrice(item)}</div>${vfmBadge}<button class="iw-btn" onclick="openDetail('${item._id}')">상세정보 보기</button></div>`;
             });
             html += `</div>`;
 
@@ -848,6 +885,41 @@
 
     function closeModal() { document.getElementById('propertyModal').style.display = 'none'; }
     function validateNonNegative(input) { if (input.value < 0) input.value = 0; }
+
+    function onVfmSlider(input) {
+        const val = parseInt(input.value);
+        const label = document.getElementById('vfm-score-label');
+        if (!label) return;
+        if (val === 0) {
+            label.style.color = '#aaa';
+            label.textContent = '– (전체)';
+        } else if (val >= 90) {
+            label.style.color = '#e84393';
+            label.textContent = `${val}점 이상 🔥 역대급 꿀매`;
+        } else if (val >= 70) {
+            label.style.color = '#00b09b';
+            label.textContent = `${val}점 이상 💰 가성비 우수`;
+        } else if (val >= 50) {
+            label.style.color = '#f7971e';
+            label.textContent = `${val}점 이상 📊 시장가`;
+        } else {
+            label.style.color = '#888';
+            label.textContent = `${val}점 이상`;
+        }
+    }
+
+    function toggleVfmTooltip(e) {
+        e.stopPropagation();
+        const tt = document.getElementById('vfm-tooltip');
+        if (!tt) return;
+        tt.style.display = tt.style.display === 'none' ? 'block' : 'none';
+    }
+
+    // 툴팁 외부 클릭 시 닫기
+    document.addEventListener('click', () => {
+        const tt = document.getElementById('vfm-tooltip');
+        if (tt) tt.style.display = 'none';
+    });
     function handleTypeChange() {
         const type = document.getElementById('filter-type').value;
         document.getElementById('monthly-price-section').style.display = (type === "전세") ? "none" : "block";

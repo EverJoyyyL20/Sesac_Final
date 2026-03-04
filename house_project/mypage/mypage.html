@@ -273,6 +273,7 @@
                                         <span style="background: #f8f9fb; color: #666; padding: 6px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 700;">🚪 {{ fav.room_counts | default('방 미상', true) }}</span>
                                         <span style="background: #f8f9fb; color: #666; padding: 6px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 700;">📐 {{ fav.size_m2 | default('면적 미상', true) }}㎡</span>
                                         <span style="background: #f8f9fb; color: #666; padding: 6px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 700;">🏢 {{ fav.floor | default('층수 미상', true) }}</span>
+                                        {% if fav.vfm_score is not none and fav.vfm_score is defined %}{% set vs = fav.vfm_score %}{% if vs >= 90 %}<span style="background:#e84393;color:white;padding:6px 10px;border-radius:8px;font-size:0.75rem;font-weight:800;">🔥 역대급 꿀매 {{ vs }}점</span>{% elif vs >= 70 %}<span style="background:#00b09b;color:white;padding:6px 10px;border-radius:8px;font-size:0.75rem;font-weight:800;">💰 가성비 우수 {{ vs }}점</span>{% elif vs >= 50 %}<span style="background:#f7971e;color:white;padding:6px 10px;border-radius:8px;font-size:0.75rem;font-weight:800;">📊 시장가 {{ vs }}점</span>{% else %}<span style="background:#aaa;color:white;padding:6px 10px;border-radius:8px;font-size:0.75rem;font-weight:800;">⚠️ 가성비 낮음 {{ vs }}점</span>{% endif %}{% endif %}
                                     </div>
                                 </div>
                             </div>
