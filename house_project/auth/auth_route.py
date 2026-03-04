@@ -5,6 +5,8 @@ from flask import Blueprint, render_template, request, redirect, url_for, sessio
 from database import users_col, oauth  # database.py에서 가져옴
 from werkzeug.security import generate_password_hash, check_password_hash
 import datetime
+from urllib.parse import urlparse, urljoin # URL 안전성 검사 함수 추가
+from urllib.parse import urlparse, urljoin, parse_qs # URL 파라미터 파싱을 위한 parse_qs 추가
 
 auth_bp = Blueprint('auth', __name__, template_folder='.')
 
@@ -94,6 +96,12 @@ def register():
 
     return render_template('register.html')
 
+def is_safe_url(target):
+    ref_url = urlparse(request.host_url)
+    test_url = urlparse(urljoin(request.host_url, target))
+    return test_url.scheme in ('http', 'https') and \
+           ref_url.netloc == test_url.netloc
+
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -115,8 +123,31 @@ def login():
             # 한줄소개가 없고 AND 팝업 닫기 기록(is_setup_done)도 없는 경우에만 팝업 생성
             if not user.get('introduction') and not user.get('is_setup_done'):
                 session['needs_setup'] = True
+
+            # --- auth.py 로그인 성공 로직 내부 ---
+            next_url = request.args.get('next')
+
+            if next_url and is_safe_url(next_url):
+                # 1. URL 파라미터 파싱
+                parsed_url = urlparse(next_url)
+                params = parse_qs(parsed_url.query)
                 
+                # 2. 자동 찜 요청 확인 및 DB 반영
+                if params.get('action') == ['wish'] and params.get('wish_id'):
+                    wish_id = params.get('wish_id')[0]
+                    
+                    # 유저 DB의 favorites 리스트에 추가 (형식 주의: {'id': wish_id})
+                    users_col.update_one(
+                        {'email': session['user_id']},
+                        {'$addToSet': {'favorites': {'id': wish_id}}}
+                    )
+                
+                # 3. 찜 처리가 끝난 후 next_url(마이페이지)로 이동
+                return redirect(next_url)
+
             return redirect(url_for('main.index'))
+            # --- 자동 찜하기 및 리다이렉트 로직 끝 ---
+
         else:
             return "<script>alert('정보가 일치하지 않습니다.'); history.back();</script>"
             
