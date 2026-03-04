@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="referrer" content="no-referrer">
-    <title>서울 부동산 매물 탐색 - HomeMate</title>
-    <link rel="icon" type="image/png" href="{{ url_for('static', filename='image/logo_title.png') }}">
+    <title>서울 부동산 매물 탐색</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'/%3E%3Ccircle cx='12' cy='13' r='2' fill='%234facfe' stroke='%234facfe'/%3E%3C/svg%3E">
+    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/find_property.css') }}">
@@ -145,8 +146,11 @@
 
 <div class="navbar">
     <div class="nav-left">
-       <a href="{{ url_for('main.index') }}" class="main-home-link">
-            <img src="{{ url_for('static', filename='image/logo.png') }}" alt="홈 로고" class="nav-logo">
+        <a href="{{ url_for('main.index') }}" class="main-home-link">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 28px; height: 28px;">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                <circle cx="12" cy="13" r="2" fill="#4facfe" stroke="#4facfe"></circle>
+            </svg>
         </a>
         <a href="{{ url_for('find.find') }}">매물찾기</a>
         <a href="{{ url_for('survey.survey_short', index=0) }}" class="nav-short-btn">매물쇼츠</a>
@@ -276,14 +280,15 @@
                     <span style="font-size:0.75rem;color:#aaa;">제한 없음</span>
                     <span id="vfm-score-label" style="font-size:0.82rem;font-weight:800;color:#111;min-width:70px;text-align:right;">– (전체)</span>
                 </div>
-                <input type="range" id="filter-vfm-min" min="0" max="95" step="5" value="0"
+                <input type="range" id="filter-vfm-min" min="45" max="95" step="5" value="45"
                     oninput="onVfmSlider(this)" onchange="updateMarkers()"
                     style="width:100%;height:4px;accent-color:#4facfe;cursor:pointer;margin:0;">
-                <div style="display:flex;justify-content:space-between;margin-top:5px;">
-                    <span style="font-size:0.68rem;color:#ccc;">0</span>
-                    <span style="font-size:0.68rem;color:#f7971e;font-weight:700;">50 📊</span>
-                    <span style="font-size:0.68rem;color:#00b09b;font-weight:700;">70 💰</span>
-                    <span style="font-size:0.68rem;color:#e84393;font-weight:700;">90 🔥</span>
+                <!-- 눈금: 범위 45~95 (50점 폭), 각 위치 = (값-45)/50*100% -->
+                <div style="position:relative;height:16px;margin-top:3px;">
+                    <span style="position:absolute;left:0%;transform:translateX(0%);font-size:0.68rem;color:#ccc;white-space:nowrap;">OFF</span>
+                    <span style="position:absolute;left:10%;transform:translateX(-50%);font-size:0.68rem;color:#f7971e;font-weight:700;white-space:nowrap;">50 📊</span>
+                    <span style="position:absolute;left:50%;transform:translateX(-50%);font-size:0.68rem;color:#00b09b;font-weight:700;white-space:nowrap;">70 💰</span>
+                    <span style="position:absolute;left:90%;transform:translateX(-50%);font-size:0.68rem;color:#e84393;font-weight:700;white-space:nowrap;">90 🔥</span>
                 </div>
             </div>
         </div>
@@ -670,7 +675,7 @@
             apiUrl += `&min_price=${filters.minPri}&max_price=${filters.maxPri}&min_size=${filters.minSize}&max_size=${filters.maxSize}`;
             apiUrl += `&parking=${filters.parking}&exclude_under=${filters.excludeUnder}`;
             apiUrl += `&option_status=${optionStatus}`; 
-            if (filters.vfmMin > 0) apiUrl += `&vfm_min=${filters.vfmMin}`;
+            if (filters.vfmMin > 45) apiUrl += `&vfm_min=${filters.vfmMin}`;
 
             if (searchCenter) {
                 apiUrl += `&center_lat=${searchCenter.lat}&center_lng=${searchCenter.lng}&radius=${filters.radius}`;
@@ -886,7 +891,7 @@
         const val = parseInt(input.value);
         const label = document.getElementById('vfm-score-label');
         if (!label) return;
-        if (val === 0) {
+        if (val <= 45) {
             label.style.color = '#aaa';
             label.textContent = '– (전체)';
         } else if (val >= 90) {

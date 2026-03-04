@@ -116,6 +116,21 @@ def generate_recommendation_reason(user_id, nw, house_info):
     except Exception:
         return "고객님의 라이프스타일 지표를 분석한 결과, 가장 추천해 드리는 맞춤형 매물입니다."
 
+
+def _parse_lifestyle_report(raw):
+    """DB에 저장된 JSON 문자열 또는 구 HTML 문자열을 안전하게 처리."""
+    import json as _json
+    if not raw:
+        return None
+    if isinstance(raw, dict):
+        return raw
+    try:
+        return _json.loads(raw)
+    except Exception:
+        # 구버전 HTML 데이터 → None 반환해서 재생성 유도
+        return None
+
+
 def _to_manwon(value):
     """
     DB 금액을 만원 단위로 통일.
@@ -518,7 +533,7 @@ def survey_result(index):
     user_chart_data = [round(nw.get(k, 0) * 100, 1) for k in chart_keys]
 
     # [변경] lifestyle_report가 이미 저장되어 있으면 바로 사용, 없으면 None으로 (AI 로딩 UI 표시)
-    detailed_analysis = selected_survey.get('lifestyle_report')
+    detailed_analysis = _parse_lifestyle_report(selected_survey.get('lifestyle_report'))
 
     query = {}
     target_coords = selected_survey.get('target_coords')
@@ -612,10 +627,11 @@ def ai_generate(survey_id):
     updates = {}
 
     # 1. 라이프스타일 분석 (없을 때만 생성)
-    detailed_analysis = selected_survey.get('lifestyle_report')
+    detailed_analysis = _parse_lifestyle_report(selected_survey.get('lifestyle_report'))
     if not detailed_analysis:
         detailed_analysis = generate_sandbox_lifestyle_analysis(nw, top2_keys)
-        updates['lifestyle_report'] = detailed_analysis
+        updates['lifestyle_report'] = detailed_analysis  # JSON 문자열 그대로 저장
+        detailed_analysis = _parse_lifestyle_report(detailed_analysis)
 
     # 2. ai_comment (없는 매물만 생성)
     query = {}
@@ -903,10 +919,10 @@ def get_top_dong_recommendations(nw, top_n=3):
 
 
 def generate_sandbox_lifestyle_analysis(nw_weights, top2_keys):
+    import json as _json
     weight_pct = {category_map[k]: f"{v*100:.1f}%" for k, v in nw_weights.items()}
     top_names = [category_map[k] for k in top2_keys]
 
-    # [추가] 동네는 코드가 계산 - LLM이 창작하지 않음
     top_dongs = get_top_dong_recommendations(nw_weights)
     dong_data_lines = []
     for d in top_dongs:
@@ -916,77 +932,63 @@ def generate_sandbox_lifestyle_analysis(nw_weights, top2_keys):
     dong_data_str = "\n".join(dong_data_lines)
 
     template = """
-    당신은 고객의 취향과 일상을 섬세하게 읽어내는 라이프스타일 큐레이터이자 공간 에디터입니다.
-    고객의 설문조사 결과(가중치)를 바탕으로, 딱딱한 보고서가 아닌 따뜻한 감성이 담긴 '퍼스널 매거진' 스타일의 1:1 맞춤형 공간 브리핑을 작성해주세요.
+    당신은 라이프스타일 큐레이터입니다. 고객 설문 결과를 분석해 아래 JSON 형식으로만 응답하세요.
+    HTML 태그, 마크다운, 코드블록(```)은 절대 사용하지 마세요. 순수 텍스트만 사용하세요.
 
     [고객 데이터]
     - 최우선 핵심 가치 2가지: {top_names}
-    - 7대 지표별 세부 가중치: {weight_pct}
+    - 7대 지표별 가중치: {weight_pct}
 
-    [추천 동네 데이터] ← 추가: 코드가 계산한 결과를 그대로 주입
-    아래 3개 동네만 사용하고 절대 임의로 동네명을 만들지 마세요.
+    [추천 동네 데이터] — 아래 3개 동네 이름만 사용, 임의 생성 절대 금지
     {dong_data}
 
-    [작성 가이드 및 HTML 구조]
-    반드시 아래 제공된 HTML 태그 구조를 그대로 사용하여 내용만 채워주세요.
+    반드시 아래 JSON 구조로만 응답 (키 이름 변경 금지):
+    {{
+      "summary": "고객 라이프스타일을 2~3문장으로 따뜻하고 감성적으로 요약",
+      "insights": [
+        {{"label": "지표명", "weight": "00.0%", "desc": "이 지표가 왜 중요한지 1~2문장"}},
+        {{"label": "지표명", "weight": "00.0%", "desc": "설명"}},
+        {{"label": "지표명", "weight": "00.0%", "desc": "설명"}}
+      ],
+      "dongs": [
+        {{"name": "동네명(반드시 위 추천 동네 데이터의 이름만)", "desc": "왜 어울리는지 1~2문장", "points": ["장점1", "장점2", "장점3"]}},
+        {{"name": "동네명", "desc": "설명", "points": ["장점1", "장점2", "장점3"]}},
+        {{"name": "동네명", "desc": "설명", "points": ["장점1", "장점2", "장점3"]}}
+      ]
+    }}
 
-    <div class="report-header">
-        <h2 class="title">✨ 나만의 라이프스타일 분석</h2>
-        <p class="summary">
-            내용 입력
-        </p>
-    </div>
-
-    <div class="report-body">
-        <h3 class="section-title"><i class="fa-solid fa-magnifying-glass-chart"></i> 데이터로 읽어낸 3대 핵심 니즈</h3>
-        
-        <div class="insight-card">
-            <div class="insight-header">
-                <span class="badge">지표명</span>
-                <span class="weight-text">00.0%</span>
-            </div>
-            <p class="insight-desc">
-                내용 입력
-            </p>
-        </div>
-    </div>
-
-    <div class="report-footer">
-        <h3 class="section-title"><i class="fa-solid fa-location-dot"></i> AI가 콕 집어주는 맞춤 동네 추천</h3>
-        <div class="curation-box"> ← curation-box를 3개 반복해서 동네 3곳 모두 작성
-            <h4 class="dong-name">추천 동네 이름 ← 반드시 위 [추천 동네 데이터]의 이름중에서만 사용</h4>
-            <p class="dong-desc">
-                이유 설명 ← 위 데이터의 점수 기반으로 설명
-            </p>
-            <ul class="dong-points">
-                <li>장점 1</li>
-                <li>장점 2</li>
-                <li>장점 3</li>
-            </ul>
-        </div>
-    </div>
-
-    [말투 및 제약 조건]
-    - 톤앤매너: 센스 있는 잡지 에디터나 다정한 공간 디렉터처럼 부드럽고 세련된 말투를 사용하세요. 
-    - 너무 격식을 차린 딱딱한 표현(예: '귀하', '제언합니다') 대신, 대화하듯 친근하면서도 신뢰감이 느껴지는 어조(예: '~인 것 같아요', '~를 추천해 드리고 싶어요', '~를 즐겨보시는 건 어떨까요?')를 사용하세요.
-    - 🚨 dong-name에는 반드시 [추천 동네 데이터]의 이름만 쓰세요. 절대 임의 생성 금지. ← 추가
-    - 🔥 답변의 처음과 끝에 ```html 또는 ``` 마크다운을 절대 붙이지 마세요. 순수 HTML만 출력하세요.
+    말투: 친근한 잡지 에디터 스타일. JSON 외 다른 텍스트 출력 절대 금지.
     """
-    
+
     prompt = PromptTemplate.from_template(template)
     chain = prompt | llm
-    
+
     try:
         response = chain.invoke({
             "top_names": ", ".join(top_names),
             "weight_pct": str(weight_pct),
-            "dong_data": dong_data_str  # [추가] 계산된 동네 데이터 주입
+            "dong_data": dong_data_str
         })
-        clean_html = response.content.replace("```html", "").replace("```", "").strip()
-        return clean_html
+        raw = response.content.replace("```json", "").replace("```", "").strip()
+        parsed = _json.loads(raw)
+        return _json.dumps(parsed, ensure_ascii=False)
     except Exception as e:
-        print(f"Sandbox LLM Analysis Error: {e}")
-        return "<p>라이프스타일 분석을 불러오는 중 오류가 발생했습니다.</p>"
+        print(f"Lifestyle Analysis Error: {e}")
+        fallback = {
+            "summary": "설문 결과를 바탕으로 고객님께 꼭 맞는 매물을 찾고 있어요.",
+            "insights": [
+                {"label": top_names[0] if top_names else "생활", "weight": weight_pct.get(top_names[0], "–") if top_names else "–", "desc": "고객님이 가장 중요하게 생각하시는 가치예요."},
+                {"label": top_names[1] if len(top_names) > 1 else "교통", "weight": weight_pct.get(top_names[1], "–") if len(top_names) > 1 else "–", "desc": "두 번째로 중요하게 생각하시는 가치예요."},
+                {"label": "안전", "weight": weight_pct.get("안전", "–"), "desc": "편안하고 안심되는 환경을 선호하시는 것 같아요."}
+            ],
+            "dongs": [
+                {"name": dong_data_lines[0].split(":")[0].replace("- ","").strip() if dong_data_lines else "추천 동네", "desc": "고객님의 라이프스타일에 잘 맞는 동네예요.", "points": ["쾌적한 환경", "편리한 교통", "생활 인프라 우수"]},
+                {"name": dong_data_lines[1].split(":")[0].replace("- ","").strip() if len(dong_data_lines) > 1 else "추천 동네 2", "desc": "편리하고 활기찬 동네예요.", "points": ["편의시설 풍부", "안전한 주거환경", "다양한 문화시설"]},
+                {"name": dong_data_lines[2].split(":")[0].replace("- ","").strip() if len(dong_data_lines) > 2 else "추천 동네 3", "desc": "조용하고 살기 좋은 동네예요.", "points": ["녹지공간 풍부", "안정적인 주거", "좋은 교육환경"]}
+            ]
+        }
+        return _json.dumps(fallback, ensure_ascii=False)
+
 
 @survey_bp.route('/survey/prompt_test/<int:index>')
 def survey_prompt_sandbox(index):
@@ -1012,10 +1014,11 @@ def survey_prompt_sandbox(index):
     user_chart_labels = ['교통', '편의', '녹지', '놀이', '건강', '생활', '안전']
     user_chart_data = [round(nw.get(k, 0) * 100, 1) for k in chart_keys]
 
-    detailed_analysis = selected_survey.get('lifestyle_report')
+    detailed_analysis = _parse_lifestyle_report(selected_survey.get('lifestyle_report'))
     if not detailed_analysis:
-        detailed_analysis = generate_sandbox_lifestyle_analysis(nw, top2_keys)
-        db.survey_results.update_one({"_id": survey_id}, {"$set": {"lifestyle_report": detailed_analysis}})
+        raw_analysis = generate_sandbox_lifestyle_analysis(nw, top2_keys)
+        db.survey_results.update_one({"_id": survey_id}, {"$set": {"lifestyle_report": raw_analysis}})
+        detailed_analysis = _parse_lifestyle_report(raw_analysis)
 
     return render_template(
         'prompt_test.html', 
