@@ -16,7 +16,7 @@
         url("https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?q=80&w=2075&auto=format&fit=crop");
     background-size: cover;
     background-position: center;
-    background-attachment: fixed;
+    /* background-attachment: fixed; */
 
     padding: 0 20px;
     margin-top: -65px; /* 상단 네비게이션 바 아래로 자연스럽게 밀어넣음 */
@@ -275,7 +275,8 @@
 
 .second-hero {
     position: relative;
-    min-height: 100vh;
+    min-height: 140vh;
+    padding-bottom: 20vh;
 
     display: flex;
     align-items: center;
@@ -376,4 +377,185 @@
 
 .point {
     color: #39C5F3;  /* 🔥 이미지 색상 */
+}
+
+/* ===============================
+   등장 애니메이션 효과
+   =============================== */
+
+/* 기본 숨김 상태 */
+.fade-up {
+    opacity: 0;
+    transform: translateY(100px);
+    transition: all 0.9s ease;
+}
+
+/* 화면에 보이면 나타남 */
+.fade-up.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* 약간의 순차 딜레이 */
+.second-content h2 {
+    transition-delay: 0.1s;
+}
+
+.service-text {
+    transition-delay: 0.3s;
+}
+
+.second-image {
+    transition-delay: 0.5s;
+}
+
+/* service-image 전용 효과 */
+.service-image img {
+    transform: scale(0.9);
+    opacity: 0;
+    transition: transform 1s ease, opacity 1s ease;
+}
+
+/* 보였을 때 */
+.service-image.show img {
+    transform: scale(1);
+    opacity: 1;
+}
+
+/* ===============================
+   세번째 배경 섹션 (쇼츠 유도)
+   =============================== */
+.third-hero {
+    position: relative;
+    min-height: 110vh; /* 스크롤 간격 확보 */
+    padding-bottom: 20vh;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    text-align: left;
+
+    /* 🔥 두 번째와 동일한 기법 */
+    background:
+        linear-gradient(to bottom, rgba(0,0,0,0.7), rgba(0,0,0,0.9)),
+        url("/static/image/house3.jpg"); /* 좀 더 다크한 실내 사진 추천 */
+
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed; /* 패럴랙스 효과 유지 */
+    background-color: #000;
+
+    padding: 0 8%;
+}
+
+.third-content {
+    width: 600px;
+    display: flex;
+    flex-direction: column;
+    color: white;
+    justify-content: flex-start;
+}
+
+/* 배지 폰트 사이즈 */
+.context-badge {
+    display: inline-block;
+    padding: 8px 20px;
+    color: #ffffff;
+    border-radius: 50px;
+    font-size: 1.4rem;  /* 🔥 여기서 배지 크기 조절 */
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+
+/* 설명 텍스트 폰트 사이즈 */
+.service-text p {
+    font-size: 1.2rem;   /* 🔥 일반 설명글 크기 조절 */
+    margin-bottom: 8px;
+    color: #ffffff;
+}
+
+.third-content h2 {
+    font-size: 3.2rem;
+    font-weight: 800;
+    margin-bottom: 200px;
+    line-height: 1.25;
+    word-break: keep-all;
+}
+
+.third-content .highlight {
+    color: #39C5F3; /* 포인트 컬러 사용 */
+}
+
+.third-content .desc {
+    margin-top: 15px;
+    font-size: 1.2rem;
+    color: #cbd5e1;
+    line-height: 1.6;
+}
+
+/* 🔥 오른쪽 이미지 배치 (second-image 스타일 계승) */
+.third-image {
+    flex: 1;
+    display: flex;
+    justify-content: flex-end; /* 오른쪽 정렬 */
+    position: relative; /* 태그 배치를 위해 */
+}
+
+.third-image img {
+    width: 80%;
+    max-width: 450px;
+    border-radius: 50px; /* 쇼츠 폰 느낌을 위해 더 둥글게 */
+    box-shadow: 0 40px 80px rgba(0,0,0,0.5);
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+/* 태그 애니메이션 효과 (포폴 돋보이기용) */
+.floating-tag {
+    position: absolute;
+    top: 5%;
+    left: 15%;
+    background: #39C5F3;
+    padding: 12px 20px;
+    border-radius: 50px;
+    font-weight: 800;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+    animation: floatTag 3s infinite ease-in-out;
+}
+
+/* @keyframes floatTag {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-15px); }
+} */
+
+/* 설문 시작 버튼 */
+.start-survey-btn {
+    margin-top: 30px;
+    padding: 20px 50px;
+    background: #ffffff;
+    color: #111111;
+    border: none;
+    border-radius: 50px;
+    font-size: 1.1rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    width: fit-content;
+}
+
+.start-survey-btn:hover {
+    transform: translateY(-3px);
+    background: #39C5F3;
+    color: white;
+}
+
+.login-notice {
+    margin-top: 25px;         /* 버튼과의 간격 */
+    font-size: 1rem;       /* 메인 설명보다 작게 */
+    color: #94a3b8;           /* 부드러운 회색조 */
+    line-height: 1.5;
+    text-align: left;         /* 텍스트 정렬 */
+    opacity: 0.8;             /* 살짝 투명하게 하여 보조 정보임을 명시 */
+    letter-spacing: -0.3px;
+    width: 120%;
+    white-space: nowrap;
 }
