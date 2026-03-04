@@ -37,52 +37,78 @@ body, html {
     box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
 }
 
-/* 🔥 세련된 스마트 홈 / AI 부동산 로고 (미니멀 집 + 파란색 코어) */
+/* 🔥 부동산 로고 */
 .nav-left {
     display: flex;
     align-items: center;
 }
+
+.nav-logo {
+    height: 40px;  /* 로고 크기 조절 */
+    width: auto;
+    transition: all 0.3s ease;
+
+    /* 💡 상황별 필터 (하나만 골라서 사용) */
+    
+    /* 🔥 초록색 계열 로고를 파란색(#39C5F3 계열)으로 바꾸는 필터 */
+    /* filter: hue-rotate(190deg) saturate(150%) brightness(110%);  */
+
+
+    /* A. 검은색 로고를 완전히 하얗게 만들고 싶을 때 (가장 추천) */
+    /* filter: brightness(0) invert(1);  */
+
+    /* B. 로고에 푸른빛 포인트(#39C5F3 계열)를 주고 싶을 때 */
+    filter: invert(72%) sepia(85%) saturate(1200%) hue-rotate(175deg) brightness(80%) contrast(101%);
+
+    /* C. 약간만 밝게 하거나 투명도를 주고 싶을 때 */
+    /* opacity: 0.9; filter: brightness(1.2); */
+}
+
 /* --- 메인 홈 아이콘 버튼 스타일 --- */
 .main-home-link {
     display: inline-flex !important;
     align-items: center;
     justify-content: center;
     
-    /* 1. 박스 크기와 위치 설정 */
-    width: 34px !important;  
-    height: 34px !important;
-    margin-left: 20px !important;  /* 왼쪽 끝에서 살짝 띄움 */
-    margin-right: 16px !important; /* '매물찾기'와의 간격 */
+    /* 1. 박스 크기 해제: 고정된 34px을 auto로 바꿔서 사진 로고 비율을 유지함 */
+    width: auto !important;  
+    height: auto !important;
     
-    /* 2. 초기 상태: 배경 투명 */
+    margin-left: 20px !important;  /* 왼쪽 끝 여백 유지 */
+    margin-right: 16px !important; /* 메뉴와의 간격 유지 */
+    
+    /* 2. 초기 상태: 배경 투명 유지 */
     background-color: transparent !important; 
-    border-radius: 10px;
+    border-radius: 0; /* 박스 형태가 아니므로 둥근 모서리 필요 없음 */
+    
     transition: all 0.2s ease-in-out;
-    padding: 0 !important; /* 내부 패딩 제거로 크기 고정 */
+    padding: 0 !important; 
     flex-shrink: 0;
 }
 
 /* 3. 마우스를 올렸을 때만 레이아웃 영역(배경) 표시 */
 .main-home-link:hover {
-    background-color: rgba(255, 255, 255, 0.12) !important;
-    transform: translateY(-1px);
+    background-color: transparent !important; /* 흰 박스 제거 */
+}
+
+.nav-logo:hover {
+    /* 로고 자체에도 호버 시 밝기만 살짝 추가 */
+    filter: hue-rotate(190deg) saturate(180%) brightness(130%);
 }
 
 /* 4. 아이콘 크기 강제 고정 */
 .main-home-link svg {
-    width: 24px !important;
-    height: 24px !important;
-    display: block;
+    display: none;
 }
 
 /* [상단바 링크] */
 .navbar a {
-    font-size: 0.95rem; 
-    font-weight: 500;   
+    font-size: 1.1rem;  
+    font-weight: 600;   
     text-decoration: none;
     color: rgba(255, 255, 255, 0.7); /* 살짝 은은한 톤 */     
-    margin: 0 5px;
-    padding: 8px 12px;
+    margin: 0 8px;       /* 살짝 여백 증가 */
+    padding: 10px 14px;  /* 높이도 자연스럽게 같이 증가 */
     border-radius: 8px;
     transition: all 0.2s ease;
 }
@@ -107,18 +133,6 @@ body, html {
 .nav-link-standard:hover {
     color: #fff;
     background-color: rgba(255, 255, 255, 0.1);
-}
-
-/* 닉네임 강조 */
-.welcome-text {
-    font-size: 1rem;
-    font-weight: 400;
-    margin-right: 15px;
-    color: #aaa;
-}
-.welcome-text strong {
-    color: #fff;
-    font-weight: 700;
 }
 
 /* --- 3. 푸터 (HOME MATE x 맛슐랭) --- */
@@ -207,26 +221,6 @@ body, html {
     display: flex;
     justify-content: space-between;
     align-items: center;
-}
-
-/* 모바일 화면 대응 (반응형) */
-@media (max-width: 768px) {
-    .footer-top {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 15px;
-    }
-    .footer-nav {
-        flex-wrap: wrap;
-        gap: 10px 20px;
-    }
-    .footer-info span {
-        display: block;
-        margin-right: 0;
-    }
-    .footer-info span:not(:last-child)::after {
-        display: none;
-    }
 }
 
 /* 모바일 화면 대응 (반응형) */

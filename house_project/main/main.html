@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>맞춤형 매물 찾기</title>
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'/%3E%3Ccircle cx='12' cy='13' r='2' fill='%234facfe' stroke='%234facfe'/%3E%3C/svg%3E">
+    <title>HomeMate</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='image/logo_title.png') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
 </head>
@@ -42,10 +42,7 @@
 <div class="navbar">
     <div class="nav-left">
         <a href="{{ url_for('main.index') }}" class="main-home-link">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 28px; height: 28px;">
-                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                <circle cx="12" cy="13" r="2" fill="#4facfe" stroke="#4facfe"></circle>
-            </svg>
+            <img src="{{ url_for('static', filename='image/logo.png') }}" alt="홈 로고" class="nav-logo">
         </a>
         <a href="{{ url_for('find.find') }}">매물찾기</a>
         <a href="{{ url_for('survey.survey_short', index=0) }}" class="nav-short-btn">매물쇼츠</a>
@@ -89,12 +86,12 @@
 </div>
 <section class="second-hero">
     <div class="second-content">
-        <h2>
+        <h2 class="fade-up">
             <span class="line1"><span class="point">집</span>을 고르는 게 아니라,</span>
             <span class="line2"><span class="point">삶</span>을 선택합니다</span>
         </h2>
             <!-- 🔥 여기 추가 -->
-        <div class="service-text">
+        <div class="service-text fade-up">
             <p>전세·월세 금액</p>
             <p>원룸·투룸·주차 여부</p>
             <p class="desc">
@@ -102,15 +99,46 @@
                 가장 어울리는 매물을 제안합니다.
             </p>
         </div>
-         <div class="service-image">
+         <div class="service-image fade-up">
             <img src="{{ url_for('static', filename='image/survey2.png') }}" alt="서비스 설명 이미지">
         </div>
     </div>
     <!-- 🔥 오른쪽 이미지 영역 추가 -->
-    <div class="second-image">
+    <div class="second-image fade-up">
         <img src="{{ url_for('static', filename='image/survey.png') }}" alt="서비스 이미지">
     </div>
 </section>
+<section class="third-hero">
+    <div class="third-content">
+        <div class="context-badge fade-up">AI Personalized Feed</div>
+        
+        <h2 class="fade-up">
+            <span class="line1">복잡한 검색의 끝,</span>
+            <span class="line2">당신을 위한 <span class="highlight">쇼츠 피드</span></span>
+        </h2>
+
+        <div class="service-text fade-up">
+            <p>작성해주신 라이프스타일 설문을 기반으로</p>
+            <p>전국 매물 중 당신의 루틴에 최적화된 집을 골라드립니다.</p>
+            <p class="desc">
+                쉽고 빠르게, 마우스 하나로 당신의 다음 집을 만나보세요.
+            </p>
+        </div>
+
+        <button class="start-survey-btn fade-up" onclick="location.href='{{ url_for('survey.shorts_page') }}'">
+            나의 맞춤 매물 확인하기
+        </button>
+        <p class="login-notice fade-up">
+            * 비회원 참여가 가능하나, 로그인 후 설문을 진행하면 설문 기록 기반으로 최적화된 매물이 추천됩니다.
+        </p>
+    </div>
+
+    <div class="third-image fade-up">
+        <img src="{{ url_for('static', filename='image/shorts.png') }}" alt="쇼츠 미리보기 이미지">
+        <div class="floating-tag">#매칭률_85.7%</div>
+    </div>
+</section>
+
 <div class="footer">
     <div class="footer-container">
         <div class="footer-top">
@@ -255,6 +283,20 @@
             }
         });
     }
+});
+
+document.addEventListener("DOMContentLoaded", function () {
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add("show");
+            }
+        });
+    }, { threshold: 0.2 });
+
+    document.querySelectorAll(".fade-up").forEach(el => {
+        observer.observe(el);
+    });
 });
 </script>
 

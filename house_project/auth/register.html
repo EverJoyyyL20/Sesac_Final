@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>회원가입 - 안전한 집 찾기</title>
+    <title>회원가입 - HomeMate</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='image/logo_title.png') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
 </head>
@@ -11,7 +12,9 @@
 
 <div class="navbar">
     <div class="nav-left">
-        <a href="{{ url_for('main.index') }}">메인페이지</a>
+        <a href="{{ url_for('main.index') }}" class="main-home-link">
+            <img src="{{ url_for('static', filename='image/logo.png') }}" alt="홈 로고" class="nav-logo">
+        </a>
         <a href="{{ url_for('find.find') }}">매물찾기</a>
         <a href="{{ url_for('survey.survey_short', index=0) }}" class="nav-short-btn">매물쇼츠</a>
     </div>
