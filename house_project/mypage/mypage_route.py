@@ -46,6 +46,64 @@ TYPE_MAP = {
     frozenset(["living", "safety"]): ("🏡 안정 중시형", "살기 편하고 걱정 없는 동네가 최고예요."),
 }
 
+def _to_manwon_mp(value):
+    import re as _re
+    if value is None: return 0.0
+    if isinstance(value, (int, float)):
+        v = float(value)
+        if v <= 0: return 0.0
+        if v >= 10_000_000: return v / 10_000
+        return v
+    s = str(value).replace(',', '').strip()
+    m = _re.search(r'[\d.]+', s)
+    if not m: return 0.0
+    try: v = float(m.group())
+    except ValueError: return 0.0
+    if v <= 0: return 0.0
+    if v >= 10_000_000: return v / 10_000
+    return v
+
+def get_vfm_score_mp(house):
+    import re as _re
+    YEARS, RATE = 3, 0.04
+    stats_map = {
+        '전세_Normal':   {'peak': 99.4,  'mean': 96.2,  'std': 40.0},
+        '월세_Normal':   {'peak': 91.9,  'mean': 124.8, 'std': 51.3},
+        '월세_Basement': {'peak': 77.7,  'mean': 76.3,  'std': 22.3},
+        '전세_Basement': {'peak': 26.4,  'mean': 31.7,  'std': 11.7},
+    }
+    rent_type = house.get('rent_type', '')
+    floor_str = str(house.get('floor', ''))
+    layer = 'Basement' if '반지하' in floor_str else 'Normal'
+    group = f"{rent_type}_{layer}"
+    if group not in stats_map: return 60.0
+    stats = stats_map[group]
+    size = 0.0
+    for key in ('size_m2', 'area', 'size', 'supply_area', 'exclusive_area'):
+        raw = house.get(key)
+        if raw is None: continue
+        try: candidate = float(raw)
+        except:
+            m = _re.search(r'[\d.]+', str(raw))
+            candidate = float(m.group()) if m else 0.0
+        if candidate > 0: size = candidate; break
+    if size <= 0: return None
+    deposit = _to_manwon_mp(house.get('deposit', 0))
+    price   = _to_manwon_mp(house.get('price', 0))
+    if rent_type == '전세':
+        real_deposit = deposit if deposit > 0 else price
+        total_expense = real_deposit * RATE * YEARS
+    else:
+        total_expense = deposit * RATE * YEARS + price * 12 * YEARS
+    if total_expense <= 0: return None
+    expense_per_m2 = total_expense / size
+    center = stats['peak'] if stats['mean'] > stats['peak'] * 1.1 else stats['mean']
+    z = (center - expense_per_m2) / stats['std']
+    raw_score = 60.0 + (z * 18.0)
+    if deposit <= 5500: raw_score += 5
+    if size < 15: raw_score -= 5
+    return round(max(0.0, min(100.0, raw_score)), 1)
+
 def get_user_normalized_weights_mypage(category_log):
     total_counts = {'traffic': 6, 'convenience': 10, 'green': 7, 'play': 6, 'health': 6, 'living': 13, 'safety': 10}
     log_counts = Counter(category_log)
@@ -207,6 +265,8 @@ def mypage():
                 fav['room_counts'] = rh.get('room_counts')
                 fav['size_m2'] = rh.get('size_m2')
                 fav['floor'] = rh.get('floor')
+                # 가성비 점수 계산
+                fav['vfm_score'] = get_vfm_score_mp(rh)
         except Exception as e:
             print("매물 정보 보완 실패:", e)
 

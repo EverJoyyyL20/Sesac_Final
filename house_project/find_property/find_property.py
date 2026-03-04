@@ -27,6 +27,69 @@ except Exception as e:
 
 find_bp = Blueprint('find', __name__, template_folder='.')
 
+
+# ------------------------------------------------------------------
+# 가성비(VFM) 점수 계산
+# ------------------------------------------------------------------
+def _to_manwon_fp(value):
+    import re as _re
+    if value is None: return 0.0
+    if isinstance(value, (int, float)):
+        v = float(value)
+        if v <= 0: return 0.0
+        if v >= 10_000_000: return v / 10_000
+        return v
+    s = str(value).replace(',', '').strip()
+    m = _re.search(r'[\d.]+', s)
+    if not m: return 0.0
+    try: v = float(m.group())
+    except ValueError: return 0.0
+    if v <= 0: return 0.0
+    if v >= 10_000_000: return v / 10_000
+    return v
+
+def get_vfm_score_fp(house):
+    import re as _re
+    YEARS, RATE = 3, 0.04
+    stats_map = {
+        '전세_Normal':   {'peak': 99.4,  'mean': 96.2,  'std': 40.0},
+        '월세_Normal':   {'peak': 91.9,  'mean': 124.8, 'std': 51.3},
+        '월세_Basement': {'peak': 77.7,  'mean': 76.3,  'std': 22.3},
+        '전세_Basement': {'peak': 26.4,  'mean': 31.7,  'std': 11.7},
+    }
+    rent_type = house.get('rent_type', '')
+    floor_str = str(house.get('floor', ''))
+    layer = 'Basement' if '반지하' in floor_str else 'Normal'
+    group = f"{rent_type}_{layer}"
+    if group not in stats_map: return 60.0
+    stats = stats_map[group]
+    size = 0.0
+    for key in ('size_m2', 'area', 'size', 'supply_area', 'exclusive_area'):
+        raw = house.get(key)
+        if raw is None: continue
+        try: candidate = float(raw)
+        except:
+            m = _re.search(r'[\d.]+', str(raw))
+            candidate = float(m.group()) if m else 0.0
+        if candidate > 0: size = candidate; break
+    if size <= 0: return 60.0
+    deposit = _to_manwon_fp(house.get('deposit', 0))
+    price   = _to_manwon_fp(house.get('price', 0))
+    if rent_type == '전세':
+        real_deposit = deposit if deposit > 0 else price
+        total_expense = real_deposit * RATE * YEARS
+    else:
+        total_expense = deposit * RATE * YEARS + price * 12 * YEARS
+    if total_expense <= 0: return 60.0
+    expense_per_m2 = total_expense / size
+    center = stats['peak'] if stats['mean'] > stats['peak'] * 1.1 else stats['mean']
+    z = (center - expense_per_m2) / stats['std']
+    raw_score = 60.0 + (z * 18.0)
+    if deposit <= 5500: raw_score += 5
+    if size < 15: raw_score -= 5
+    return round(max(0.0, min(100.0, raw_score)), 1)
+
+
 # 서울 각 구별 중심 좌표 (클러스터링용)
 GU_COORDS = {
     "강남구": {"lat": 37.514575, "lng": 127.0495556}, "강동구": {"lat": 37.52736667, "lng": 127.1258639},
@@ -240,8 +303,28 @@ def get_properties():
     if option_status == '있음': query['options'] = {"$exists": True, "$not": {"$size": 0}}
     elif option_status == '없음': query['$or'] = [{'options': {"$exists": False}}, {'options': {"$size": 0}}]
 
-    items = list(houses_col.find(query).limit(300))
-    return jsonify([{**item, "_id": str(item['_id'])} for item in items])
+    vfm_min = request.args.get('vfm_min', type=float)
+
+    # 가성비 필터가 있을 경우: limit 없이 전체 조회 → vfm_score 계산 → 필터링 → 상위 300개
+    # 가성비 필터가 없을 경우: 기존대로 limit(300) 후 vfm_score만 계산
+    if vfm_min is not None:
+        items = list(houses_col.find(query))  # 전체 조회 (limit 없음)
+        result = []
+        for item in items:
+            item_dict = {**item, "_id": str(item['_id'])}
+            item_dict['vfm_score'] = get_vfm_score_fp(item)
+            if item_dict['vfm_score'] >= vfm_min:
+                result.append(item_dict)
+        result = result[:300]  # 필터링 후 최대 300개
+    else:
+        items = list(houses_col.find(query).limit(300))
+        result = []
+        for item in items:
+            item_dict = {**item, "_id": str(item['_id'])}
+            item_dict['vfm_score'] = get_vfm_score_fp(item)
+            result.append(item_dict)
+
+    return jsonify(result)
 
 # =====================================================================
 # 🔥 [AI 챗봇 완전 개편] 서울 제한 & 안전한 데이터 파싱 적용
