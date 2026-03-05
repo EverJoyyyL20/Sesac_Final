@@ -135,6 +135,10 @@
                 </div>
                 <div id="current-addr" class="address-display">지도를 움직여 원하는 곳에 핀을 맞춰주세요.</div>
                 <input type="hidden" id="pref_location">
+                <div style="background:#fff8e1;border:1.5px solid #ffd54f;border-radius:10px;padding:10px 14px;font-size:0.82rem;color:#7a5500;margin:12px 0;line-height:1.6;">
+                    📍 <strong>반경 2km 이내</strong>의 매물만 추천됩니다.<br>
+                    2km를 초과하는 매물은 결과에서 제외돼요.
+                </div>
                 <div class="next-btn-container" style="display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: 15px;">
                     <button type="button" class="confirm-btn" onclick="confirmLocation()">이 위치 근처로 찾기</button>
                     <button type="button" class="skip-btn" onclick="location.reload()">취소하고 돌아가기</button>
@@ -235,6 +239,12 @@
                 <div class="options-group single-group" data-key="prefer_vfm">
                     <button type="button" class="opt-btn" onclick="toggleVfmBtn(this, true)">💸 가성비 좋은 매물 우선</button>
                     <button type="button" class="opt-btn" onclick="toggleVfmBtn(this, false)">🏆 라이프스타일 매칭만</button>
+                </div>
+                <div id="vfm-notice" style="display:none;background:#fff8e1;border:1.5px solid #ffd54f;border-radius:10px;padding:10px 14px;font-size:0.82rem;color:#7a5500;margin-top:10px;line-height:1.6;">
+                    ⚠️ <strong>가성비 우선 선택 시 참고하세요</strong><br>
+                    · 가성비가 높은 매물은 <strong>서울 외곽 지역</strong>에 위치할 확률이 높아요.<br>
+                    · 비용이 저렴한 대신 <strong>교통·편의·환경 등 다른 조건이 아쉬울 수 있어요.</strong><br>
+                    · 점수는 참고용이며, 직접 확인해보시는 걸 추천드려요 😊
                 </div>
             </div>
 
@@ -477,6 +487,8 @@
         group.querySelectorAll('.opt-btn').forEach(b => b.classList.remove('selected'));
         btn.classList.add('selected');
         surveyResults.prefer_vfm = value;
+        const notice = document.getElementById('vfm-notice');
+        if (notice) notice.style.display = value ? 'block' : 'none';
         const errEl = document.querySelector('.detail-empty');
         if (errEl) errEl.style.display = 'none';
     }

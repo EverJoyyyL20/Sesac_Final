@@ -116,21 +116,6 @@ def generate_recommendation_reason(user_id, nw, house_info):
     except Exception:
         return "고객님의 라이프스타일 지표를 분석한 결과, 가장 추천해 드리는 맞춤형 매물입니다."
 
-
-def _parse_lifestyle_report(raw):
-    """DB에 저장된 JSON 문자열 또는 구 HTML 문자열을 안전하게 처리."""
-    import json as _json
-    if not raw:
-        return None
-    if isinstance(raw, dict):
-        return raw
-    try:
-        return _json.loads(raw)
-    except Exception:
-        # 구버전 HTML 데이터 → None 반환해서 재생성 유도
-        return None
-
-
 def _to_manwon(value):
     """
     DB 금액을 만원 단위로 통일.
@@ -533,7 +518,7 @@ def survey_result(index):
     user_chart_data = [round(nw.get(k, 0) * 100, 1) for k in chart_keys]
 
     # [변경] lifestyle_report가 이미 저장되어 있으면 바로 사용, 없으면 None으로 (AI 로딩 UI 표시)
-    detailed_analysis = _parse_lifestyle_report(selected_survey.get('lifestyle_report'))
+    detailed_analysis = selected_survey.get('lifestyle_report')
 
     query = {}
     target_coords = selected_survey.get('target_coords')
@@ -626,14 +611,7 @@ def ai_generate(survey_id):
 
     updates = {}
 
-    # 1. 라이프스타일 분석 (없을 때만 생성)
-    detailed_analysis = _parse_lifestyle_report(selected_survey.get('lifestyle_report'))
-    if not detailed_analysis:
-        detailed_analysis = generate_sandbox_lifestyle_analysis(nw, top2_keys)
-        updates['lifestyle_report'] = detailed_analysis  # JSON 문자열 그대로 저장
-        detailed_analysis = _parse_lifestyle_report(detailed_analysis)
-
-    # 2. ai_comment (없는 매물만 생성)
+    # 매물 쿼리 먼저 준비
     query = {}
     target_coords = selected_survey.get('target_coords')
     loc = selected_survey.get('location')
@@ -645,24 +623,51 @@ def ai_generate(survey_id):
     if target_rent_type: query['rent_type'] = target_rent_type
     query = apply_detail_filters(query, selected_survey)
 
-    pipeline = build_match_pipeline(query, nw, target_coords=target_coords, limit=10)
+    use_vfm_gen = bool(selected_survey.get('prefer_vfm', False))
+    pipeline = build_match_pipeline(query, nw, target_coords=target_coords, limit=10, use_vfm=use_vfm_gen)
     matched_properties = format_property_data(list(houses_col.aggregate(pipeline)))
+    if use_vfm_gen:
+        matched_properties = apply_vfm_to_results(matched_properties)
     top_3 = matched_properties[:3]
 
     saved_comments = selected_survey.get('ai_comments_v2', {})
+    needs_lifestyle = not selected_survey.get('lifestyle_report')
     new_comments = dict(saved_comments)
-    futures = {}
-    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+
+    # 라이프스타일 분석 + 매물 멘트 3개를 모두 동시에 병렬 실행
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+        # 라이프스타일 분석 (없을 때만)
+        lifestyle_future = executor.submit(
+            generate_sandbox_lifestyle_analysis, nw, top2_keys
+        ) if needs_lifestyle else None
+
+        # 매물 멘트 (없는 것만)
+        comment_futures = {}
         for house in top_3:
             h_id = house['_id_str']
             if h_id not in saved_comments:
-                futures[h_id] = executor.submit(generate_recommendation_reason, user_id, nw, house)
+                comment_futures[h_id] = executor.submit(
+                    generate_recommendation_reason, user_id, nw, house
+                )
+
+        # 결과 수집 — timeout을 넉넉하게 45초
+        if lifestyle_future:
+            try:
+                detailed_analysis = lifestyle_future.result(timeout=45)
+                updates['lifestyle_report'] = detailed_analysis
+            except Exception as e:
+                print(f"Lifestyle future error: {e}")
+                detailed_analysis = selected_survey.get('lifestyle_report', '')
+        else:
+            detailed_analysis = selected_survey.get('lifestyle_report', '')
+
         for house in top_3:
             h_id = house['_id_str']
-            if h_id in futures:
+            if h_id in comment_futures:
                 try:
-                    new_comments[h_id] = futures[h_id].result(timeout=20)
-                except Exception:
+                    new_comments[h_id] = comment_futures[h_id].result(timeout=45)
+                except Exception as e:
+                    print(f"Comment future error [{h_id}]: {e}")
                     new_comments[h_id] = "분석 중 오류가 발생했습니다."
 
     if new_comments != saved_comments:
@@ -932,32 +937,44 @@ def generate_sandbox_lifestyle_analysis(nw_weights, top2_keys):
     dong_data_str = "\n".join(dong_data_lines)
 
     template = """
-    당신은 라이프스타일 큐레이터입니다. 고객 설문 결과를 분석해 아래 JSON 형식으로만 응답하세요.
-    HTML 태그, 마크다운, 코드블록(```)은 절대 사용하지 마세요. 순수 텍스트만 사용하세요.
+    당신은 고객의 취향과 일상을 섬세하게 읽어내는 라이프스타일 큐레이터이자 공간 에디터입니다.
+    고객의 설문조사 결과(가중치)를 바탕으로, 딱딱한 보고서가 아닌 따뜻한 감성이 담긴 '퍼스널 매거진' 스타일의 1:1 맞춤형 공간 브리핑을 JSON으로 작성해주세요.
 
     [고객 데이터]
-    - 최우선 핵심 가치 2가지: {top_names}
-    - 7대 지표별 가중치: {weight_pct}
+    - 최우선 핵심 가치 2가지: {{top_names}}
+    - 7대 지표별 세부 가중치: {{weight_pct}}
 
-    [추천 동네 데이터] — 아래 3개 동네 이름만 사용, 임의 생성 절대 금지
-    {dong_data}
+    [추천 동네 데이터] — 코드가 계산한 결과입니다. 아래 3개 동네만 사용하고 절대 임의로 동네명을 만들지 마세요.
+    {{dong_data}}
 
-    반드시 아래 JSON 구조로만 응답 (키 이름 변경 금지):
-    {{
-      "summary": "고객 라이프스타일을 2~3문장으로 따뜻하고 감성적으로 요약",
+    [말투 및 제약 조건]
+    - 톤앤매너: 센스 있는 잡지 에디터나 다정한 공간 디렉터처럼 부드럽고 세련된 말투를 사용하세요.
+    - 너무 격식을 차린 딱딱한 표현(예: '귀하', '제언합니다') 대신, 대화하듯 친근하면서도 신뢰감이 느껴지는 어조(예: '~인 것 같아요', '~를 추천해 드리고 싶어요', '~를 즐겨보시는 건 어떨까요?')를 사용하세요.
+    - 🚨 dong name에는 반드시 [추천 동네 데이터]의 이름만 쓰세요. 절대 임의 생성 금지.
+    - 🔥 JSON 외 다른 텍스트(마크다운, 코드블록 ```, 설명문 등)는 절대 출력하지 마세요.
+
+    [출력 형식] 반드시 아래 JSON 구조로만 응답하세요 (키 이름 변경 금지):
+    {{{{
+      "summary": "고객의 라이프스타일 전체를 2~3문장으로 따뜻하고 감성적으로 요약. 잡지 에디터 스타일로.",
       "insights": [
-        {{"label": "지표명", "weight": "00.0%", "desc": "이 지표가 왜 중요한지 1~2문장"}},
-        {{"label": "지표명", "weight": "00.0%", "desc": "설명"}},
-        {{"label": "지표명", "weight": "00.0%", "desc": "설명"}}
+        {{{{
+          "label": "지표명 (7대 지표 중 비중 높은 순서대로 3개)",
+          "weight": "00.0%",
+          "desc": "이 지표가 이 고객에게 왜 중요한지, 어떤 라이프스타일을 반영하는지 2~3문장으로 감성적으로 설명"
+        }}}},
+        {{{{"label": "지표명", "weight": "00.0%", "desc": "설명"}}}},
+        {{{{"label": "지표명", "weight": "00.0%", "desc": "설명"}}}}
       ],
       "dongs": [
-        {{"name": "동네명(반드시 위 추천 동네 데이터의 이름만)", "desc": "왜 어울리는지 1~2문장", "points": ["장점1", "장점2", "장점3"]}},
-        {{"name": "동네명", "desc": "설명", "points": ["장점1", "장점2", "장점3"]}},
-        {{"name": "동네명", "desc": "설명", "points": ["장점1", "장점2", "장점3"]}}
+        {{{{
+          "name": "동네명 (반드시 위 [추천 동네 데이터]의 이름만 사용)",
+          "desc": "이 동네가 이 고객의 라이프스타일과 왜 잘 맞는지 2~3문장으로 감성적으로 설명. 데이터 점수를 근거로.",
+          "points": ["구체적 장점 1", "구체적 장점 2", "구체적 장점 3"]
+        }}}},
+        {{{{"name": "동네명", "desc": "설명", "points": ["장점1", "장점2", "장점3"]}}}},
+        {{{{"name": "동네명", "desc": "설명", "points": ["장점1", "장점2", "장점3"]}}}}
       ]
-    }}
-
-    말투: 친근한 잡지 에디터 스타일. JSON 외 다른 텍스트 출력 절대 금지.
+    }}}}
     """
 
     prompt = PromptTemplate.from_template(template)
@@ -989,7 +1006,6 @@ def generate_sandbox_lifestyle_analysis(nw_weights, top2_keys):
         }
         return _json.dumps(fallback, ensure_ascii=False)
 
-
 @survey_bp.route('/survey/prompt_test/<int:index>')
 def survey_prompt_sandbox(index):
     if 'user_id' not in session: 
@@ -1014,11 +1030,10 @@ def survey_prompt_sandbox(index):
     user_chart_labels = ['교통', '편의', '녹지', '놀이', '건강', '생활', '안전']
     user_chart_data = [round(nw.get(k, 0) * 100, 1) for k in chart_keys]
 
-    detailed_analysis = _parse_lifestyle_report(selected_survey.get('lifestyle_report'))
+    detailed_analysis = selected_survey.get('lifestyle_report')
     if not detailed_analysis:
-        raw_analysis = generate_sandbox_lifestyle_analysis(nw, top2_keys)
-        db.survey_results.update_one({"_id": survey_id}, {"$set": {"lifestyle_report": raw_analysis}})
-        detailed_analysis = _parse_lifestyle_report(raw_analysis)
+        detailed_analysis = generate_sandbox_lifestyle_analysis(nw, top2_keys)
+        db.survey_results.update_one({"_id": survey_id}, {"$set": {"lifestyle_report": detailed_analysis}})
 
     return render_template(
         'prompt_test.html', 
