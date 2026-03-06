@@ -5,8 +5,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, sessio
 from database import users_col, oauth  # database.py에서 가져옴
 from werkzeug.security import generate_password_hash, check_password_hash
 import datetime
-from urllib.parse import urlparse, urljoin # URL 안전성 검사 함수 추가
-from urllib.parse import urlparse, urljoin, parse_qs # URL 파라미터 파싱을 위한 parse_qs 추가
+from urllib.parse import urlparse, urljoin, parse_qs # URL 안전성 검사 함수 추가, URL 파라미터 파싱을 위한 parse_qs 추가
 
 auth_bp = Blueprint('auth', __name__, template_folder='.')
 
