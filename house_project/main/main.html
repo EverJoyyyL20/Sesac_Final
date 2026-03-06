@@ -21,7 +21,7 @@
         <form id="setup-detail-form">
             <div class="input-group">
                 <label for="new-nickname">닉네임</label>
-                <input type="text" id="new-nickname" name="nickname" required>
+                <input type="text" id="new-nickname" name="nickname" value="{{ session.get('nickname', '') }}" required>
                 <small id="nick-count">0 / 16</small>
                 <small id="nick-error" style="color:red; display:none;"></small>
             </div>
@@ -291,8 +291,13 @@
                 nickCounter.innerText = `${byte} / 16`;
             }
         });
-    }
 
+        // 🔥 [추가] 페이지 로드 시 값이 이미 있다면(랜덤 닉네임), input 이벤트를 강제로 발생시킴
+        if (nicknameInput.value) {
+            nicknameInput.dispatchEvent(new Event('input'));
+        }
+    }
+    
     if (introInput) {
         introInput.addEventListener('input', function() {
             // 🔥 여기도 동일하게 안전처리
