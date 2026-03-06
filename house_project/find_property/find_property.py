@@ -108,7 +108,6 @@ GU_COORDS = {
 }
 
 # 🔥 장소 이름(예: 강남역)을 좌표로 변환하는 헬퍼 함수
-# 🔥 장소 이름(예: 강남역)을 좌표로 변환하는 헬퍼 함수
 def get_poi_coordinates(keyword):
     kakao_key = os.getenv("KAKAO_REST_API")
     print(f"🔍 [디버깅] 입력된 키워드: '{keyword}' / 카카오 키 로드 성공: {'✅ 네' if kakao_key else '❌ 아니오'}")
