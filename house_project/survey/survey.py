@@ -942,11 +942,27 @@ def generate_sandbox_lifestyle_analysis(nw_weights, top2_keys):
     top_names = [category_map[k] for k in top2_keys]
 
     top_dongs = get_top_dong_recommendations(nw_weights)
+    valid_dong_names = [d['name'] for d in top_dongs]  # 🔥 추가: CRITICAL
+    
     dong_data_lines = []
     for d in top_dongs:
-        sorted_scores = sorted(d["scores"].items(), key=lambda x: x[1], reverse=True)[:3]
-        score_str = ", ".join([f"{category_map[k]} {int(v*100)}점" for k, v in sorted_scores])
-        dong_data_lines.append(f"- {d['name']}: {score_str}")
+        final_score = sum(
+            nw_weights.get(cat, 0) * d["scores"].get(cat, 0)
+            for cat in ['traffic', 'convenience', 'green', 'play', 'health', 'living', 'safety']
+        ) * 100
+        
+        sorted_by_user_weight = sorted(
+            d["scores"].items(),
+            key=lambda x: nw_weights.get(x[0], 0),
+            reverse=True
+        )[:3]
+        
+        score_str = ", ".join([
+            f"{category_map[k]} {int(v*100)}점"
+            for k, v in sorted_by_user_weight
+        ])
+        
+        dong_data_lines.append(f"- {d['name']} (적합도 {final_score:.1f}점): {score_str}")
     dong_data_str = "\n".join(dong_data_lines)
 
     template = """
@@ -959,6 +975,10 @@ def generate_sandbox_lifestyle_analysis(nw_weights, top2_keys):
 
     [추천 동네 데이터] — 코드가 계산한 결과입니다. 아래 3개 동네만 사용하고 절대 임의로 동네명을 만들지 마세요.
     {{dong_data}}
+    ⚠️ CRITICAL 규칙:
+    - "영등포동4가" → "영등포구"로 변경 금지!
+    - "여의도동" → "여의도"로 축약 금지!
+    - 위 3개 동네 이름을 정확히 사용해야만 JSON이 유효합니다.
 
     [말투 및 제약 조건]
     - 톤앤매너: 센스 있는 잡지 에디터나 다정한 공간 디렉터처럼 부드럽고 세련된 말투를 사용하세요.
@@ -1001,7 +1021,15 @@ def generate_sandbox_lifestyle_analysis(nw_weights, top2_keys):
         })
         raw = response.content.replace("```json", "").replace("```", "").strip()
         parsed = _json.loads(raw)
+        
+        # 검증: LLM이 동네명을 변경했는지 확인
+        for i, dong in enumerate(parsed.get("dongs", [])):
+            if dong.get("name") not in valid_dong_names:
+                print(f"⚠️ 동네명 자동 수정: '{dong.get('name')}' → '{valid_dong_names[i]}'")
+                dong["name"] = valid_dong_names[i]
+        
         return _json.dumps(parsed, ensure_ascii=False)
+        
     except Exception as e:
         print(f"Lifestyle Analysis Error: {e}")
         fallback = {
@@ -1012,9 +1040,9 @@ def generate_sandbox_lifestyle_analysis(nw_weights, top2_keys):
                 {"label": "안전", "weight": weight_pct.get("안전", "–"), "desc": "편안하고 안심되는 환경을 선호하시는 것 같아요."}
             ],
             "dongs": [
-                {"name": dong_data_lines[0].split(":")[0].replace("- ","").strip() if dong_data_lines else "추천 동네", "desc": "고객님의 라이프스타일에 잘 맞는 동네예요.", "points": ["쾌적한 환경", "편리한 교통", "생활 인프라 우수"]},
-                {"name": dong_data_lines[1].split(":")[0].replace("- ","").strip() if len(dong_data_lines) > 1 else "추천 동네 2", "desc": "편리하고 활기찬 동네예요.", "points": ["편의시설 풍부", "안전한 주거환경", "다양한 문화시설"]},
-                {"name": dong_data_lines[2].split(":")[0].replace("- ","").strip() if len(dong_data_lines) > 2 else "추천 동네 3", "desc": "조용하고 살기 좋은 동네예요.", "points": ["녹지공간 풍부", "안정적인 주거", "좋은 교육환경"]}
+                {"name": valid_dong_names[0], "desc": "고객님의 라이프스타일에 잘 맞는 동네예요.", "points": ["쾌적한 환경", "편리한 교통", "생활 인프라 우수"]},
+                {"name": valid_dong_names[1] if len(valid_dong_names) > 1 else valid_dong_names[0], "desc": "편리하고 활기찬 동네예요.", "points": ["편의시설 풍부", "안전한 주거환경", "다양한 문화시설"]},
+                {"name": valid_dong_names[2] if len(valid_dong_names) > 2 else valid_dong_names[0], "desc": "조용하고 살기 좋은 동네예요.", "points": ["녹지공간 풍부", "안정적인 주거", "좋은 교육환경"]}
             ]
         }
         return _json.dumps(fallback, ensure_ascii=False)
