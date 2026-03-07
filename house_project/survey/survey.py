@@ -116,6 +116,19 @@ def generate_recommendation_reason(user_id, nw, house_info):
     except Exception:
         return "고객님의 라이프스타일 지표를 분석한 결과, 가장 추천해 드리는 맞춤형 매물입니다."
 
+def _parse_lifestyle_report(raw):
+    """DB에 저장된 JSON 문자열을 Python 객체로 파싱."""
+    import json as _json
+    if not raw:
+        return None
+    if isinstance(raw, dict):
+        return raw
+    try:
+        return _json.loads(raw)
+    except Exception:
+        # 파싱 실패 → None 반환해서 재생성 유도
+        return None
+
 def _to_manwon(value):
     """
     DB 금액을 만원 단위로 통일.
@@ -517,8 +530,7 @@ def survey_result(index):
     user_chart_labels = ['교통', '편의', '녹지', '놀이', '건강', '생활', '안전']
     user_chart_data = [round(nw.get(k, 0) * 100, 1) for k in chart_keys]
 
-    # [변경] lifestyle_report가 이미 저장되어 있으면 바로 사용, 없으면 None으로 (AI 로딩 UI 표시)
-    detailed_analysis = selected_survey.get('lifestyle_report')
+    detailed_analysis = _parse_lifestyle_report(selected_survey.get('lifestyle_report'))
 
     query = {}
     target_coords = selected_survey.get('target_coords')
@@ -655,11 +667,12 @@ def ai_generate(survey_id):
             try:
                 detailed_analysis = lifestyle_future.result(timeout=45)
                 updates['lifestyle_report'] = detailed_analysis
+                detailed_analysis = _parse_lifestyle_report(detailed_analysis)
             except Exception as e:
                 print(f"Lifestyle future error: {e}")
-                detailed_analysis = selected_survey.get('lifestyle_report', '')
+                detailed_analysis = _parse_lifestyle_report(selected_survey.get('lifestyle_report', ''))
         else:
-            detailed_analysis = selected_survey.get('lifestyle_report', '')
+            detailed_analysis = _parse_lifestyle_report(selected_survey.get('lifestyle_report', ''))
 
         for house in top_3:
             h_id = house['_id_str']
