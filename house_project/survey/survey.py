@@ -1,88 +1,248 @@
+# Flask 웹 프레임워크에서 필요한 기능들을 가져옴
+# Blueprint: 기능별로 라우트를 묶는 모듈 단위
+# render_template: HTML 파일을 사용자에게 보여줄 때 사용
+# request: 사용자가 보낸 데이터(폼, JSON 등)를 읽을 때 사용
+# jsonify: Python 데이터를 JSON 형태로 변환해서 응답할 때 사용
+# session: 사용자별로 데이터를 잠깐 저장할 때 사용 (로그인 정보 등)
+# redirect: 다른 URL로 이동시킬 때 사용
+# url_for: URL을 자동으로 생성
+# current_app: 현재 Flask 앱의 설정이나 상태에 접근할 때 사용
 from flask import Blueprint, render_template, request, jsonify, session, redirect, url_for, current_app
+
+# database.py 파일에서 MongoDB 관련 객체를 가져옴
+# houses_col : 집 데이터가 저장된 MongoDB 컬렉션
+# db : MongoDB 데이터베이스 객체
 from database import houses_col, db
+# MongoDB에서 사용하는 고유 ID(ObjectId)를 다루기 위해 import
+# 예: "65fae1b1a12d3c4f5a..." 같은 MongoDB 문서 ID
 from bson.objectid import ObjectId
+# 날짜와 시간을 다루기 위한 라이브러리
+# 예: 현재 시간 기록 (로그 저장 등)
 from datetime import datetime
+# 리스트 안의 데이터 개수를 쉽게 세기 위한 도구
+# 예: ["서울","서울","부산"] → 서울 2, 부산 1
 from collections import Counter
+# 운영체제(OS) 기능을 사용하기 위한 모듈
+# 주로 환경 변수 읽기 등에 사용
 import os
+# .env 파일에 저장된 환경변수(API 키 등)를 불러오기 위한 라이브러리
 from dotenv import load_dotenv 
+# LangChain에서 OpenAI GPT 모델을 사용하기 위한 클래스
+# ChatOpenAI를 이용하면 GPT 모델에게 질문을 보내고 답변을 받을 수 있음
 from langchain_openai import ChatOpenAI
+# 프롬프트 템플릿을 만들기 위한 클래스
+# AI에게 보낼 질문의 틀을 만들 때 사용
+# 예: "다음 질문에 답해주세요: {question}"
 from langchain_core.prompts import PromptTemplate
+# 여러 작업을 동시에 실행할 수 있게 해주는 라이브러리
+# 예: 추천 계산 + 데이터 조회 등을 동시에 처리해서 속도를 빠르게 함
 import concurrent.futures
+# 프로젝트 내부 constants 파일에서 TYPE_MAP을 가져옴
+# TYPE_MAP은 집 유형 코드 → 실제 이름으로 변환할 때 사용하는 딕셔너리일 가능성이 높음
+# 예: {"APT":"아파트", "OFF":"오피스텔"}
 from src.core.constants import TYPE_MAP
 
+# .env 파일에 있는 환경 변수를 프로그램에서 사용할 수 있게 로드
+# override=True : 이미 존재하는 환경 변수도 덮어쓰기 허용
 load_dotenv(override=True)
 
 # ------------------------------------------------------------------
 # AI 및 초기 설정
 # ------------------------------------------------------------------
+
+# 환경 변수에서 OpenAI API 키를 가져옴
+# .env 파일 예시
+# OPENAI_API_KEY=sk-xxxxxxx
 api_key = os.getenv("OPENAI_API_KEY")
 
+# GPT 모델 초기화 시도
+# 오류가 발생할 수 있으므로 try-except 사용
 try:
+    # ChatOpenAI 객체 생성 (GPT 모델 사용 준비)
+    
+    # model="gpt-4o-mini"
+    # → 사용할 OpenAI 모델 이름
+    
+    # temperature=0.5
+    # → 답변의 창의성 정도
+    # 0에 가까울수록 더 정확하고 동일한 답변
+    # 1에 가까울수록 더 창의적인 답변
+    
+    # openai_api_key=api_key
+    # → 위에서 가져온 OpenAI API 키 사용
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.5, openai_api_key=api_key)
+    # GPT 모델이 정상적으로 초기화되면 콘솔에 메시지 출력
     print("✅ GPT 모델 초기화 성공")
 except Exception as e:
+     # GPT 초기화 중 오류가 발생하면 에러 메시지 출력
     print(f"❌ GPT 초기화 실패: {e}")
 
+# Flask Blueprint 생성
+# 'survey'라는 이름의 블루프린트를 만들어서
+# 설문 관련 라우트(API, 페이지 등)를 이 모듈에서 관리함
+#
+# __name__ : 현재 파일 이름을 Flask가 인식하도록 전달
+# template_folder='.' : HTML 템플릿 파일 위치 (현재 폴더)
 survey_bp = Blueprint('survey', __name__, template_folder='.')
 
-# 쇼츠 전용 라우트(함수) 추가
+
+# ------------------------------------------------------------------
+# 쇼츠(Shorts) 페이지 라우트 생성
+# ------------------------------------------------------------------
+
+# Flask Blueprint(survey_bp)에 '/shorts'라는 URL 경로를 연결
+# 사용자가 웹 브라우저에서  /shorts  주소로 접속하면
+# 바로 아래에 있는 shorts_page() 함수가 실행됨
 @survey_bp.route('/shorts')
 def shorts_page():
+    # render_template는 HTML 파일을 브라우저에 보여주는 Flask 함수
+    # templates 폴더에 있는 'shorts.html' 파일을 사용자에게 화면으로 반환함
+    # 즉, /shorts 주소로 접속하면 shorts.html 페이지가 열림
     return render_template('shorts.html')
 
+# ------------------------------------------------------------------
+# 카테고리 영어 → 한국어 변환 딕셔너리
+# ------------------------------------------------------------------
+
+# category_map은 카테고리 코드를 한국어 이름으로 변환하기 위한 딕셔너리
+# 예를 들어 DB에는 "traffic" 같은 영어 코드로 저장되어 있을 수 있는데
+# 화면에서는 "교통"처럼 사용자에게 이해하기 쉽게 보여주기 위해 사용됨
 category_map = {
-    "traffic": "교통", "convenience": "편의", "green": "녹지",
-    "play": "놀이", "health": "건강", "living": "생활", "safety": "안전"
+    # 교통 관련 시설
+    # 예: 지하철역, 버스정류장, 도로 접근성 등
+    "traffic": "교통", 
+    # 편의시설
+    # 예: 편의점, 카페, 음식점, 쇼핑몰 등
+    "convenience": "편의", 
+    # 녹지 공간
+    # 예: 공원, 숲, 산책로 등 자연환경
+    "green": "녹지",
+     # 놀이 시설
+    # 예: 놀이터, 키즈카페, 놀이공원 등
+    "play": "놀이", 
+     # 건강 관련 시설
+    # 예: 병원, 약국, 헬스장 등
+    "health": "건강",
+     # 생활 편의 시설
+    # 예: 마트, 세탁소, 은행, 생활 인프라 등 
+    "living": "생활", 
+    # 안전 관련 시설
+    # 예: 경찰서, 소방서, CCTV 등
+    "safety": "안전"
 }
 
-# ------------------------------------------------------------------
-# DB 실제 데이터를 활용한 완벽한 프라이빗 브리핑 생성
-# ------------------------------------------------------------------
+# ------------------------------------------------------------
+# 추천 매물에 대한 "추천 이유 설명"을 생성하는 함수
+# ------------------------------------------------------------
+# user_id   : 사용자 이메일 (DB에서 사용자 취향을 가져오기 위해 사용)
+# nw        : 새로 계산된 사용자 가중치 (fallback용)
+# house_info: 추천할 매물 정보 (주소, 가격, 카테고리 점수, 위치 등)
+# ------------------------------------------------------------
 def generate_recommendation_reason(user_id, nw, house_info):
+    # MongoDB에서 해당 사용자 정보를 찾음
+    # user 컬렉션에서 email이 user_id인 문서를 가져옴
     user_doc = db.user.find_one({"email": user_id})
+    # 사용자의 취향 가중치 가져오기
+    # DB에 Weight가 있으면 그것을 사용
+    # 없으면 함수 인자로 받은 nw 사용
     actual_weight = user_doc.get("Weight", nw) if user_doc else nw
     
-    # [수정] 상위 3개를 추출하되, 의미 없는 수치(스무딩 값)는 제외하여 변별력 확보
+    # ------------------------------------------------------------
+    # 사용자 취향 가중치 분석 (TOP 3 관심 카테고리 추출)
+    # ------------------------------------------------------------
+
+    # 가중치를 높은 순서로 정렬
+    # actual_weight 예시
+    # {"traffic":0.4,"green":0.2,"health":0.1}
     sorted_weights = sorted(actual_weight.items(), key=lambda x: x[1], reverse=True)
+
+     # 상위 관심 카테고리 추출
+    # - 의미 없는 작은 값(스무딩 값) 제거
+    # - 최대 3개까지만 선택
     top_interests = [
+        # category_map을 이용해서 영어 카테고리를 한국어로 변환
+        # 예: traffic -> 교통
+        # 가중치는 퍼센트로 변환
         f"{category_map.get(k, k)}({int(float(v)*100)}%)" 
-        for k, v in sorted_weights if float(v) > 0.015  # 최소한의 유효값 필터링
-    ][:3] # [핵심] 상위 3가지 카테고리 추출
+        # sorted_weights를 반복하면서
+        # 너무 작은 값은 제외 (추천 설명에 의미 없는 값 제거)
+        for k, v in sorted_weights if float(v) > 0.015  
+    ][:3] # 상위 3개만 사용
     
+    # ------------------------------------------------------------
+    # 매물의 카테고리 점수 정보 가져오기
+    # ------------------------------------------------------------
+
+    # house_info 안에 있는 category_scores 가져오기
+    # 없으면 빈 딕셔너리
     scores = house_info.get('category_scores', {})
+    # 점수를 문자열 리스트로 변환
+    # 예: "교통 85점"
     all_scores = [f"{category_map.get(k.lower(), k)} {int(float(v)*100)}점" for k, v in scores.items() if float(v) > 0]
     
+     # ------------------------------------------------------------
+    # 매물 위치 좌표 추출 (위도, 경도)
+    # ------------------------------------------------------------
+
     lng, lat = None, None
+    # house_info 안에 location과 coordinates가 있는지 확인
     if 'location' in house_info and 'coordinates' in house_info['location']:
         coords = house_info['location']['coordinates']
+         # 좌표가 [경도, 위도] 두 개로 구성되어 있는지 확인
         if len(coords) == 2:
             lng, lat = coords[0], coords[1]
     
+    # ------------------------------------------------------------
+    # 매물 주변 인프라(시설) 검색
+    # ------------------------------------------------------------
     nearby_infra_names = []
+    # 좌표가 존재할 때만 검색 수행
     if lat is not None and lng is not None:
         try:
+            # MongoDB의 geoNear를 사용하여
+            # 해당 위치 주변 인프라 검색
             infra_cursor = db.infra.aggregate([
                 {
                     "$geoNear": {
+                        # 기준 위치 (매물 위치)
                         "near": { "type": "Point", "coordinates": [float(lng), float(lat)] },
+                        # 거리 필드 생성
                         "distanceField": "dist",
-                        "maxDistance": 1000, 
+                        # 최대 거리 1000m (1km)
+                        "maxDistance": 1000,
+                        # 지구 곡률 고려 거리 계산
                         "spherical": True
                     }
                 },
+                # 최대 6개 시설만 가져오기
                 { "$limit": 6 } 
             ])
+             # 검색된 인프라 반복
             for doc in infra_cursor:
+                # 시설 이름
                 name = doc.get('name')
+                 # 시설 카테고리
                 cat = doc.get('category', '')
+                 # 영어 카테고리를 한국어로 변환
                 cat_kr = category_map.get(cat, cat)
+                 # 이름이 있으면 리스트에 저장
+                # 예: "서울숲(녹지)"
                 if name: nearby_infra_names.append(f"{name}({cat_kr})")
         except Exception:
+             # geo 검색 중 오류 발생 시 그냥 무시
             pass
+    
+    # ------------------------------------------------------------
+    # 인프라 리스트를 문자열로 변환
+    # ------------------------------------------------------------
 
+    # 중복 제거 후 문자열로 합침
+    # 주변 인프라 정보가 없으면 기본 문장 사용
     infra_str = ", ".join(list(set(nearby_infra_names))) if nearby_infra_names else "훌륭한 지역 상권 및 인프라"
 
-    # [프롬프트 수정] 1문단 가이드를 요청하신 대로 구체화했습니다.
+    # ------------------------------------------------------------
+    # GPT에게 보낼 프롬프트 템플릿
+    # ------------------------------------------------------------
     template = """
     당신은 상위 1% VIP를 전담하는 수석 부동산 큐레이터입니다.
     제공된 [고객 분석 데이터]는 고객이 직접 선택한 '우선순위 가중치'입니다.
