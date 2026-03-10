@@ -21,7 +21,7 @@
         <form id="setup-detail-form">
             <div class="input-group">
                 <label for="new-nickname">닉네임</label>
-                <input type="text" id="new-nickname" name="nickname" required>
+                <input type="text" id="new-nickname" name="nickname" value="{{ session.get('nickname', '') }}" required>
                 <small id="nick-count">0 / 16</small>
                 <small id="nick-error" style="color:red; display:none;"></small>
             </div>
@@ -87,16 +87,14 @@
 <section class="second-hero">
     <div class="second-content">
         <h2 class="fade-up">
-            <span class="line1"><span class="point">집</span>을 고르는 게 아니라,</span>
+            <span class="line1"><span class="point">집</span>을 고르는 게 아니라,<br></span>
             <span class="line2"><span class="point">삶</span>을 선택합니다</span>
         </h2>
             <!-- 🔥 여기 추가 -->
         <div class="service-text fade-up">
-            <p>전세·월세 금액</p>
-            <p>원룸·투룸·주차 여부</p>
-            <p class="desc">
-                그리고 당신의 일상 루틴까지 분석해<br>
-                가장 어울리는 매물을 제안합니다.
+            <p>
+                전세·월세 금액, 원룸·투룸·주차 여부 
+                <span class="desc">그리고 당신의 일상 루틴까지 분석해 가장 어울리는 매물을 제안합니다.</span>
             </p>
         </div>
          <div class="service-image fade-up">
@@ -291,8 +289,13 @@
                 nickCounter.innerText = `${byte} / 16`;
             }
         });
-    }
 
+        // 🔥 [추가] 페이지 로드 시 값이 이미 있다면(랜덤 닉네임), input 이벤트를 강제로 발생시킴
+        if (nicknameInput.value) {
+            nicknameInput.dispatchEvent(new Event('input'));
+        }
+    }
+    
     if (introInput) {
         introInput.addEventListener('input', function() {
             // 🔥 여기도 동일하게 안전처리

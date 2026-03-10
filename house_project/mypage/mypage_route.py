@@ -9,7 +9,6 @@ from src.core.constants import TYPE_MAP
 
 mypage_bp = Blueprint('mypage', __name__, template_folder='.')
 
-UPLOAD_FOLDER = 'static/profile_pics'
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 UPLOAD_FOLDER = os.path.join(BASE_DIR, 'static', 'profile_pics')
 
