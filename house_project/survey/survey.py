@@ -942,6 +942,10 @@ def generate_sandbox_lifestyle_analysis(nw_weights, top2_keys):
     top_names = [category_map[k] for k in top2_keys]
 
     top_dongs = get_top_dong_recommendations(nw_weights)
+    
+    # 🔥 [수정 1] _id 필드에 들어있는 순수한 '동 이름'만 따로 추출합니다.
+    exact_dong_names = [d['name'] for d in top_dongs]
+    
     dong_data_lines = []
     for d in top_dongs:
         sorted_scores = sorted(d["scores"].items(), key=lambda x: x[1], reverse=True)[:3]
@@ -954,50 +958,56 @@ def generate_sandbox_lifestyle_analysis(nw_weights, top2_keys):
     고객의 설문조사 결과(가중치)를 바탕으로, 딱딱한 보고서가 아닌 따뜻한 감성이 담긴 '퍼스널 매거진' 스타일의 1:1 맞춤형 공간 브리핑을 JSON으로 작성해주세요.
 
     [고객 데이터]
-    - 최우선 핵심 가치 2가지: {{top_names}}
-    - 7대 지표별 세부 가중치: {{weight_pct}}
+    - 최우선 핵심 가치 2가지: {top_names}
+    - 7대 지표별 세부 가중치: {weight_pct}
 
-    [추천 동네 데이터] — 코드가 계산한 결과입니다. 아래 3개 동네만 사용하고 절대 임의로 동네명을 만들지 마세요.
-    {{dong_data}}
+    [추천 동네 데이터] — 코드가 계산한 결과입니다. 
+    {dong_data}
+
+    [🔥 허용된 동네 이름 목록]
+    반드시 이 이름들 중 하나만 사용해야 합니다: {exact_dong_names}
 
     [말투 및 제약 조건]
     - 톤앤매너: 센스 있는 잡지 에디터나 다정한 공간 디렉터처럼 부드럽고 세련된 말투를 사용하세요.
-    - 너무 격식을 차린 딱딱한 표현(예: '귀하', '제언합니다') 대신, 대화하듯 친근하면서도 신뢰감이 느껴지는 어조(예: '~인 것 같아요', '~를 추천해 드리고 싶어요', '~를 즐겨보시는 건 어떨까요?')를 사용하세요.
-    - 🚨 dong name에는 반드시 [추천 동네 데이터]의 이름만 쓰세요. 절대 임의 생성 금지.
+    - 너무 격식을 차린 딱딱한 표현 대신, 대화하듯 친근하면서도 신뢰감이 느껴지는 어조를 사용하세요.
+    - 🚨 insights의 label에는 절대 새로운 단어(예: 자아실현, 사회적 관계 등)를 지어내지 마세요. 반드시 '교통', '편의', '녹지', '놀이', '건강', '생활', '안전' 7가지 중에서만 정확히 똑같은 글자로 선택하세요.
+    - 🚨 dongs의 name에는 반드시 [허용된 동네 이름 목록]에 있는 문자열을 토씨 하나 틀리지 않고 그대로 입력하세요. (예: '연남동', '역삼1동'). 절대 '연남동 일대'처럼 설명을 덧붙이거나 새로운 동네를 지어내면 안 됩니다.
     - 🔥 JSON 외 다른 텍스트(마크다운, 코드블록 ```, 설명문 등)는 절대 출력하지 마세요.
 
     [출력 형식] 반드시 아래 JSON 구조로만 응답하세요 (키 이름 변경 금지):
-    {{{{
+    {{
       "summary": "고객의 라이프스타일 전체를 2~3문장으로 따뜻하고 감성적으로 요약. 잡지 에디터 스타일로.",
       "insights": [
-        {{{{
-          "label": "지표명 (7대 지표 중 비중 높은 순서대로 3개)",
+        {{
+          "label": "지표명 (반드시 교통, 편의, 녹지, 놀이, 건강, 생활, 안전 중 하나)",
           "weight": "00.0%",
           "desc": "이 지표가 이 고객에게 왜 중요한지, 어떤 라이프스타일을 반영하는지 2~3문장으로 감성적으로 설명"
-        }}}},
-        {{{{"label": "지표명", "weight": "00.0%", "desc": "설명"}}}},
-        {{{{"label": "지표명", "weight": "00.0%", "desc": "설명"}}}}
+        }},
+        {{"label": "지표명 (반드시 7대 지표 중 하나)", "weight": "00.0%", "desc": "설명"}},
+        {{"label": "지표명 (반드시 7대 지표 중 하나)", "weight": "00.0%", "desc": "설명"}}
       ],
       "dongs": [
-        {{{{
-          "name": "동네명 (반드시 위 [추천 동네 데이터]의 이름만 사용)",
+        {{
+          "name": "허용된 동네 이름 목록에 있는 문자열 그대로 (예: 삼성동)",
           "desc": "이 동네가 이 고객의 라이프스타일과 왜 잘 맞는지 2~3문장으로 감성적으로 설명. 데이터 점수를 근거로.",
           "points": ["구체적 장점 1", "구체적 장점 2", "구체적 장점 3"]
-        }}}},
-        {{{{"name": "동네명", "desc": "설명", "points": ["장점1", "장점2", "장점3"]}}}},
-        {{{{"name": "동네명", "desc": "설명", "points": ["장점1", "장점2", "장점3"]}}}}
+        }},
+        {{"name": "허용된 동네 이름 그대로", "desc": "설명", "points": ["장점1", "장점2", "장점3"]}},
+        {{"name": "허용된 동네 이름 그대로", "desc": "설명", "points": ["장점1", "장점2", "장점3"]}}
       ]
-    }}}}
+    }}
     """
 
     prompt = PromptTemplate.from_template(template)
     chain = prompt | llm
 
     try:
+        # 🔥 [수정 2] exact_dong_names 변수를 프롬프트에 전달합니다.
         response = chain.invoke({
             "top_names": ", ".join(top_names),
             "weight_pct": str(weight_pct),
-            "dong_data": dong_data_str
+            "dong_data": dong_data_str,
+            "exact_dong_names": ", ".join(exact_dong_names)
         })
         raw = response.content.replace("```json", "").replace("```", "").strip()
         parsed = _json.loads(raw)
@@ -1012,9 +1022,9 @@ def generate_sandbox_lifestyle_analysis(nw_weights, top2_keys):
                 {"label": "안전", "weight": weight_pct.get("안전", "–"), "desc": "편안하고 안심되는 환경을 선호하시는 것 같아요."}
             ],
             "dongs": [
-                {"name": dong_data_lines[0].split(":")[0].replace("- ","").strip() if dong_data_lines else "추천 동네", "desc": "고객님의 라이프스타일에 잘 맞는 동네예요.", "points": ["쾌적한 환경", "편리한 교통", "생활 인프라 우수"]},
-                {"name": dong_data_lines[1].split(":")[0].replace("- ","").strip() if len(dong_data_lines) > 1 else "추천 동네 2", "desc": "편리하고 활기찬 동네예요.", "points": ["편의시설 풍부", "안전한 주거환경", "다양한 문화시설"]},
-                {"name": dong_data_lines[2].split(":")[0].replace("- ","").strip() if len(dong_data_lines) > 2 else "추천 동네 3", "desc": "조용하고 살기 좋은 동네예요.", "points": ["녹지공간 풍부", "안정적인 주거", "좋은 교육환경"]}
+                {"name": exact_dong_names[0] if exact_dong_names else "추천 동네", "desc": "고객님의 라이프스타일에 잘 맞는 동네예요.", "points": ["쾌적한 환경", "편리한 교통", "생활 인프라 우수"]},
+                {"name": exact_dong_names[1] if len(exact_dong_names) > 1 else "추천 동네 2", "desc": "편리하고 활기찬 동네예요.", "points": ["편의시설 풍부", "안전한 주거환경", "다양한 문화시설"]},
+                {"name": exact_dong_names[2] if len(exact_dong_names) > 2 else "추천 동네 3", "desc": "조용하고 살기 좋은 동네예요.", "points": ["녹지공간 풍부", "안정적인 주거", "좋은 교육환경"]}
             ]
         }
         return _json.dumps(fallback, ensure_ascii=False)

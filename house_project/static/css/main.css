@@ -683,7 +683,7 @@
 /* 푸터 전체 배경 및 여백 설정 */
 .footer {
     background-color: #111; /* 배경색 */
-    padding: 60px 0;        /* 위아래 여백 */
+    padding: 20px 0;        /* 🔥 기존 60px에서 30px로 위아래 전체 여백 축소 */
     color: #94a3b8;
 }
 
@@ -697,11 +697,11 @@
 /* 상단 로고와 메뉴를 양옆으로 벌림 */
 .footer-top {
     display: flex;
-    justify-content: space-between; /* 🔥 로고(왼쪽) <-> 메뉴(오른쪽) */
+    justify-content: space-between; 
     align-items: center;
     border-bottom: 1px solid rgba(255,255,255,0.1);
-    padding-bottom: 30px;
-    margin-bottom: 30px;
+    padding-bottom: 20px;   /* 🔥 기존 30px에서 20px로 하단 여백 축소 */
+    margin-bottom: 20px;    /* 🔥 기존 30px에서 20px로 하단 간격 축소 */
 }
 
 .footer-logo {
