@@ -875,12 +875,12 @@ def build_match_pipeline(match_query, nw, target_coords=None, limit=10, is_rando
         # -----------------------------------------------------------
         if use_vfm:
             # 가성비 사용
-            # 라이프스타일 56%
-            # 거리 14%
+            # 라이프스타일 49%
+            # 거리 21%
             # 가성비 30% (Python에서 나중에 계산)
             base_expr = {"$add": [
-                {"$multiply": [lifestyle_score_expr, 100, 0.56]},
-                {"$multiply": [dist_score_expr, 0.14]}
+                {"$multiply": [lifestyle_score_expr, 100, 0.49]},
+                {"$multiply": [dist_score_expr, 0.21]}
             ]}
         else:
             # 가성비 사용 안할 때
