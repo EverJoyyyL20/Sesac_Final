@@ -1,0 +1,158 @@
+import pandas as pd
+from pymongo import MongoClient
+from urllib.parse import quote_plus
+import math
+import re
+
+# -----------------------------------------------------------
+# [보조 함수] 층수 데이터가 날짜로 변환된 경우 복구하는 로직
+# -----------------------------------------------------------
+def restore_floor_string(value):
+    s = str(value).strip()
+    
+    # 케이스 1: "06월 15일" 형태로 변해버린 경우 -> "6/15"로 복구
+    if '월' in s and '일' in s:
+        # "06월 15일" -> "06/15" -> "6/15" (앞의 0 제거)
+        temp = s.replace('월', '/').replace('일', '').replace(' ', '')
+        try:
+            parts = temp.split('/')
+            return f"{int(parts[0])}/{int(parts[1])}"
+        except:
+            return temp
+
+    # 케이스 2: "2024-06-15" (YYYY-MM-DD) 형태로 변해버린 경우 -> "6/15"로 복구
+    # (엑셀이 연도를 맘대로 붙인 경우)
+    if re.match(r'\d{4}-\d{2}-\d{2}', s):
+        try:
+            parts = s.split('-')
+            # 월(parts[1]), 일(parts[2])만 가져와서 층수로 복원
+            return f"{int(parts[1])}/{int(parts[2])}"
+        except:
+            return s
+            
+    # 그 외("중층/15", "옥탑", "3" 등)는 그대로 반환
+    return s
+
+def upload_csv_to_mongodb():
+    # -----------------------------------------------------------
+    # 1. MongoDB 연결 (인증 정보 포함)
+    # -----------------------------------------------------------
+    username = 'lys0111'
+    password = 'Leeys01234@@'
+    
+    escaped_username = quote_plus(username)
+    escaped_password = quote_plus(password)
+    
+    # Atlas 연결 문자열 (꺾쇠 괄호 제거됨)
+    uri = f"mongodb+srv://{escaped_username}:{escaped_password}@cluster0.qpamvvh.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+    
+    print("🔗 MongoDB 연결 시도 중...")
+    try:
+        client = MongoClient(uri)
+        client.admin.command('ping')
+        print("✅ MongoDB Atlas 연결 성공!")
+    except Exception as e:
+        print(f"❌ 연결 실패: {e}")
+        return
+
+    db = client['sesac_final']
+    collection = db['properties']
+
+    # -----------------------------------------------------------
+    # 2. CSV 파일 읽기 (층수 필드 강제 문자열 처리)
+    # -----------------------------------------------------------
+    csv_file = 'seoul_zigbang_complete12345.csv'
+    
+    try:
+        # ★ 핵심 수정: dtype={'floor': str} 
+        # 처음 읽을 때부터 날짜로 자동 변환하지 말고 '문자열'로 읽어라!
+        df = pd.read_csv(csv_file, dtype={'floor': str})
+    except FileNotFoundError:
+        print("❌ CSV 파일이 없습니다.")
+        return
+
+    # 결측치 처리
+    df['deposit'] = df['deposit'].fillna(0)
+    df['price'] = df['price'].fillna(0)
+    df['size_m2'] = df['size_m2'].fillna(0)
+    df['options'] = df['options'].fillna('')
+    df['images'] = df['images'].fillna('')
+    df['hasParking'] = df['hasParking'].fillna('정보없음')
+    df['floor'] = df['floor'].fillna('')
+    # [추가됨] 준공일자 결측치 처리
+    df['year_built'] = df['year_built'].fillna('')
+
+    documents = []
+    
+    print("🚀 데이터 변환 및 정제 중...")
+
+    for index, row in df.iterrows():
+        try:
+            # (1) 층수 데이터 정제 (날짜로 오인된 데이터 복구)
+            raw_floor = row['floor']
+            clean_floor = restore_floor_string(raw_floor)
+            
+            # (2) 좌표 처리
+            lat = float(row['lat']) if not math.isnan(row['lat']) else 0.0
+            lng = float(row['lng']) if not math.isnan(row['lng']) else 0.0
+            
+            location = {
+                "type": "Point",
+                "coordinates": [lng, lat]
+            }
+
+            # (3) 리스트 변환
+            option_list = str(row['options']).split(',') if row['options'] else []
+            image_list = str(row['images']).split('|') if row['images'] else []
+
+            # (4) 문서 생성
+            doc = {
+                "_id": int(row['id']),
+                "rent_type": str(row['rent_type']),
+                "address": str(row['address']),
+                "deposit": int(row['deposit']),
+                "price": int(row['price']),
+                "size_m2": float(row['size_m2']),
+                "floor": clean_floor,         # ★ 정제된 층수 데이터 사용
+                "options": option_list,
+                "hasParking": str(row['hasParking']),
+                "images": image_list,
+                "url": str(row['url']),
+                "year_built": str(row['year_built']), # [추가됨] 준공일자 필드
+                "buildingUse": "원룸",
+                "room_counts": "1개",         # ★ [추가됨] 모든 데이터에 방 개수 '1개' 일괄 적용
+                "location": location
+            }
+            documents.append(doc)
+            
+        except Exception as e:
+            continue
+
+    # -----------------------------------------------------------
+    # 3. 데이터 업로드
+    # -----------------------------------------------------------
+    if documents:
+        print(f"📤 정제된 데이터 {len(documents)}건 업로드 시작...")
+        try:
+            # 기존 데이터가 있으면 덮어쓰거나 무시 (여기선 무시)
+            result = collection.insert_many(documents, ordered=False)
+            print(f"✨ 성공! {len(result.inserted_ids)}건 저장 완료.")
+        except Exception:
+            print("ℹ️ 일부 중복 데이터는 건너뛰고 저장했습니다.")
+
+        # 인덱스 생성
+        try:
+            collection.create_index([("location", "2dsphere")])
+            print("🌐 위치 인덱스 생성 완료.")
+        except: pass
+        
+        # [확인용] 층수 데이터 샘플 출력
+        print("\n👀 [저장된 층수 데이터 샘플 5개]")
+        sample_floors = [doc['floor'] for doc in documents[:5]]
+        print(sample_floors)
+        
+    else:
+        print("❌ 저장할 데이터가 없습니다.")
+
+if __name__ == "__main__":
+    upload_csv_to_mongodb()
